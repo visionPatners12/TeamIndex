@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PoolStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+enum PositionStatus {
+  OPEN
+  SETTLED
+  CANCELLED
+}
+
+enum QueueStatus {
+  SCHEDULED
+  EXECUTED
+  SKIPPED
+  FAILED
+  CANCELLED
+}
+
+enum CrossChainDepositStatus {
+  RECEIVED        // CHZ/token landed on Chiliz receiver contract
+  BRIDGING        // Funds being bridged/swapped to Polygon USDC
+  DEPOSITING      // USDC being deposited into Polygon vault
+  MINTING_SHARES  // Wrapped shares being minted on Chiliz
+  COMPLETED       // Done — user has wrapped shares
+  FAILED          // Permanent failure
+}
+
+enum CrossChainRedemptionStatus {
+  BURN_REQUESTED  // User wants to burn wrapped shares
+  BURNED          // Shares burned on Chiliz
+  WITHDRAWING     // USDC being withdrawn from Polygon vault
+  SETTLING        // Value being sent back to user on Chiliz
+  COMPLETED
+  FAILED
+}
+
+enum Side {
+  YES
+  NO
+}
+
+model club_pools {
+  id                     String   @id @default(cuid())
+  clubName               String
+  symbol                 String
+  // From club_teams_map.polymarketTeamId when pool is created from mapped team (Polymarket discovery).
+  polymarketTeamId       String?
+  // If using `ClubVaultFactory`, this is the deployed per-club vault address.
+  // Used so `tx/deposit` and admin vault calls always target the same vault.
+  vaultAddress          String?
+  depositCap             Decimal  @db.Decimal(78, 18) @default(0)
+  cash                   Decimal  @db.Decimal(78, 18) @default(0)
+  openPositionsValue    Decimal  @db.Decimal(78, 18) @default(0)
+  realizedPnl            Decimal  @db.Decimal(78, 18) @default(0)
+  totalPoolValue         Decimal  @db.Decimal(78, 18) @default(0)
+  totalTokenSupply       Decimal  @db.Decimal(78, 18) @default(0)
+  officialTokenPrice     Decimal  @db.Decimal(78, 18) @default(0)
+  riskParams             Json     @default("{}")
+  status                 PoolStatus @default(ACTIVE)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  users       club_pool_users[]
+  transactions club_pool_transactions[]
+  positions   club_pool_positions[]
+  snapshots    club_pool_price_snapshots[]
+  candidates  club_market_candidates[]
+  matchQueue  club_match_queue[]
+}
+
+model club_pool_users {
+  id          String   @id @default(cuid())
+  poolId      String
+  userAddress String
+  tokenBalance Decimal @db.Decimal(78, 18) @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, userAddress])
+  @@index([userAddress])
+}
+
+model club_pool_transactions {
+  id             String   @id @default(cuid())
+  poolId         String
+  userAddress    String
+  depositAmount  Decimal  @db.Decimal(78, 18)
+  netPoolAmount  Decimal  @db.Decimal(78, 18)
+  feeAmount      Decimal  @db.Decimal(78, 18)
+  tokenPriceAtMint Decimal @db.Decimal(78, 18)
+  tokensMinted   Decimal  @db.Decimal(78, 18)
+  createdAt      DateTime @default(now())
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, userAddress])
+}
+
+model club_pool_positions {
+  id              String   @id @default(cuid())
+  poolId          String
+  eventId         String
+  marketId        String
+  tokenId         String
+  clobOrderId    String?
+  side            Side
+  entryPrice      Decimal @db.Decimal(78, 18)
+  // Planned execution (based on tranche sizing at creation time).
+  plannedStake    Decimal @db.Decimal(78, 18) @default(0)
+  plannedQuantity Decimal @db.Decimal(78, 18) @default(0)
+
+  // Filled execution (updated by CLOB fill sync).
+  stake           Decimal @db.Decimal(78, 18) @default(0)
+  quantity        Decimal @db.Decimal(78, 18) @default(0)
+
+  // Cash already deducted from pool.cash for invested stake.
+  investedAmount  Decimal @db.Decimal(78, 18) @default(0)
+
+  currentValue    Decimal @db.Decimal(78, 18) @default(0)
+  realizedPnl     Decimal @db.Decimal(78, 18) @default(0)
+  status          PositionStatus @default(OPEN)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, tokenId])
+}
+
+model club_pool_price_snapshots {
+  id               String   @id @default(cuid())
+  poolId           String
+  cash             Decimal  @db.Decimal(78, 18)
+  positionsValue   Decimal  @db.Decimal(78, 18)
+  realizedPnl      Decimal  @db.Decimal(78, 18)
+  totalPoolValue   Decimal  @db.Decimal(78, 18)
+  officialTokenPrice Decimal @db.Decimal(78, 18)
+  snapshotTime     DateTime @default(now())
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, snapshotTime])
+}
+
+model club_teams_map {
+  id             String @id @default(cuid())
+  internalClubName String
+  polymarketTeamId String
+  createdAt      DateTime @default(now())
+
+  @@unique([internalClubName, polymarketTeamId])
+}
+
+model club_market_candidates {
+  id            String @id @default(cuid())
+  poolId        String
+  clubName      String
+  eventId       String
+  marketId      String
+  tokenId       String
+  side          Side
+  kickoffTime   DateTime?
+  entryWindow   DateTime?
+  liquidityUsd  Decimal @db.Decimal(78, 18) @default(0)
+  status        String @default("CANDIDATE")
+  discoveredAt   DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, eventId, tokenId])
+}
+
+model club_match_queue {
+  id              String     @id @default(cuid())
+  poolId          String
+  candidateId    String
+  executionTime  DateTime
+  tranche         Int // 48h=1, 24h=2
+  stakeUsd        Decimal  @db.Decimal(78, 18)
+  status          QueueStatus @default(SCHEDULED)
+  lastError       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, executionTime, status])
+}
+
+// ============================
+// Cross-chain (Chiliz <-> Polygon)
+// ============================
+
+model cross_chain_deposits {
+  id                  String   @id @default(cuid())
+  poolId              String
+  userAddress         String   // user wallet on Chiliz
+  sourceToken         String   // address(0) = native CHZ, else fan token address
+  sourceAmount        Decimal  @db.Decimal(78, 18)
+  chilizDepositId     BigInt   // on-chain depositId from ChilizDepositReceiver
+  chilizTxHash        String?  // tx hash on Chiliz chain
+
+  usdcAmount          Decimal? @db.Decimal(78, 18) // USDC received after bridge/swap
+  polygonDepositTxHash String? // vault deposit tx on Polygon
+  sharesMinted        Decimal? @db.Decimal(78, 18)
+  chilizMintTxHash    String?  // wrapped share mint tx on Chiliz
+
+  status              CrossChainDepositStatus @default(RECEIVED)
+  lastError           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([poolId, userAddress])
+  @@index([status])
+  @@unique([chilizDepositId])
+}
+
+model cross_chain_redemptions {
+  id                  String   @id @default(cuid())
+  poolId              String
+  userAddress         String   // user wallet on Chiliz
+  sharesBurned        Decimal  @db.Decimal(78, 18)
+  chilizBurnTxHash    String?
+
+  usdcWithdrawn       Decimal? @db.Decimal(78, 18)
+  polygonWithdrawTxHash String?
+  settlementToken     String?  // what user gets back (CHZ address or native)
+  settlementAmount    Decimal? @db.Decimal(78, 18)
+  chilizSettleTxHash  String?
+
+  status              CrossChainRedemptionStatus @default(BURN_REQUESTED)
+  lastError           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([poolId, userAddress])
+  @@index([status])
+}
+
