@@ -1,6 +1,7 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { syncVaultEventsToDb } from "../onchain/poolSync";
+import { recalculateOfficialPrices } from "../services/priceEngine";
 import { ethers } from "ethers";
 
 function getLastSyncedBlock(riskParams: any): number | undefined {
@@ -27,6 +28,7 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
 
     const latest = await provider.getBlockNumber();
 
+    let didAnySync = false;
     for (const pool of pools) {
       const lastSynced = getLastSyncedBlock(pool.riskParams);
       const fromBlock = lastSynced !== undefined ? lastSynced + 1 : Math.max(0, latest - 2_000);
@@ -45,8 +47,18 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
           fromBlock,
           toBlock
         });
+        didAnySync = true;
       } catch (err: any) {
         logger.error({ err, poolId: pool.id }, "Vault sync tick failed for pool");
+      }
+    }
+
+    // Keep pool totals (totalPoolValue / officialTokenPrice) fresh for UI after deposits/withdraws.
+    if (didAnySync) {
+      try {
+        await recalculateOfficialPrices(env);
+      } catch (err: any) {
+        logger.error({ err }, "Vault sync: price recalculation failed");
       }
     }
   }

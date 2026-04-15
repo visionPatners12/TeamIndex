@@ -2,6 +2,7 @@ import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { getVaultContract } from "./vaultExecutor";
 import { ethers } from "ethers";
+import { queryFilterInBlockChunks } from "./ethersLogChunks";
 
 type SyncInputs = {
   env: Env;
@@ -14,6 +15,10 @@ type SyncInputs = {
   };
   fromBlock: number;
   toBlock: number;
+  /** If set, only process logs from these tx hashes (lowercase hex). */
+  onlyTransactionHashes?: string[];
+  /** When true, do not advance riskParams.lastSyncedBlock (used for targeted post-deposit ingest). */
+  skipCursorAdvance?: boolean;
 };
 
 function decToStr(x: any) {
@@ -25,16 +30,28 @@ function decToStr(x: any) {
   return String(x);
 }
 
-export async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock }: SyncInputs) {
+export async function syncVaultEventsToDb({
+  env,
+  pool,
+  fromBlock,
+  toBlock,
+  onlyTransactionHashes,
+  skipCursorAdvance
+}: SyncInputs) {
   if (!env.RPC_URL) throw new Error("RPC_URL missing (required for onchain sync)");
   if (fromBlock > toBlock) return;
+
+  const onlySet =
+    onlyTransactionHashes && onlyTransactionHashes.length > 0
+      ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
+      : null;
 
   const provider = new ethers.JsonRpcProvider(env.RPC_URL);
   const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
 
-  const depositEvents = await vault.queryFilter(vault.filters.Deposit(), fromBlock, toBlock);
-  const withdrawEvents = await vault.queryFilter(vault.filters.Withdraw(), fromBlock, toBlock);
-  const feeEvents = await vault.queryFilter(vault.filters.VaultFeeCharged(), fromBlock, toBlock);
+  const depositEvents = await queryFilterInBlockChunks(vault, vault.filters.Deposit(), fromBlock, toBlock);
+  const withdrawEvents = await queryFilterInBlockChunks(vault, vault.filters.Withdraw(), fromBlock, toBlock);
+  const feeEvents = await queryFilterInBlockChunks(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock);
 
   // Map txHash -> fee info for deposit/mint transactions.
   const feeByTx = new Map<
@@ -44,12 +61,13 @@ export async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock }: Syn
   for (const ev of feeEvents) {
     const txHash = (ev as any).transactionHash as string | undefined;
     if (!txHash) continue;
+    if (onlySet && !onlySet.has(txHash.toLowerCase())) continue;
     const args = (ev as any).args ?? {};
     const treasury = args.treasury as string;
     const grossAssets = args.grossAssets as bigint;
     const feeAssets = args.feeAssets as bigint;
     const netAssets = args.netAssets as bigint;
-    feeByTx.set(txHash, {
+    feeByTx.set(txHash.toLowerCase(), {
       treasury,
       grossAssets: decToStr(grossAssets),
       feeAssets: decToStr(feeAssets),
@@ -78,8 +96,15 @@ export async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock }: Syn
     const shares = args.shares as bigint;
 
     if (!txHash || !owner) continue;
+    if (onlySet && !onlySet.has(txHash.toLowerCase())) continue;
 
-    const fee = feeByTx.get(txHash);
+    const txKey = txHash.toLowerCase();
+    const dup = await prisma.club_pool_transactions.findFirst({
+      where: { poolId: pool.id, txHash: txKey } as any
+    });
+    if (dup) continue;
+
+    const fee = feeByTx.get(txKey);
     const depositAmount = fee?.grossAssets ?? decToStr(assets);
     const feeAmount = fee?.feeAssets ?? "0";
     const netPoolAmount = fee?.netAssets ?? decToStr(assets);
@@ -107,13 +132,14 @@ export async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock }: Syn
     await prisma.club_pool_transactions.create({
       data: {
         poolId: pool.id,
+        txHash: txKey,
         userAddress: owner,
         depositAmount: depositAmount,
         netPoolAmount: netPoolAmount,
         feeAmount: feeAmount,
         tokenPriceAtMint: tokenPriceAtMint,
         tokensMinted: shares.toString()
-      }
+      } as any
     });
   }
 
@@ -121,6 +147,8 @@ export async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock }: Syn
   // Withdraws / redeems
   // =========================
   for (const ev of withdrawEvents) {
+    const txHash = (ev as any).transactionHash as string | undefined;
+    if (onlySet && (!txHash || !onlySet.has(txHash.toLowerCase()))) continue;
     const args = (ev as any).args ?? {};
     const owner = args.owner as string;
     const shares = args.shares as bigint;
@@ -135,23 +163,28 @@ export async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock }: Syn
   const totalAssets = (await (vault as any).totalCash()) as bigint;
   const totalSupply = (await vault.totalSupply()) as bigint;
 
-  await prisma.club_pools.update({
-    where: { id: pool.id },
-    data: {
-      cash: totalAssets.toString(),
-      totalTokenSupply: totalSupply.toString()
-    }
-  });
+  // totalCash is USDC base units (6 decimals); store human USD in DB for pricing + UI.
+  const cashHuman = ethers.formatUnits(totalAssets, 6);
 
   await prisma.club_pools.update({
     where: { id: pool.id },
     data: {
-      riskParams: {
-        ...(pool.riskParams as any),
-        lastSyncedBlock: toBlock
-      } as any
+      cash: cashHuman,
+      totalTokenSupply: totalSupply.toString()
     }
   });
+
+  if (!skipCursorAdvance) {
+    await prisma.club_pools.update({
+      where: { id: pool.id },
+      data: {
+        riskParams: {
+          ...(pool.riskParams as any),
+          lastSyncedBlock: toBlock
+        } as any
+      }
+    });
+  }
 
 }
 

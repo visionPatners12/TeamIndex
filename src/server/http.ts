@@ -68,7 +68,14 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.get("/pools", async (_req, res) => {
-    const pools = await prisma.club_pools.findMany({ orderBy: { createdAt: "desc" } });
+    const rows = await prisma.club_pools.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { users: true } } }
+    });
+    const pools = rows.map(({ _count, ...pool }) => ({
+      ...pool,
+      holdersCount: _count.users
+    }));
     res.json({ ok: true, pools });
   });
 
@@ -78,9 +85,13 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.get("/pools/:poolId", async (req, res) => {
-    const pool = await prisma.club_pools.findUnique({ where: { id: req.params.poolId } });
-    if (!pool) return res.status(404).json({ error: "Pool not found" });
-    res.json({ ok: true, pool });
+    const row = await prisma.club_pools.findUnique({
+      where: { id: req.params.poolId },
+      include: { _count: { select: { users: true } } }
+    });
+    if (!row) return res.status(404).json({ error: "Pool not found" });
+    const { _count, ...pool } = row;
+    res.json({ ok: true, pool: { ...pool, holdersCount: _count.users } });
   });
 
   app.get("/pools/:poolId/candidates", async (req, res) => {
@@ -655,6 +666,65 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       },
       txs: { approveWrapChzTx, swapTx, approveUsdcTx, depositTx }
     });
+  });
+
+  // Immediately ingest a confirmed vault deposit tx into DB (single block; does not advance lastSyncedBlock).
+  app.post("/pools/:poolId/deposit/confirm", async (req, res) => {
+    const poolId = req.params.poolId;
+    const body = z
+      .object({
+        txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/i)
+      })
+      .parse(req.body);
+    const txLc = body.txHash.toLowerCase();
+
+    if (!env.RPC_URL) {
+      return res.status(400).json({ error: "RPC_URL missing" });
+    }
+
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+    if (!pool.vaultAddress) {
+      return res.status(400).json({ error: "Pool vaultAddress not configured" });
+    }
+
+    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+    const receipt = await provider.getTransactionReceipt(body.txHash);
+    if (!receipt || receipt.status !== 1) {
+      return res.status(400).json({ error: "Transaction not found or not successful" });
+    }
+
+    const vaultLc = pool.vaultAddress.toLowerCase();
+    const touchesVault = receipt.logs.some((l) => (l.address || "").toLowerCase() === vaultLc);
+    if (!touchesVault) {
+      return res.status(400).json({ error: "Transaction does not involve this pool vault" });
+    }
+
+    const bn = Number(receipt.blockNumber);
+    await syncVaultEventsToDb({
+      env,
+      pool: {
+        id: pool.id,
+        clubName: pool.clubName,
+        vaultAddress: pool.vaultAddress ?? undefined,
+        officialTokenPrice: pool.officialTokenPrice,
+        riskParams: pool.riskParams
+      } as any,
+      fromBlock: bn,
+      toBlock: bn,
+      onlyTransactionHashes: [txLc],
+      skipCursorAdvance: true
+    });
+
+    await recalculateOfficialPrices(env);
+
+    const row = await prisma.club_pools.findUnique({
+      where: { id: poolId },
+      include: { _count: { select: { users: true } } }
+    });
+    if (!row) return res.status(404).json({ error: "Pool not found" });
+    const { _count, ...rest } = row;
+    res.json({ ok: true, pool: { ...rest, holdersCount: _count.users } });
   });
 
   app.post("/pools/:poolId/tx/deposit", async (req, res) => {

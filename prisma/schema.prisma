@@ -96,6 +96,8 @@ model club_pool_users {
 model club_pool_transactions {
   id             String   @id @default(cuid())
   poolId         String
+  /// On-chain tx hash (lowercase) for idempotent ingest after user deposit.
+  txHash         String?
   userAddress    String
   depositAmount  Decimal  @db.Decimal(78, 18)
   netPoolAmount  Decimal  @db.Decimal(78, 18)
@@ -106,6 +108,7 @@ model club_pool_transactions {
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
+  @@unique([poolId, txHash])
   @@index([poolId, userAddress])
 }
 

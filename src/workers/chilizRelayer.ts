@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma";
 import { ethers } from "ethers";
 import { getDepositReceiverContract, mintWrappedShares, getChilizProvider } from "../onchain/chilizExecutor";
 import { getVaultContract } from "../onchain/vaultExecutor";
+import { queryFilterInBlockChunks } from "../onchain/ethersLogChunks";
 
 export function startChilizRelayer({ env, logger }: { env: Env; logger: ReturnType<any> }) {
   const intervalMs = Number(process.env.CHILIZ_RELAYER_INTERVAL_MS || 30_000);
@@ -38,7 +39,7 @@ export function startChilizRelayer({ env, logger }: { env: Env; logger: ReturnTy
     const toBlock = currentBlock;
 
     const filter = receiver.filters.DepositReceived();
-    const events = await receiver.queryFilter(filter, fromBlock, toBlock);
+    const events = await queryFilterInBlockChunks(receiver, filter, fromBlock, toBlock);
 
     for (const event of events) {
       const parsed = event as ethers.EventLog;
