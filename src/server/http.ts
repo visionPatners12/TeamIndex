@@ -35,7 +35,16 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import { ERC20 } from "../contracts/erc20";
 import { UNISWAP_V2_ROUTER } from "../contracts/uniswapV2Router";
-import { listTeams } from "../polymarket/gammaClient";
+import { listTeams, searchMarketsByKeyword } from "../polymarket/gammaClient";
+import {
+  getBooks,
+  getMidpoint,
+  getSpreadMap,
+  getPricesHistory,
+  calculateDepthAtSlippage,
+  estimateSlippage,
+  getBestBidAsk,
+} from "../polymarket/clobClient";
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
@@ -65,6 +74,80 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       .then(() => true)
       .catch(() => false);
     res.json({ ok: true, db: dbOk });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Public platform settings (Chiliz network on/off is read from here).
+  // The settings row is a singleton keyed by "default" and lazily created.
+  // ────────────────────────────────────────────────────────────────────────
+  async function getOrCreateSettings() {
+    const existing = await prisma.system_settings.findUnique({ where: { key: "default" } });
+    if (existing) return existing;
+    return prisma.system_settings.create({ data: { key: "default" } });
+  }
+
+  app.get("/settings/public", async (_req, res) => {
+    try {
+      const s = await getOrCreateSettings();
+      res.json({ ok: true, chilizEnabled: s.chilizEnabled, updatedAt: s.updatedAt });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "settings_error" });
+    }
+  });
+
+  app.get("/admin/settings", requireAdmin, async (_req, res) => {
+    try {
+      const s = await getOrCreateSettings();
+      res.json({ ok: true, settings: s });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "settings_error" });
+    }
+  });
+
+  app.patch("/admin/settings/chiliz", requireAdmin, async (req, res) => {
+    try {
+      const enabled = Boolean(req.body?.enabled);
+      const updated = await prisma.system_settings.upsert({
+        where: { key: "default" },
+        update: { chilizEnabled: enabled },
+        create: { key: "default", chilizEnabled: enabled },
+      });
+      res.json({ ok: true, settings: updated });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "settings_error" });
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Real-time CHZ/USD price (CoinGecko, lightly cached).
+  // Exposed publicly so the UI can always show the current price, even when
+  // the Chiliz deposit flow is disabled by the admin.
+  // ────────────────────────────────────────────────────────────────────────
+  let chzPriceCache: { at: number; usd: number } | null = null;
+  const CHZ_CACHE_MS = 30_000;
+
+  app.get("/chz/price", async (_req, res) => {
+    try {
+      const now = Date.now();
+      if (chzPriceCache && now - chzPriceCache.at < CHZ_CACHE_MS) {
+        return res.json({ ok: true, usd: chzPriceCache.usd, cached: true, fetchedAt: chzPriceCache.at });
+      }
+      const resp = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=chiliz&vs_currencies=usd",
+        { headers: { accept: "application/json" } }
+      );
+      if (!resp.ok) throw new Error(`coingecko_${resp.status}`);
+      const json: any = await resp.json();
+      const usd = Number(json?.chiliz?.usd);
+      if (!Number.isFinite(usd) || usd <= 0) throw new Error("invalid_chz_price");
+      chzPriceCache = { at: now, usd };
+      res.json({ ok: true, usd, cached: false, fetchedAt: now });
+    } catch (e: any) {
+      if (chzPriceCache) {
+        return res.json({ ok: true, usd: chzPriceCache.usd, cached: true, stale: true, fetchedAt: chzPriceCache.at });
+      }
+      res.status(502).json({ ok: false, error: e?.message ?? "chz_price_error" });
+    }
   });
 
   app.get("/pools", async (_req, res) => {
@@ -111,10 +194,133 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.get("/pools/:poolId/positions", async (req, res) => {
-    const positions = await prisma.club_pool_positions.findMany({
-      where: { poolId: req.params.poolId, status: "OPEN" }
+    const poolId = req.params.poolId;
+
+    const [rawPositions, selectedMarkets] = await Promise.all([
+      prisma.club_pool_positions.findMany({
+        where: { poolId, status: { in: ["OPEN", "SETTLED"] } },
+        orderBy: { createdAt: "desc" },
+      }),
+      (prisma as any).pool_selected_markets
+        ? (prisma as any).pool_selected_markets.findMany({ where: { poolId } })
+        : Promise.resolve([]),
+    ]);
+
+    const metaMap = new Map<string, any>(
+      (selectedMarkets as any[]).map((m: any) => [m.marketId, m])
+    );
+
+    const positions = rawPositions.map((pos) => {
+      const meta = metaMap.get(pos.marketId);
+      const investedAmount = Number(pos.investedAmount ?? pos.stake ?? 0);
+      const currentValue   = Number(pos.currentValue ?? pos.investedAmount ?? 0);
+      const quantity       = Number(pos.quantity ?? pos.plannedQuantity ?? 0);
+      const unrealizedPnl  = currentValue - investedAmount;
+      const unrealizedPnlPct = investedAmount > 0 ? unrealizedPnl / investedAmount : 0;
+      const currentPrice   = quantity > 0 ? currentValue / quantity : Number(pos.entryPrice ?? 0.5);
+
+      return {
+        conditionId:      meta?.conditionId ?? pos.marketId,
+        question:         meta?.question ?? `Market ${pos.marketId.slice(0, 8)}`,
+        marketType:       meta?.marketType ?? "game",
+        selectedSide:     pos.side,
+        sizeUsdc:         investedAmount,
+        entryPrice:       Number(pos.entryPrice ?? 0),
+        currentPrice:     currentPrice,
+        unrealizedPnl,
+        unrealizedPnlPct,
+        status:           pos.status === "OPEN" ? "open" : pos.status === "SETTLED" ? "settled" : "closed",
+        endsAt:           meta?.endDateIso ?? null,
+      };
     });
+
     res.json({ ok: true, positions });
+  });
+
+  // ─── User holdings across all pools ──────────────────────────────────────────
+  // Returns every pool where the given wallet address holds a non-zero share
+  // balance, along with computed USD value per holding and a portfolio total.
+  app.get("/users/:address/holdings", async (req, res) => {
+    const address = String(req.params.address || "").trim();
+    if (!address) return res.status(400).json({ error: "Missing address" });
+
+    // Matching is case-insensitive because checksummed vs lowercased addresses
+    // get stored depending on the source (events vs admin input).
+    const userRows = await prisma.club_pool_users.findMany({
+      where: {
+        userAddress: { equals: address, mode: "insensitive" },
+        tokenBalance: { gt: 0 },
+      },
+    });
+
+    if (userRows.length === 0) {
+      return res.json({ ok: true, holdings: [], totalValueUsd: 0 });
+    }
+
+    const pools = await prisma.club_pools.findMany({
+      where: { id: { in: userRows.map((u) => u.poolId) } },
+    });
+    const poolById = new Map(pools.map((p) => [p.id, p]));
+
+    // Re-implementation of the frontend tokenPriceUsdPerWholeShare logic — keep
+    // pricing rules centralised so numbers shown on the landing page, dashboard
+    // and deposit modal all agree.
+    const VAULT_SHARE_DECIMALS = 6;
+    const toTvlHuman = (raw: string | null | undefined) => {
+      if (!raw) return 0;
+      const s = String(raw).trim();
+      const n = Number(s);
+      if (!Number.isFinite(n) || n <= 0) return 0;
+      if (s.includes(".") || /[eE]/i.test(s)) return n;
+      if (/^\d+$/.test(s)) return n / 1_000_000;
+      return n;
+    };
+
+    const holdings = userRows
+      .map((u) => {
+        const pool = poolById.get(u.poolId);
+        if (!pool) return null;
+
+        const rawBalance = Number(u.tokenBalance?.toString() ?? "0");
+        const shares = rawBalance / 10 ** VAULT_SHARE_DECIMALS;
+        if (!(shares > 0)) return null;
+
+        const tvl = toTvlHuman(pool.totalPoolValue?.toString());
+        const rawSupply = Number(pool.totalTokenSupply?.toString() ?? "0");
+        const sharesHuman = rawSupply > 0 ? rawSupply / 10 ** VAULT_SHARE_DECIMALS : 0;
+
+        const stored = Number(pool.officialTokenPrice?.toString() ?? "0");
+        let tokenPrice = 1;
+        if (sharesHuman > 0 && tvl > 0) {
+          const nav = tvl / sharesHuman;
+          if (nav > 0 && stored > 0 && nav / stored > 10_000) tokenPrice = nav;
+          else if (stored > 0) tokenPrice = stored;
+          else tokenPrice = nav;
+        } else if (stored > 0) {
+          tokenPrice = stored;
+        }
+
+        const valueUsd = shares * tokenPrice;
+
+        return {
+          poolId: pool.id,
+          clubName: pool.clubName,
+          symbol: pool.symbol,
+          vaultAddress: pool.vaultAddress,
+          status: pool.status,
+          shares,
+          tokenBalanceRaw: u.tokenBalance?.toString() ?? "0",
+          tokenPriceUsd: tokenPrice,
+          valueUsd,
+          updatedAt: u.updatedAt,
+        };
+      })
+      .filter((h): h is NonNullable<typeof h> => h !== null)
+      .sort((a, b) => b.valueUsd - a.valueUsd);
+
+    const totalValueUsd = holdings.reduce((s, h) => s + h.valueUsd, 0);
+
+    res.json({ ok: true, address, holdings, totalValueUsd });
   });
 
   app.get("/pools/:poolId/price-snapshots/latest", async (req, res) => {
@@ -316,6 +522,257 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     } catch (e: any) {
       logger.error({ err: e }, "sync-from-gamma failed");
       res.status(502).json({ error: e?.message ?? "Gamma /teams request failed" });
+    }
+  });
+
+  // ─── Polymarket Market Search & Data ────────────────────────────────────────
+
+  /**
+   * GET /admin/polymarket/search?q=Arsenal
+   * Searches Polymarket Gamma API for markets matching the keyword.
+   * Returns formatted markets with marketType (game/future) detection.
+   */
+  app.get("/admin/polymarket/search", requireAdmin, async (req, res) => {
+    const q = String(req.query.q ?? "").trim();
+    if (!q) return res.status(400).json({ error: "q is required" });
+
+    try {
+      const markets = await searchMarketsByKeyword(env, q, 50);
+      res.json({ ok: true, markets });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/search failed");
+      res.status(502).json({ error: e?.message ?? "Polymarket search failed" });
+    }
+  });
+
+  /**
+   * GET /admin/polymarket/market-data?conditionId=...&tokenId=...
+   * Fetches live CLOB + Gamma data (price, spread, depth, volume24h, history, endDate).
+   */
+  app.get("/admin/polymarket/market-data", requireAdmin, async (req, res) => {
+    const conditionId = String(req.query.conditionId ?? "").trim();
+    const tokenId     = String(req.query.tokenId ?? "").trim();
+
+    if (!conditionId || !tokenId) {
+      return res.status(400).json({ error: "conditionId and tokenId are required" });
+    }
+
+    try {
+      // Fetch CLOB + Gamma data in parallel
+      const [books, midStr, spreadMap, history, gammaMarket] = await Promise.all([
+        getBooks(env, [tokenId]).catch(() => []),
+        getMidpoint(env, tokenId).catch(() => "0.5"),
+        getSpreadMap(env, [tokenId]).catch(() => ({} as Record<string, string>)),
+        getPricesHistory(env, tokenId, "1d"),
+        // Gamma: get market metadata (volume24h, endDate, liquidity, closed status)
+        import("../polymarket/gammaClient").then(m =>
+          m.getMarketById(env, conditionId).catch(() => null)
+        ),
+      ]);
+
+      const book     = (books as any[])[0];
+      const midpoint = parseFloat(midStr as string);
+      const spread   = parseFloat((spreadMap as Record<string, string>)[tokenId] ?? "0");
+      const { bestBid, bestAsk } = book
+        ? getBestBidAsk(book)
+        : { bestBid: midpoint - 0.01, bestAsk: midpoint + 0.01 };
+
+      const depthAt2Pct = book ? calculateDepthAtSlippage(book, bestAsk, 0.02) : 0;
+      const slippage    = book ? estimateSlippage(book, 5_000) : 0.03;
+
+      // Liquidity from order book depth
+      const bookLiquidity = book
+        ? ((book.bids ?? []) as any[]).reduce((s: number, b: any) => s + parseFloat(b.price) * parseFloat(b.size), 0) +
+          ((book.asks ?? []) as any[]).reduce((s: number, a: any) => s + parseFloat(a.price) * parseFloat(a.size), 0)
+        : 0;
+
+      // Prefer Gamma for liquidity/volume (more accurate than order book snapshot)
+      const gamma        = gammaMarket as Record<string, any> | null;
+      const gammaLiq     = Number(gamma?.liquidityAmountUSD ?? gamma?.liquidity ?? 0);
+      const liquidity    = gammaLiq > 0 ? gammaLiq : bookLiquidity;
+      const volume24h    = Number(gamma?.volume24hr ?? gamma?.oneDayVolume ?? gamma?.volume24h ?? 0);
+      const isClosed     = Boolean(gamma?.closed ?? false);
+      const endDateIso: string | null = gamma?.endDate ?? gamma?.resolutionTime ?? null;
+
+      // Days to resolution: compute from Gamma endDate if available
+      let daysToResolution = 14;
+      if (endDateIso) {
+        const endMs = new Date(endDateIso).getTime();
+        daysToResolution = Math.max(0, Math.round((endMs - Date.now()) / 86_400_000));
+      }
+
+      res.json({
+        conditionId,
+        price:               midpoint,
+        bestBid,
+        bestAsk,
+        midpoint,
+        spread:              spread || Math.abs(bestAsk - bestBid),
+        liquidity,
+        volume24h,
+        depthAt2PctSlippage: depthAt2Pct,
+        estimatedSlippage:   slippage,
+        daysToResolution,
+        marketStatus:        isClosed ? "closed" : "open",
+        historicalPrices:    history,
+      });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/market-data failed");
+      res.status(502).json({ error: e?.message ?? "CLOB/Gamma data fetch failed" });
+    }
+  });
+
+  // ─── Selected Markets (admin saves/retrieves market selection) ───────────────
+
+  const selectedMarketsUpsertSchema = z.object({
+    markets: z.array(z.object({
+      marketId:        z.string().min(1),
+      conditionId:     z.string().min(1),
+      tokenId:         z.string().min(1),
+      eventId:         z.string().optional().default(""),
+      question:        z.string().min(1),
+      marketType:      z.enum(["game", "future"]).default("game"),
+      selectedSide:    z.enum(["YES", "NO"]).default("YES"),
+      manualClusterId: z.string().optional(),
+      endDateIso:      z.string().optional(),
+      liquidity:       z.number().optional().default(0),
+      yesPrice:        z.number().optional().default(0.5),
+    })),
+  });
+
+  /**
+   * GET /admin/pools/:poolId/selected-markets
+   * Returns all admin-selected markets for a pool.
+   */
+  app.get("/admin/pools/:poolId/selected-markets", requireAdmin, async (req, res) => {
+    try {
+      const markets = await (prisma as any).pool_selected_markets.findMany({
+        where: { poolId: req.params.poolId },
+        orderBy: { createdAt: "asc" },
+      });
+      res.json({ ok: true, markets });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message ?? "DB error" });
+    }
+  });
+
+  /**
+   * POST /admin/pools/:poolId/selected-markets
+   * Replaces (upserts) the full list of selected markets for a pool.
+   */
+  app.post("/admin/pools/:poolId/selected-markets", requireAdmin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+
+    const { markets } = selectedMarketsUpsertSchema.parse(req.body);
+
+    try {
+      await (prisma as any).$transaction(
+        markets.map((m: any) =>
+          (prisma as any).pool_selected_markets.upsert({
+            where: { poolId_conditionId: { poolId, conditionId: m.conditionId } },
+            create: { ...m, poolId },
+            update: { ...m, updatedAt: new Date() },
+          })
+        )
+      );
+      res.json({ ok: true, saved: markets.length });
+    } catch (e: any) {
+      logger.error({ err: e }, "selected-markets upsert failed");
+      res.status(500).json({ error: e?.message ?? "DB error" });
+    }
+  });
+
+  // ─── Allocation Proposal ─────────────────────────────────────────────────────
+
+  const allocationProposalSchema = z.object({
+    proposal: z.object({
+      nav:              z.number(),
+      targetExposure:   z.number(),
+      cashWeight:       z.number(),
+      cashAmount:       z.number(),
+      portfolioQuality: z.number().optional().default(0),
+      allocations:      z.array(z.any()),
+      rejectedMarkets:  z.array(z.any()),
+      clusterExposure:  z.record(z.number()),
+    }),
+    selectedMarkets: z.array(z.any()),
+  });
+
+  /**
+   * POST /admin/pools/:poolId/allocation-proposal
+   * Saves an accepted allocation proposal to the database.
+   * Also upserts the selectedMarkets for this pool.
+   */
+  app.post("/admin/pools/:poolId/allocation-proposal", requireAdmin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+
+    const { proposal, selectedMarkets } = allocationProposalSchema.parse(req.body);
+
+    try {
+      const [saved] = await (prisma as any).$transaction([
+        (prisma as any).pool_allocation_proposals.create({
+          data: {
+            poolId,
+            nav:              proposal.nav,
+            targetExposure:   proposal.targetExposure,
+            cashWeight:       proposal.cashWeight,
+            cashAmount:       proposal.cashAmount,
+            portfolioQuality: proposal.portfolioQuality ?? 0,
+            proposalJson:     proposal as any,
+            selectedMarketsJson: selectedMarkets as any,
+            status:           "ACCEPTED",
+          },
+        }),
+        // Also upsert each selected market
+        ...(selectedMarkets as any[]).map((m: any) =>
+          (prisma as any).pool_selected_markets.upsert({
+            where: { poolId_conditionId: { poolId, conditionId: m.conditionId } },
+            create: {
+              poolId,
+              marketId:        m.marketId,
+              conditionId:     m.conditionId,
+              tokenId:         m.tokenId,
+              eventId:         m.eventId ?? "",
+              question:        m.question,
+              marketType:      m.marketType ?? "game",
+              selectedSide:    m.selectedSide ?? "YES",
+              manualClusterId: m.manualClusterId ?? null,
+              endDateIso:      m.endDateIso ?? null,
+              liquidity:       0,
+              yesPrice:        0.5,
+            },
+            update: {
+              selectedSide:    m.selectedSide ?? "YES",
+              marketType:      m.marketType ?? "game",
+              manualClusterId: m.manualClusterId ?? null,
+              updatedAt:       new Date(),
+            },
+          })
+        ),
+      ]);
+
+      res.json({ ok: true, proposalId: (saved as any).id });
+    } catch (e: any) {
+      logger.error({ err: e }, "allocation-proposal save failed");
+      res.status(500).json({ error: e?.message ?? "DB error" });
+    }
+  });
+
+  // ─── Latest allocation proposal (for reference) ───────────────────────────
+
+  app.get("/admin/pools/:poolId/allocation-proposal/latest", requireAdmin, async (req, res) => {
+    try {
+      const proposal = await (prisma as any).pool_allocation_proposals.findFirst({
+        where: { poolId: req.params.poolId },
+        orderBy: { createdAt: "desc" },
+      });
+      res.json({ ok: true, proposal });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message ?? "DB error" });
     }
   });
 

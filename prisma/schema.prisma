@@ -71,12 +71,58 @@ model club_pools {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  users       club_pool_users[]
-  transactions club_pool_transactions[]
-  positions   club_pool_positions[]
-  snapshots    club_pool_price_snapshots[]
-  candidates  club_market_candidates[]
-  matchQueue  club_match_queue[]
+  users                club_pool_users[]
+  transactions         club_pool_transactions[]
+  positions            club_pool_positions[]
+  snapshots            club_pool_price_snapshots[]
+  candidates           club_market_candidates[]
+  matchQueue           club_match_queue[]
+  selectedMarkets      pool_selected_markets[]
+  allocationProposals  pool_allocation_proposals[]
+}
+
+// Admin-selected Polymarket markets for a pool (used by allocation engine)
+model pool_selected_markets {
+  id              String   @id @default(cuid())
+  poolId          String
+  marketId        String
+  conditionId     String
+  tokenId         String
+  eventId         String   @default("")
+  question        String
+  marketType      String   @default("game")   // "game" | "future"
+  selectedSide    Side     @default(YES)
+  manualClusterId String?
+  endDateIso      String?
+  liquidity       Decimal  @db.Decimal(78, 18) @default(0)
+  yesPrice        Decimal  @db.Decimal(78, 18) @default(0)
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, conditionId])
+  @@index([poolId])
+}
+
+// Accepted allocation proposals saved by admin
+model pool_allocation_proposals {
+  id               String   @id @default(cuid())
+  poolId           String
+  nav              Decimal  @db.Decimal(78, 18)
+  targetExposure   Decimal  @db.Decimal(78, 18)
+  cashWeight       Decimal  @db.Decimal(78, 18)
+  cashAmount       Decimal  @db.Decimal(78, 18)
+  portfolioQuality Decimal  @db.Decimal(78, 18) @default(0)
+  proposalJson     Json
+  selectedMarketsJson Json
+  status           String   @default("ACCEPTED")
+  createdAt        DateTime @default(now())
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, createdAt])
 }
 
 model club_pool_users {
@@ -252,5 +298,17 @@ model cross_chain_redemptions {
 
   @@index([poolId, userAddress])
   @@index([status])
+}
+
+// ============================
+// Global system settings (singleton row with key="default")
+// ============================
+
+model system_settings {
+  key             String   @id @default("default")
+  /// When false, the Chiliz deposit flow is hidden in the user-facing UI.
+  /// The admin panel can still toggle it, and CHZ/USD price is always shown.
+  chilizEnabled   Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
 }
 

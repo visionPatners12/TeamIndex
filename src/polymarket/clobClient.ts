@@ -125,3 +125,75 @@ export async function getOrder(env: Env, orderId: string): Promise<any> {
   return sdk.getOrder(orderId);
 }
 
+// ─── Read-only data helpers (no auth needed) ──────────────────────────────────
+
+/**
+ * Fetch price history for a token from CLOB.
+ * Returns array of { t: unix_seconds, p: price }.
+ */
+export async function getPricesHistory(
+  env: Env,
+  tokenId: string,
+  interval: "1m" | "1h" | "1d" = "1d"
+): Promise<Array<{ t: number; p: number }>> {
+  try {
+    const url = `${clobBaseUrl(env)}/prices-history?market=${encodeURIComponent(tokenId)}&interval=${interval}`;
+    const raw = await getJson<{ history?: Array<{ t: number; p: number }> }>(url);
+    return raw.history ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Calculate how much USDC can be bought at ≤ slippagePct price impact.
+ * Uses bids (for YES buys) or asks.
+ */
+export function calculateDepthAtSlippage(
+  book: OrderBookSummary,
+  refPrice: number,
+  slippagePct = 0.02
+): number {
+  const asks = book.asks ?? [];
+  const maxPrice = refPrice * (1 + slippagePct);
+  let depth = 0;
+  for (const level of asks) {
+    const p = parseFloat(level.price);
+    const s = parseFloat(level.size);
+    if (p > maxPrice) break;
+    depth += p * s; // approx USDC value
+  }
+  return depth;
+}
+
+/**
+ * Estimate slippage for a target buy of `targetUsdc` at current ask prices.
+ */
+export function estimateSlippage(book: OrderBookSummary, targetUsdc: number): number {
+  const asks = book.asks ?? [];
+  if (!asks.length) return 0.05;
+  const bestAsk = parseFloat(asks[0]?.price ?? "0.5");
+  let remaining = targetUsdc;
+  let worstPrice = bestAsk;
+  for (const level of asks) {
+    const p = parseFloat(level.price);
+    const s = parseFloat(level.size);
+    const levelUsdc = p * s;
+    if (remaining <= 0) break;
+    worstPrice = p;
+    remaining -= Math.min(levelUsdc, remaining);
+  }
+  return Math.abs(worstPrice - bestAsk) / bestAsk;
+}
+
+/**
+ * Get best bid and best ask from an order book summary.
+ */
+export function getBestBidAsk(book: OrderBookSummary): { bestBid: number; bestAsk: number } {
+  const bids = book.bids ?? [];
+  const asks = book.asks ?? [];
+  const bestBid = bids.length ? parseFloat(bids[0].price) : 0;
+  const bestAsk = asks.length ? parseFloat(asks[0].price) : 1;
+  return { bestBid, bestAsk };
+}
+

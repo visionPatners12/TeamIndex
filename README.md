@@ -30,7 +30,8 @@ npm run dev
 
 ## Notes
 
-
+- Order posting uses `@polymarket/clob-client` via dynamic import. Install it when you want CLOB trading:
+  - `npm i @polymarket/clob-client`
 - Onchain integration is implemented as an optional adapter (`src/onchain/vaultExecutor.ts`). You must set:
   - `VAULT_CONTRACT_ADDRESS`
   - `RPC_URL`
