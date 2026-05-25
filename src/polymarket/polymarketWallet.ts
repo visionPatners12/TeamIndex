@@ -85,9 +85,9 @@ export function getPolymarketMissingConfig(env: Env, scope: MissingConfigScope =
   }
 
   if (scope === "builder") {
-    if (!env.POLY_BUILDER_API_KEY) missing.push("POLY_BUILDER_API_KEY");
-    if (!env.POLY_BUILDER_SECRET) missing.push("POLY_BUILDER_SECRET");
-    if (!env.POLY_BUILDER_PASSPHRASE) missing.push("POLY_BUILDER_PASSPHRASE");
+    if (!env.POLY_BUILDER_API_KEY && !env.POLY_API_KEY) missing.push("POLY_BUILDER_API_KEY or POLY_API_KEY");
+    if (!env.POLY_BUILDER_SECRET && !env.POLY_SIGNATURE_SECRET) missing.push("POLY_BUILDER_SECRET or POLY_SIGNATURE_SECRET");
+    if (!env.POLY_BUILDER_PASSPHRASE && !env.POLY_PASSPHRASE) missing.push("POLY_BUILDER_PASSPHRASE or POLY_PASSPHRASE");
   }
 
   if (scope === "readiness") {
@@ -140,9 +140,9 @@ async function createBuilderConfig(env: Env) {
   const { BuilderConfig } = await import("@polymarket/builder-signing-sdk");
   return new BuilderConfig({
     localBuilderCreds: {
-      key: env.POLY_BUILDER_API_KEY!,
-      secret: env.POLY_BUILDER_SECRET!,
-      passphrase: env.POLY_BUILDER_PASSPHRASE!
+      key: env.POLY_BUILDER_API_KEY || env.POLY_API_KEY!,
+      secret: env.POLY_BUILDER_SECRET || env.POLY_SIGNATURE_SECRET!,
+      passphrase: env.POLY_BUILDER_PASSPHRASE || env.POLY_PASSPHRASE!
     }
   });
 }
