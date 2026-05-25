@@ -23,7 +23,9 @@ export const swaggerSpec = {
     { name: "health" },
     { name: "read" },
     { name: "admin" },
-    { name: "user-tx" }
+    { name: "polymarket" },
+    { name: "user-tx" },
+    { name: "base" }
   ],
   paths: {
     "/health": {
@@ -85,6 +87,53 @@ export const swaggerSpec = {
       }
     },
 
+    "/admin/polymarket/readiness": {
+      get: {
+        tags: ["polymarket"],
+        summary: "Dry readiness check for Deposit Wallet + CLOB trading",
+        security: [{ adminApiKey: [] }],
+        parameters: [
+          { name: "tokenId", in: "query", required: false, schema: { type: "string" } }
+        ],
+        responses: { 200: { description: "Polymarket readiness report" } }
+      }
+    },
+    "/admin/polymarket/deposit-wallet/derive": {
+      get: {
+        tags: ["polymarket"],
+        summary: "Derive the expected Polymarket Deposit Wallet address",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "Derived Deposit Wallet address" } }
+      }
+    },
+    "/admin/polymarket/deposit-wallet/deploy": {
+      post: {
+        tags: ["polymarket"],
+        summary: "Deploy the Polymarket Deposit Wallet through the relayer",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "Relayer deployment response" } }
+      }
+    },
+    "/admin/polymarket/deposit-wallet/approve-pusd": {
+      post: {
+        tags: ["polymarket"],
+        summary: "Approve pUSD from Deposit Wallet to Polymarket exchanges",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "pUSD approval relayer response" } }
+      }
+    },
+    "/admin/polymarket/deposit-wallet/bootstrap": {
+      post: {
+        tags: ["polymarket"],
+        summary: "Derive/deploy Deposit Wallet, approve pUSD, and return readiness",
+        security: [{ adminApiKey: [] }],
+        parameters: [
+          { name: "tokenId", in: "query", required: false, schema: { type: "string" } }
+        ],
+        responses: { 200: { description: "Complete Polymarket trading wallet bootstrap" } }
+      }
+    },
+
     "/admin/pools": {
       post: {
         tags: ["admin"],
@@ -100,7 +149,8 @@ export const swaggerSpec = {
                   clubName: { type: "string" },
                   symbol: { type: "string" },
                   totalTokenSupply: { type: "number", example: 0 },
-                  deployOnchain: { type: "boolean", example: true, default: true },
+                  deployOnchain: { type: "boolean", example: true, default: false },
+                  bootstrapPolymarket: { type: "boolean", example: true, description: "Defaults to true when a vault address exists." },
                   depositCap: { type: "string", example: "0" },
                   riskParams: {
                     type: "object",
@@ -140,7 +190,7 @@ export const swaggerSpec = {
             }
           }
         },
-        responses: { 200: { description: "OK" } }
+        responses: { 200: { description: "Scheduling summary with created/updated/skipped counts" } }
       }
     },
 
@@ -167,7 +217,10 @@ export const swaggerSpec = {
             }
           }
         },
-        responses: { 200: { description: "OK" } }
+        responses: {
+          200: { description: "Execution result" },
+          409: { description: "Tranche is already processing/executed or otherwise not executable" }
+        }
       }
     },
 
@@ -273,6 +326,60 @@ export const swaggerSpec = {
           }
         },
         responses: { 200: { description: "Sequence of TransactionRequests" } }
+      }
+    },
+    "/base/tx/deposit-usdc": {
+      post: {
+        tags: ["base"],
+        summary: "Prepare unsigned approve + Base USDC deposit transactions",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  poolId: { type: "string" },
+                  amount: { type: "string", example: "1000000" }
+                },
+                required: ["poolId", "amount"]
+              }
+            }
+          }
+        },
+        responses: { 200: { description: "Base approve/deposit TransactionRequests" } }
+      }
+    },
+    "/base/deposits/{depositId}": {
+      get: {
+        tags: ["base"],
+        summary: "Get Base deposit status",
+        parameters: [{ name: "depositId", in: "path", required: true, schema: { type: "string" } }],
+        responses: { 200: { description: "Deposit status" } }
+      }
+    },
+    "/base/deposits/user/{userAddress}": {
+      get: {
+        tags: ["base"],
+        summary: "List Base deposits for a user",
+        parameters: [{ name: "userAddress", in: "path", required: true, schema: { type: "string" } }],
+        responses: { 200: { description: "Deposits" } }
+      }
+    },
+    "/admin/base/retry-failed": {
+      post: {
+        tags: ["admin", "base"],
+        summary: "Safely retry FAILED Base deposits from their persisted stage",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "Retry summary with retried/manual/completed counts" } }
+      }
+    },
+    "/admin/base/reset-failed": {
+      post: {
+        tags: ["admin", "base"],
+        summary: "Deprecated alias for safe Base retry; does not reset to RECEIVED",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "Retry summary with deprecated=true" } }
       }
     },
     "/pools/{poolId}/tx/mint": {
@@ -407,6 +514,22 @@ export const swaggerSpec = {
         responses: { 200: { description: "Array of deposit records" } }
       }
     },
+    "/admin/chiliz/retry-failed": {
+      post: {
+        tags: ["admin", "chiliz"],
+        summary: "Safely retry FAILED Chiliz deposits from their persisted stage",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "Retry summary with retried/manual/completed counts" } }
+      }
+    },
+    "/admin/chiliz/reset-failed": {
+      post: {
+        tags: ["admin", "chiliz"],
+        summary: "Deprecated alias for safe Chiliz retry; does not reset to RECEIVED",
+        security: [{ adminApiKey: [] }],
+        responses: { 200: { description: "Retry summary with deprecated=true" } }
+      }
+    },
     "/chiliz/redeem": {
       post: {
         tags: ["chiliz"],
@@ -445,4 +568,3 @@ export const swaggerSpec = {
 export function registerSwagger(app: Express) {
   // Client/renderer is done in http.ts. This file only exports spec.
 }
-

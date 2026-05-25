@@ -15,6 +15,16 @@ const EnvSchema = zod_1.z.object({
     POLY_ADDRESS: zod_1.z.string().optional(),
     POLY_PASSPHRASE: zod_1.z.string().optional(),
     POLY_SIGNATURE_SECRET: zod_1.z.string().optional(),
+    POLY_SIGNATURE_TYPE: zod_1.z.string().optional().default("3"),
+    POLY_FUNDER_ADDRESS: zod_1.z.string().optional(),
+    POLY_DEPOSIT_WALLET_FACTORY: zod_1.z.string().optional().default("0x00000000000Fb5C9ADea0298D729A0CB3823Cc07"),
+    POLY_PUSD_ADDRESS: zod_1.z.string().optional().default("0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB"),
+    POLY_CTF_EXCHANGE: zod_1.z.string().optional().default("0xE111180000d2663C0091e4f400237545B87B996B"),
+    POLY_NEG_RISK_CTF_EXCHANGE: zod_1.z.string().optional().default("0xe2222d279d744050d28e00520010520000310F59"),
+    POLY_RELAYER_URL: zod_1.z.string().optional().default("https://relayer-v2.polymarket.com"),
+    POLY_BUILDER_API_KEY: zod_1.z.string().optional(),
+    POLY_BUILDER_SECRET: zod_1.z.string().optional(),
+    POLY_BUILDER_PASSPHRASE: zod_1.z.string().optional(),
     // Scheduling / execution
     // Redis is only needed for scheduled execution (BullMQ). On Railway,
     // you should set this to your Railway Redis URL (or disable worker by leaving it empty).
@@ -28,7 +38,25 @@ const EnvSchema = zod_1.z.object({
     VAULT_CONTRACT_ABI_PATH: zod_1.z.string().optional(),
     // Optional factory to resolve per-club vault addresses.
     // Vault address is derived as: vaultFactory.getVaultByClub(keccak256(clubName)).
-    CLUB_VAULT_FACTORY_ADDRESS: zod_1.z.string().optional()
+    CLUB_VAULT_FACTORY_ADDRESS: zod_1.z.string().optional(),
+    // Optional: user deposit via WrapCHZ -> swap -> USDC -> vault deposit (Polygon)
+    WRAPCHZ_TOKEN_ADDRESS: zod_1.z.string().optional(),
+    UNISWAP_V2_ROUTER_ADDRESS: zod_1.z.string().optional(),
+    // Chiliz cross-chain flow
+    CHILIZ_RPC_URL: zod_1.z.string().optional(),
+    CHILIZ_EXECUTOR_PRIVATE_KEY: zod_1.z.string().optional(),
+    CHILIZ_DEPOSIT_RECEIVER_ADDRESS: zod_1.z.string().optional(),
+    CHILIZ_WRAPPED_SHARE_ADDRESS: zod_1.z.string().optional(),
+    // Base USDC deposit flow (Base -> LI.FI bridge -> Polygon vault)
+    BASE_RPC_URL: zod_1.z.string().optional(),
+    BASE_EXECUTOR_PRIVATE_KEY: zod_1.z.string().optional(),
+    BASE_USDC_ADDRESS: zod_1.z.string().optional(),
+    BASE_DEPOSIT_RECEIVER_ADDRESS: zod_1.z.string().optional(),
+    BASE_WRAPPED_SHARE_ADDRESS: zod_1.z.string().optional(),
+    LIFI_BASE_URL: zod_1.z.string().optional().default("https://li.quest/v1"),
+    LIFI_API_KEY: zod_1.z.string().optional(),
+    LIFI_INTEGRATOR: zod_1.z.string().optional().default("teamindex"),
+    LIFI_SLIPPAGE: zod_1.z.string().optional().default("0.005")
 });
 function loadEnv() {
     return EnvSchema.parse({
@@ -41,6 +69,16 @@ function loadEnv() {
         POLY_ADDRESS: process.env.POLY_ADDRESS,
         POLY_PASSPHRASE: process.env.POLY_PASSPHRASE,
         POLY_SIGNATURE_SECRET: process.env.POLY_SIGNATURE_SECRET,
+        POLY_SIGNATURE_TYPE: process.env.POLY_SIGNATURE_TYPE,
+        POLY_FUNDER_ADDRESS: process.env.POLY_FUNDER_ADDRESS,
+        POLY_DEPOSIT_WALLET_FACTORY: process.env.POLY_DEPOSIT_WALLET_FACTORY,
+        POLY_PUSD_ADDRESS: process.env.POLY_PUSD_ADDRESS,
+        POLY_CTF_EXCHANGE: process.env.POLY_CTF_EXCHANGE,
+        POLY_NEG_RISK_CTF_EXCHANGE: process.env.POLY_NEG_RISK_CTF_EXCHANGE,
+        POLY_RELAYER_URL: process.env.POLY_RELAYER_URL,
+        POLY_BUILDER_API_KEY: process.env.POLY_BUILDER_API_KEY,
+        POLY_BUILDER_SECRET: process.env.POLY_BUILDER_SECRET,
+        POLY_BUILDER_PASSPHRASE: process.env.POLY_BUILDER_PASSPHRASE,
         REDIS_URL: process.env.REDIS_URL,
         QUEUE_CONCURRENCY: process.env.QUEUE_CONCURRENCY,
         MISSED_EXECUTION_GRACE_MINUTES: process.env.MISSED_EXECUTION_GRACE_MINUTES,
@@ -49,6 +87,21 @@ function loadEnv() {
         VAULT_CONTRACT_ADDRESS: process.env.VAULT_CONTRACT_ADDRESS,
         CLUB_VAULT_FACTORY_ADDRESS: process.env.CLUB_VAULT_FACTORY_ADDRESS,
         // VAULT_CONTRACT_ABI_PATH intentionally unused: backend keeps its own ABI fragments
-        VAULT_CONTRACT_ABI_PATH: process.env.VAULT_CONTRACT_ABI_PATH
+        VAULT_CONTRACT_ABI_PATH: process.env.VAULT_CONTRACT_ABI_PATH,
+        WRAPCHZ_TOKEN_ADDRESS: process.env.WRAPCHZ_TOKEN_ADDRESS,
+        UNISWAP_V2_ROUTER_ADDRESS: process.env.UNISWAP_V2_ROUTER_ADDRESS,
+        CHILIZ_RPC_URL: process.env.CHILIZ_RPC_URL,
+        CHILIZ_EXECUTOR_PRIVATE_KEY: process.env.CHILIZ_EXECUTOR_PRIVATE_KEY,
+        CHILIZ_DEPOSIT_RECEIVER_ADDRESS: process.env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS,
+        CHILIZ_WRAPPED_SHARE_ADDRESS: process.env.CHILIZ_WRAPPED_SHARE_ADDRESS,
+        BASE_RPC_URL: process.env.BASE_RPC_URL,
+        BASE_EXECUTOR_PRIVATE_KEY: process.env.BASE_EXECUTOR_PRIVATE_KEY,
+        BASE_USDC_ADDRESS: process.env.BASE_USDC_ADDRESS,
+        BASE_DEPOSIT_RECEIVER_ADDRESS: process.env.BASE_DEPOSIT_RECEIVER_ADDRESS,
+        BASE_WRAPPED_SHARE_ADDRESS: process.env.BASE_WRAPPED_SHARE_ADDRESS,
+        LIFI_BASE_URL: process.env.LIFI_BASE_URL,
+        LIFI_API_KEY: process.env.LIFI_API_KEY,
+        LIFI_INTEGRATOR: process.env.LIFI_INTEGRATOR,
+        LIFI_SLIPPAGE: process.env.LIFI_SLIPPAGE
     });
 }

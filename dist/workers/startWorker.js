@@ -41,18 +41,20 @@ function startWorker({ env, logger }) {
     const concurrency = Number(env.QUEUE_CONCURRENCY || 1);
     const connection = (0, bull_1.buildConnection)(env);
     const worker = new bullmq_1.Worker(bull_1.QUEUE_NAMES.MATCH_EXECUTION, async (job) => {
-        const { poolId, candidateId, tranche } = job.data;
-        logger.info({ poolId, candidateId, tranche }, "execute job start");
+        const { queueId, poolId, candidateId, tranche } = job.data;
+        logger.info({ queueId, poolId, candidateId, tranche }, "execute job start");
         try {
-            await (0, executor_1.executeTranche)({ env, poolId, candidateId, tranche, expectedExecutionTimeMs: job.data.expectedExecutionTimeMs });
-            logger.info({ poolId, candidateId, tranche }, "execute job done");
+            await (0, executor_1.executeTranche)({ env, queueId, poolId, candidateId, tranche, expectedExecutionTimeMs: job.data.expectedExecutionTimeMs });
+            logger.info({ queueId, poolId, candidateId, tranche }, "execute job done");
         }
         catch (err) {
             await job.discard();
             await (async () => {
                 const { prisma } = await Promise.resolve().then(() => __importStar(require("../db/prisma")));
                 await prisma.club_match_queue.updateMany({
-                    where: { poolId, candidateId, tranche, status: "SCHEDULED" },
+                    where: queueId
+                        ? { id: queueId, status: "PROCESSING" }
+                        : { poolId, candidateId, tranche, status: "PROCESSING" },
                     data: { status: "FAILED", lastError: String(err?.message ?? err) }
                 });
             })();

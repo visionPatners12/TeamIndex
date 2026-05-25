@@ -35,6 +35,7 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import { ERC20 } from "../contracts/erc20";
 import { UNISWAP_V2_ROUTER } from "../contracts/uniswapV2Router";
+import { BASE_DEPOSIT_RECEIVER } from "../contracts/baseDepositReceiver";
 import { listTeams, searchMarketsByKeyword } from "../polymarket/gammaClient";
 import {
   getBooks,
@@ -45,6 +46,13 @@ import {
   estimateSlippage,
   getBestBidAsk,
 } from "../polymarket/clobClient";
+import {
+  approvePolymarketPusdAllowances,
+  bootstrapPolymarketTradingWallet,
+  deployPolymarketDepositWallet,
+  derivePolymarketDepositWallet,
+  getPolymarketReadiness
+} from "../polymarket/polymarketWallet";
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
@@ -66,6 +74,77 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const key = String(req.headers["x-admin-key"] ?? "");
     if (!key || key !== env.ADMIN_API_KEY) return res.status(403).json({ error: "Forbidden" });
     return next();
+  }
+
+  const manualReconciliationStatus = "NEEDS_MANUAL_RECONCILIATION" as const;
+
+  function inferBaseRetryStatus(deposit: any) {
+    if (deposit.processingStep === "BASE_RELEASE" && !deposit.releaseTxHash) return manualReconciliationStatus;
+    if (deposit.processingStep === "LIFI_BRIDGE" && !deposit.lifiBridgeTxHash) return manualReconciliationStatus;
+    if (deposit.processingStep === "POLYGON_DEPOSIT" && !deposit.polygonDepositTxHash) return manualReconciliationStatus;
+    if (deposit.processingStep === "BASE_MINT" && !deposit.baseMintTxHash) return manualReconciliationStatus;
+    if (deposit.baseMintTxHash) return "COMPLETED";
+    if (deposit.polygonDepositTxHash) return "MINTING_SHARES";
+    if (deposit.lifiBridgeTxHash) return deposit.usdcAmount ? "DEPOSITING" : "BRIDGING";
+    if (deposit.releaseTxHash) return "BRIDGING";
+    return manualReconciliationStatus;
+  }
+
+  function inferChilizRetryStatus(deposit: any) {
+    if (deposit.processingStep === "POLYGON_DEPOSIT" && !deposit.polygonDepositTxHash) return manualReconciliationStatus;
+    if (deposit.processingStep === "CHILIZ_MINT" && !deposit.chilizMintTxHash) return manualReconciliationStatus;
+    if (deposit.chilizMintTxHash) return "COMPLETED";
+    if (deposit.polygonDepositTxHash) return "MINTING_SHARES";
+    if (deposit.usdcAmount) return "DEPOSITING";
+    return manualReconciliationStatus;
+  }
+
+  async function retryFailedBaseDeposits() {
+    const deposits = await (prisma as any).base_chain_deposits.findMany({ where: { status: "FAILED" } });
+    const summary = { retried: 0, manual: 0, completed: 0 };
+    for (const deposit of deposits) {
+      const nextStatus = inferBaseRetryStatus(deposit);
+      await (prisma as any).base_chain_deposits.update({
+        where: { id: deposit.id },
+        data: {
+          status: nextStatus,
+          lastError: nextStatus === manualReconciliationStatus
+            ? "Retry blocked: missing persisted transaction hash for a step that may have been attempted"
+            : null,
+          processingLockedAt: null,
+          processingLockedBy: null,
+          processingStep: nextStatus === manualReconciliationStatus ? deposit.processingStep : null
+        }
+      });
+      if (nextStatus === manualReconciliationStatus) summary.manual += 1;
+      else if (nextStatus === "COMPLETED") summary.completed += 1;
+      else summary.retried += 1;
+    }
+    return summary;
+  }
+
+  async function retryFailedChilizDeposits() {
+    const deposits = await prisma.cross_chain_deposits.findMany({ where: { status: "FAILED" } });
+    const summary = { retried: 0, manual: 0, completed: 0 };
+    for (const deposit of deposits) {
+      const nextStatus = inferChilizRetryStatus(deposit);
+      await prisma.cross_chain_deposits.update({
+        where: { id: deposit.id },
+        data: {
+          status: nextStatus,
+          lastError: nextStatus === manualReconciliationStatus
+            ? "Retry blocked: missing persisted transaction hash for a step that may have been attempted"
+            : null,
+          processingLockedAt: null,
+          processingLockedBy: null,
+          processingStep: nextStatus === manualReconciliationStatus ? deposit.processingStep : null
+        }
+      });
+      if (nextStatus === manualReconciliationStatus) summary.manual += 1;
+      else if (nextStatus === "COMPLETED") summary.completed += 1;
+      else summary.retried += 1;
+    }
+    return summary;
   }
 
   app.get("/health", async (_req, res) => {
@@ -338,6 +417,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     totalTokenSupply: z.number().optional().default(0),
     depositCap: z.coerce.bigint().optional().default(0n),
     vaultAddress: z.string().optional(),
+    deployOnchain: z.boolean().optional().default(false),
+    bootstrapPolymarket: z.boolean().optional(),
     riskParams: z
       .object({
         maxPerMatchPct: z.number().optional(),
@@ -397,45 +478,65 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   // After admin signs the vault deploy tx in MetaMask and gets back the vault address,
   // call this to create the DB pool record.
   app.post("/admin/pools", requireAdmin, async (req, res) => {
-    const body = poolCreateSchema.parse(req.body);
-    const riskParams = body.riskParams ?? { maxPerMatchPct: 3, maxTotalExposurePct: 20, liquidityMinUsd: 50_000 };
+    try {
+      const body = poolCreateSchema.parse(req.body);
+      const riskParams = body.riskParams ?? { maxPerMatchPct: 3, maxTotalExposurePct: 20, liquidityMinUsd: 50_000 };
 
-    // If vaultAddress not provided, try to resolve from factory (read-only, no signing)
-    let resolvedVaultAddress = body.vaultAddress ?? null;
-    if (!resolvedVaultAddress && env.CLUB_VAULT_FACTORY_ADDRESS && env.RPC_URL) {
-      try {
-        const provider = new ethers.JsonRpcProvider(env.RPC_URL);
-        const FACTORY_ABI = ["function getVaultByClub(bytes32) view returns (address)"];
-        const factory = new ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, FACTORY_ABI, provider);
-        const clubId = ethers.solidityPackedKeccak256(["string"], [body.clubName]);
-        const found = await (factory as any).getVaultByClub(clubId) as string;
-        if (found && found !== ethers.ZeroAddress) {
-          resolvedVaultAddress = found;
+      let vaultDeployment: { vaultAddress: string; created: boolean } | null = null;
+      if (body.deployOnchain) {
+        vaultDeployment = await ensureClubVaultExists({
+          env,
+          clubName: body.clubName,
+          symbol: body.symbol,
+          depositCap: body.depositCap
+        });
+      }
+
+      // If vaultAddress not provided, try to resolve from factory (read-only, no signing)
+      let resolvedVaultAddress = vaultDeployment?.vaultAddress ?? body.vaultAddress ?? null;
+      if (!resolvedVaultAddress && env.CLUB_VAULT_FACTORY_ADDRESS && env.RPC_URL) {
+        try {
+          const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+          const FACTORY_ABI = ["function getVaultByClub(bytes32) view returns (address)"];
+          const factory = new ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, FACTORY_ABI, provider);
+          const clubId = ethers.solidityPackedKeccak256(["string"], [body.clubName]);
+          const found = await (factory as any).getVaultByClub(clubId) as string;
+          if (found && found !== ethers.ZeroAddress) {
+            resolvedVaultAddress = found;
+          }
+        } catch {
+          // ignore — vault address will remain null
         }
-      } catch {
-        // ignore — vault address will remain null
       }
+
+      const shouldBootstrapPolymarket = body.bootstrapPolymarket ?? Boolean(resolvedVaultAddress);
+      const polymarketBootstrap = shouldBootstrapPolymarket
+        ? await bootstrapPolymarketTradingWallet(env)
+        : null;
+
+      const pool = await prisma.club_pools.create({
+        data: {
+          clubName: body.clubName,
+          symbol: body.symbol,
+          polymarketTeamId: body.polymarketTeamId?.trim() || null,
+          vaultAddress: resolvedVaultAddress,
+          depositCap: body.depositCap.toString(),
+          cash: "0",
+          openPositionsValue: "0",
+          realizedPnl: "0",
+          totalPoolValue: "0",
+          totalTokenSupply: body.totalTokenSupply.toString(),
+          officialTokenPrice: "0",
+          riskParams,
+          status: "ACTIVE"
+        }
+      });
+
+      return res.json({ ok: true, pool, vaultDeployment, polymarketBootstrap });
+    } catch (e: any) {
+      logger.error({ err: e }, "admin/pools create failed");
+      return res.status(500).json({ ok: false, error: e?.message ?? "Pool creation failed" });
     }
-
-    const pool = await prisma.club_pools.create({
-      data: {
-        clubName: body.clubName,
-        symbol: body.symbol,
-        polymarketTeamId: body.polymarketTeamId?.trim() || null,
-        vaultAddress: resolvedVaultAddress,
-        depositCap: body.depositCap.toString(),
-        cash: "0",
-        openPositionsValue: "0",
-        realizedPnl: "0",
-        totalPoolValue: "0",
-        totalTokenSupply: body.totalTokenSupply.toString(),
-        officialTokenPrice: "0",
-        riskParams,
-        status: "ACTIVE"
-      }
-    });
-
-    return res.json({ ok: true, pool });
   });
 
   app.patch("/admin/pools/:poolId", requireAdmin, async (req, res) => {
@@ -619,6 +720,58 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     } catch (e: any) {
       logger.error({ err: e }, "polymarket/market-data failed");
       res.status(502).json({ error: e?.message ?? "CLOB/Gamma data fetch failed" });
+    }
+  });
+
+  app.get("/admin/polymarket/readiness", requireAdmin, async (req, res) => {
+    const tokenId = String(req.query.tokenId ?? "").trim() || undefined;
+    try {
+      const readiness = await getPolymarketReadiness(env, tokenId);
+      res.json({ ok: true, readiness });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/readiness failed");
+      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket readiness failed" });
+    }
+  });
+
+  app.get("/admin/polymarket/deposit-wallet/derive", requireAdmin, async (_req, res) => {
+    try {
+      const wallet = await derivePolymarketDepositWallet(env);
+      res.json({ ok: true, wallet });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/deposit-wallet/derive failed");
+      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket Deposit Wallet derivation failed" });
+    }
+  });
+
+  app.post("/admin/polymarket/deposit-wallet/deploy", requireAdmin, async (_req, res) => {
+    try {
+      const deployment = await deployPolymarketDepositWallet(env);
+      res.json({ ok: true, deployment });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/deposit-wallet/deploy failed");
+      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket Deposit Wallet deployment failed" });
+    }
+  });
+
+  app.post("/admin/polymarket/deposit-wallet/approve-pusd", requireAdmin, async (_req, res) => {
+    try {
+      const approvals = await approvePolymarketPusdAllowances(env);
+      res.json({ ok: true, approvals });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/deposit-wallet/approve-pusd failed");
+      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket pUSD allowance approval failed" });
+    }
+  });
+
+  app.post("/admin/polymarket/deposit-wallet/bootstrap", requireAdmin, async (req, res) => {
+    const tokenId = String(req.query.tokenId ?? req.body?.tokenId ?? "").trim() || undefined;
+    try {
+      const bootstrap = await bootstrapPolymarketTradingWallet(env, tokenId);
+      res.json({ ok: true, bootstrap });
+    } catch (e: any) {
+      logger.error({ err: e }, "polymarket/deposit-wallet/bootstrap failed");
+      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket Deposit Wallet bootstrap failed" });
     }
   });
 
@@ -811,8 +964,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   // Create scheduled queue entries (T-48h and T-24h) for the latest candidates.
   app.post("/admin/:poolId/schedule", requireAdmin, async (req, res) => {
     const poolId = req.params.poolId;
-    await scheduleMatchTranches({ poolId, env });
-    res.json({ ok: true });
+    const result = await scheduleMatchTranches({ poolId, env });
+    res.json({ ok: true, ...result });
   });
 
   app.post("/admin/:poolId/pause", requireAdmin, async (req, res) => {
@@ -946,14 +1099,33 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   app.post("/admin/:poolId/execute-tranche", requireAdmin, async (req, res) => {
     const body = z.object({ candidateId: z.string().min(1), tranche: z.number().int().min(1).max(2) }).parse(req.body);
-    await executeTranche({
+    const queue = await prisma.club_match_queue.findUnique({
+      where: {
+        poolId_candidateId_tranche: {
+          poolId: req.params.poolId,
+          candidateId: body.candidateId,
+          tranche: body.tranche
+        }
+      }
+    });
+    if (!queue) return res.status(404).json({ error: "Scheduled tranche not found" });
+    if (queue.status !== "SCHEDULED") {
+      return res.status(409).json({
+        error: "Tranche is not executable",
+        status: queue.status,
+        queueId: queue.id
+      });
+    }
+
+    const result = await executeTranche({
       env,
+      queueId: queue.id,
       poolId: req.params.poolId,
       candidateId: body.candidateId,
       tranche: body.tranche,
       expectedExecutionTimeMs: Date.now()
     });
-    res.json({ ok: true });
+    res.json({ ok: true, result });
   });
 
   const vaultExecuteSchema = z.object({
@@ -1268,13 +1440,84 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   // Chiliz cross-chain endpoints
   // =========================
 
-  // Admin: reset all FAILED deposits back to RECEIVED so relayer retries them
+  // Admin: safely retry FAILED deposits from their furthest persisted stage.
+  app.post("/admin/chiliz/retry-failed", requireAdmin, async (_req, res) => {
+    const summary = await retryFailedChilizDeposits();
+    res.json({ ok: true, ...summary });
+  });
+
+  // Backward-compatible route; it no longer resets deposits to RECEIVED.
   app.post("/admin/chiliz/reset-failed", requireAdmin, async (_req, res) => {
-    const result = await prisma.cross_chain_deposits.updateMany({
-      where: { status: "FAILED" },
-      data: { status: "RECEIVED", lastError: null }
+    const summary = await retryFailedChilizDeposits();
+    res.json({ ok: true, deprecated: true, ...summary });
+  });
+
+  // =========================
+  // Base USDC deposit endpoints
+  // =========================
+
+  const baseDepositUsdcSchema = z.object({
+    poolId: z.string().min(1),
+    amount: z.coerce.bigint()
+  });
+
+  app.post("/base/tx/deposit-usdc", async (req, res) => {
+    const body = baseDepositUsdcSchema.parse(req.body);
+
+    if (!env.BASE_RPC_URL || !env.BASE_USDC_ADDRESS || !env.BASE_DEPOSIT_RECEIVER_ADDRESS) {
+      return res.status(500).json({
+        error: "Base env not configured (BASE_RPC_URL / BASE_USDC_ADDRESS / BASE_DEPOSIT_RECEIVER_ADDRESS)."
+      });
+    }
+
+    const pool = await prisma.club_pools.findUnique({ where: { id: body.poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+
+    const poolIdHash = ethers.keccak256(ethers.toUtf8Bytes(pool.clubName));
+    const baseProvider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    const usdc = new ethers.Contract(env.BASE_USDC_ADDRESS, ERC20.abi, baseProvider);
+    const receiver = new ethers.Contract(env.BASE_DEPOSIT_RECEIVER_ADDRESS, BASE_DEPOSIT_RECEIVER.abi, baseProvider);
+
+    const approveTx: TransactionRequest = await (usdc as any).approve.populateTransaction(
+      env.BASE_DEPOSIT_RECEIVER_ADDRESS,
+      body.amount
+    );
+    const depositTx: TransactionRequest = await (receiver as any).depositUSDC.populateTransaction(body.amount, poolIdHash);
+
+    res.json({
+      ok: true,
+      receiverAddress: env.BASE_DEPOSIT_RECEIVER_ADDRESS,
+      usdcAddress: env.BASE_USDC_ADDRESS,
+      poolIdHash,
+      txs: { approveTx, depositTx }
     });
-    res.json({ ok: true, reset: result.count });
+  });
+
+  app.post("/admin/base/retry-failed", requireAdmin, async (_req, res) => {
+    const summary = await retryFailedBaseDeposits();
+    res.json({ ok: true, ...summary });
+  });
+
+  // Backward-compatible route; it no longer resets deposits to RECEIVED.
+  app.post("/admin/base/reset-failed", requireAdmin, async (_req, res) => {
+    const summary = await retryFailedBaseDeposits();
+    res.json({ ok: true, deprecated: true, ...summary });
+  });
+
+  app.get("/base/deposits/:depositId", async (req, res) => {
+    const deposit = await (prisma as any).base_chain_deposits.findUnique({
+      where: { id: req.params.depositId }
+    });
+    if (!deposit) return res.status(404).json({ error: "Deposit not found" });
+    res.json({ ok: true, deposit });
+  });
+
+  app.get("/base/deposits/user/:userAddress", async (req, res) => {
+    const deposits = await (prisma as any).base_chain_deposits.findMany({
+      where: { userAddress: req.params.userAddress },
+      orderBy: { createdAt: "desc" }
+    });
+    res.json({ ok: true, deposits });
   });
 
   // GET status of a cross-chain deposit
@@ -1408,4 +1651,3 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.listen(port, () => logger.info({ port }, "HTTP server listening"));
   return app;
 }
-

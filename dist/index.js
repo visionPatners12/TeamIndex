@@ -7,6 +7,8 @@ const startWorker_1 = require("./workers/startWorker");
 const initDb_1 = require("./db/initDb");
 const priceTicker_1 = require("./workers/priceTicker");
 const vaultSyncTicker_1 = require("./workers/vaultSyncTicker");
+const chilizRelayer_1 = require("./workers/chilizRelayer");
+const baseRelayer_1 = require("./workers/baseRelayer");
 async function main() {
     const env = (0, env_1.loadEnv)();
     const logger = (0, log_1.createLogger)();
@@ -45,7 +47,23 @@ async function main() {
     catch (err) {
         logger.error({ err }, "Vault sync ticker crashed");
     }
+    try {
+        (0, chilizRelayer_1.startChilizRelayer)({ env, logger });
+    }
+    catch (err) {
+        logger.error({ err }, "Chiliz relayer crashed");
+    }
+    try {
+        (0, baseRelayer_1.startBaseRelayer)({ env, logger });
+    }
+    catch (err) {
+        logger.error({ err }, "Base relayer crashed");
+    }
 }
+// Prevent unhandled promise rejections (e.g. RPC rate limits) from crashing the process
+process.on("unhandledRejection", (reason) => {
+    console.error("[unhandledRejection]", reason);
+});
 main().catch((e) => {
     // eslint-disable-next-line no-console
     console.error(e);

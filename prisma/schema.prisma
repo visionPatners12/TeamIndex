@@ -21,6 +21,7 @@ enum PositionStatus {
 
 enum QueueStatus {
   SCHEDULED
+  PROCESSING
   EXECUTED
   SKIPPED
   FAILED
@@ -28,12 +29,13 @@ enum QueueStatus {
 }
 
 enum CrossChainDepositStatus {
-  RECEIVED        // CHZ/token landed on Chiliz receiver contract
+  RECEIVED        // Source-chain funds landed on receiver contract
   BRIDGING        // Funds being bridged/swapped to Polygon USDC
   DEPOSITING      // USDC being deposited into Polygon vault
-  MINTING_SHARES  // Wrapped shares being minted on Chiliz
+  MINTING_SHARES  // Wrapped shares being minted on source chain
   COMPLETED       // Done — user has wrapped shares
   FAILED          // Permanent failure
+  NEEDS_MANUAL_RECONCILIATION // A tx may have landed without a persisted hash
 }
 
 enum CrossChainRedemptionStatus {
@@ -161,6 +163,7 @@ model club_pool_transactions {
 model club_pool_positions {
   id              String   @id @default(cuid())
   poolId          String
+  queueId         String?  @unique
   eventId         String
   marketId        String
   tokenId         String
@@ -185,6 +188,7 @@ model club_pool_positions {
   updatedAt       DateTime @updatedAt
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  queue club_match_queue? @relation(fields: [queueId], references: [id], onDelete: SetNull)
 
   @@index([poolId, tokenId])
 }
@@ -241,13 +245,19 @@ model club_match_queue {
   tranche         Int // 48h=1, 24h=2
   stakeUsd        Decimal  @db.Decimal(78, 18)
   status          QueueStatus @default(SCHEDULED)
+  lockedAt        DateTime?
+  lockedBy        String?
+  attempts        Int       @default(0)
+  executedAt      DateTime?
   lastError       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  position club_pool_positions?
 
   @@index([poolId, executionTime, status])
+  @@unique([poolId, candidateId, tranche])
 }
 
 // ============================
@@ -269,13 +279,52 @@ model cross_chain_deposits {
   chilizMintTxHash    String?  // wrapped share mint tx on Chiliz
 
   status              CrossChainDepositStatus @default(RECEIVED)
+  processingLockedAt  DateTime?
+  processingLockedBy  String?
+  processingStep      String?
+  attempts            Int      @default(0)
   lastError           String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@index([poolId, userAddress])
   @@index([status])
+  @@index([status, processingLockedAt])
   @@unique([chilizDepositId])
+}
+
+model base_chain_deposits {
+  id                    String   @id @default(cuid())
+  poolIdHash            String   // bytes32 hash emitted by BaseDepositReceiver
+  clubPoolId            String?
+  userAddress           String   // user wallet on Base
+  sourceToken           String   // Base USDC address
+  sourceAmount          Decimal  @db.Decimal(78, 18)
+  baseDepositId         BigInt   // on-chain depositId from BaseDepositReceiver
+  baseTxHash            String?  // user deposit tx hash on Base
+  releaseTxHash         String?  // receiver release tx hash on Base
+  lifiBridgeTxHash      String?  // LI.FI bridge tx hash on Base
+  polygonBalanceBeforeBridge Decimal? @db.Decimal(78, 18)
+
+  usdcAmount            Decimal? @db.Decimal(78, 18) // USDC received on Polygon
+  polygonDepositTxHash  String?  // vault deposit tx on Polygon
+  sharesMinted          Decimal? @db.Decimal(78, 18)
+  baseMintTxHash        String?  // wrapped share mint tx on Base
+
+  status                CrossChainDepositStatus @default(RECEIVED)
+  processingLockedAt    DateTime?
+  processingLockedBy    String?
+  processingStep        String?
+  attempts              Int      @default(0)
+  lastError             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([poolIdHash, userAddress])
+  @@index([clubPoolId])
+  @@index([status])
+  @@index([status, processingLockedAt])
+  @@unique([baseDepositId])
 }
 
 model cross_chain_redemptions {
@@ -311,4 +360,3 @@ model system_settings {
   chilizEnabled   Boolean  @default(false)
   updatedAt       DateTime @updatedAt
 }
-

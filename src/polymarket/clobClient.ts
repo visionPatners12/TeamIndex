@@ -1,4 +1,10 @@
 import type { Env } from "../config/env";
+import {
+  assertPolymarketClobConfig,
+  createPolymarketWalletClient,
+  POLY_1271_SIGNATURE_TYPE,
+  resolvePolymarketFunderAddress
+} from "./polymarketWallet";
 
 type OrderBookSummary = {
   market: string;
@@ -64,60 +70,76 @@ export type PostOrderParams = {
   price: string; // string decimal, SDK expects decimal values
   size: string; // size in token units
   side: LimitOrderSide;
-  // Optional: address that receives settlement/conditional tokens.
-  taker?: string;
 };
 
 export async function postLimitOrder(env: Env, params: PostOrderParams): Promise<unknown> {
   const sdk = await getClobClient(env);
+  const { AssetType, OrderType, Side } = await import("@polymarket/clob-client-v2");
+  const [tickSize, negRisk] = await Promise.all([
+    sdk.getTickSize(params.tokenId),
+    sdk.getNegRisk(params.tokenId)
+  ]);
 
-  // Create and post in one call (SDK signs locally + submits).
-  // Tick size + negRisk must be pulled from orderbook summary or config for production.
+  await sdk.updateBalanceAllowance({ asset_type: AssetType.COLLATERAL });
+
   const result = await sdk.createAndPostOrder(
     {
       tokenID: params.tokenId,
       price: Number(params.price),
       size: Number(params.size),
-      side: params.side,
-      taker: params.taker
+      side: params.side === "BUY" ? Side.BUY : Side.SELL
     },
-    { tickSize: "0.01", negRisk: false },
-    "GTC"
+    { tickSize, negRisk },
+    OrderType.GTC
   );
 
   return result;
 }
 
-async function getClobClient(env: Env) {
-  // Recommended: use official clob-client SDK (handles signing + L2 auth).
-  // To keep the code compile-safe without hard dependency, we dynamically import.
-  let clobClientMod: any;
-  try {
-    clobClientMod = await import("@polymarket/clob-client");
-  } catch (e) {
-    throw new Error("Missing @polymarket/clob-client. Run: npm i @polymarket/clob-client");
+export function getOrderResultStatus(result: unknown): string | undefined {
+  const status = (result as any)?.status ?? (result as any)?.order?.status;
+  return typeof status === "string" ? status.toLowerCase() : undefined;
+}
+
+export function isAcceptedOrderResult(result: unknown): boolean {
+  if ((result as any)?.success === false) return false;
+  const status = getOrderResultStatus(result);
+  return status === "live" || status === "matched" || status === "delayed";
+}
+
+export function getOrderRejectMessage(result: unknown): string {
+  const status = getOrderResultStatus(result) ?? "unknown";
+  const errorMsg = (result as any)?.errorMsg ?? (result as any)?.error ?? (result as any)?.message;
+  return errorMsg ? `CLOB rejected order (${status}): ${errorMsg}` : `CLOB rejected order (${status})`;
+}
+
+export async function getClobClient(env: Env) {
+  assertPolymarketClobConfig(env);
+
+  const { Chain, ClobClient, SignatureTypeV2 } = await import("@polymarket/clob-client-v2");
+  const [signer, funderAddress] = await Promise.all([
+    createPolymarketWalletClient(env),
+    resolvePolymarketFunderAddress(env)
+  ]);
+
+  if (SignatureTypeV2.POLY_1271 !== POLY_1271_SIGNATURE_TYPE) {
+    throw new Error("Unexpected @polymarket/clob-client-v2 POLY_1271 signature type");
   }
 
-  const { ClobClient } = clobClientMod;
-  const { Wallet } = await import("ethers");
-  const chainId = 137; // Polygon
-
-  if (!env.EXECUTOR_PRIVATE_KEY) throw new Error("EXECUTOR_PRIVATE_KEY missing");
-  if (!env.POLY_API_KEY || !env.POLY_PASSPHRASE || !env.POLY_SIGNATURE_SECRET) {
-    throw new Error("Missing POLY_API_KEY / POLY_PASSPHRASE / POLY_SIGNATURE_SECRET for CLOB L2 auth");
-  }
-
-  return new ClobClient(
-    clobBaseUrl(env),
-    chainId,
-    new Wallet(env.EXECUTOR_PRIVATE_KEY),
-    {
-      apiKey: env.POLY_API_KEY,
-      passphrase: env.POLY_PASSPHRASE,
-      secret: env.POLY_SIGNATURE_SECRET
+  return new ClobClient({
+    host: clobBaseUrl(env),
+    chain: Chain.POLYGON,
+    signer,
+    creds: {
+      key: env.POLY_API_KEY!,
+      passphrase: env.POLY_PASSPHRASE!,
+      secret: env.POLY_SIGNATURE_SECRET!
     },
-    1 // signatureType: 1=POLY_PROXY (adjust to your proxy/funder type)
-  );
+    signatureType: SignatureTypeV2.POLY_1271,
+    funderAddress,
+    useServerTime: true,
+    throwOnError: true
+  });
 }
 
 export async function getOrder(env: Env, orderId: string): Promise<any> {
@@ -196,4 +218,3 @@ export function getBestBidAsk(book: OrderBookSummary): { bestBid: number; bestAs
   const bestAsk = asks.length ? parseFloat(asks[0].price) : 1;
   return { bestBid, bestAsk };
 }
-

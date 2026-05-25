@@ -26,11 +26,19 @@ function buildQueue(env) {
     // causing TS type mismatch across versions. Cast to avoid compile-time friction.
     return new bullmq_1.Queue(exports.QUEUE_NAMES.MATCH_EXECUTION, { connection: connection });
 }
-async function addMatchExecutionJob(env, data, runAt) {
+async function addMatchExecutionJob(env, data, runAt, jobId = `match:${data.poolId}:${data.candidateId}:${data.tranche}`) {
     const queue = buildQueue(env);
     const delayMs = Math.max(0, runAt.getTime() - Date.now());
+    const existing = await queue.getJob(jobId);
+    if (existing) {
+        const state = await existing.getState();
+        if (["delayed", "waiting", "failed"].includes(state)) {
+            await existing.remove().catch(() => undefined);
+        }
+    }
     await queue.add("execute", data, {
-        delay: delayMs
+        delay: delayMs,
+        jobId
     });
     await queue.close();
 }

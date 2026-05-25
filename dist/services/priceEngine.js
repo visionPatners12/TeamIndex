@@ -4,6 +4,7 @@ exports.recalculateOfficialPrices = recalculateOfficialPrices;
 const clobClient_1 = require("../polymarket/clobClient");
 const prisma_1 = require("../db/prisma");
 const vaultExecutor_1 = require("../onchain/vaultExecutor");
+const ethers_1 = require("ethers");
 function decToNumber(d) {
     // Prisma Decimal -> string
     if (typeof d === "number")
@@ -14,6 +15,38 @@ function decToNumber(d) {
         return Number(d.toString());
     return 0;
 }
+function dbStr(raw) {
+    if (raw == null)
+        return "";
+    if (typeof raw === "string")
+        return raw.trim();
+    if (typeof raw === "number")
+        return String(raw);
+    if (raw && typeof raw.toString === "function")
+        return String(raw).trim();
+    return "";
+}
+/** `club_pools.cash`: new rows are human USD strings; legacy rows may be raw USDC (6dp) integers. */
+function vaultCashDbToHuman(cashRaw) {
+    const s = dbStr(cashRaw);
+    if (!s || s === "0")
+        return 0;
+    if (s.includes(".") || /[eE]/i.test(s))
+        return Number(s);
+    const n = Number(s);
+    if (!Number.isFinite(n) || n <= 0)
+        return 0;
+    if (/^\d+$/.test(s))
+        return n / 1e6;
+    return n;
+}
+function humanUsdToUsdcBaseUnits(h) {
+    if (!Number.isFinite(h) || h <= 0)
+        return 0n;
+    return (0, ethers_1.parseUnits)(h.toFixed(6), 6);
+}
+/** Must match `USDC4626Vault.decimals()` — raw `totalSupply()` is in these base units. */
+const VAULT_SHARE_DECIMALS = 6;
 async function recalculateOfficialPrices(env) {
     const pools = await prisma_1.prisma.club_pools.findMany({ where: { status: "ACTIVE" } });
     for (const pool of pools) {
@@ -38,14 +71,17 @@ async function recalculateOfficialPrices(env) {
             }));
         }
         await Promise.all(positionUpdates);
-        const cash = decToNumber(pool.cash);
+        const cashHuman = vaultCashDbToHuman(pool.cash);
         const realizedPnl = decToNumber(pool.realizedPnl);
-        const totalPoolValue = cash + positionsValue + realizedPnl;
-        const totalSupply = decToNumber(pool.totalTokenSupply);
-        const officialTokenPrice = totalSupply > 0 ? totalPoolValue / totalSupply : 0;
+        const totalPoolValue = cashHuman + positionsValue + realizedPnl;
+        const totalSupplyRaw = decToNumber(pool.totalTokenSupply);
+        const sharesHuman = totalSupplyRaw / 10 ** VAULT_SHARE_DECIMALS;
+        // USD (or pool accounting unit) per **1.0** vault share — not per raw 1e-6 share unit.
+        const officialTokenPrice = sharesHuman > 0 ? totalPoolValue / sharesHuman : 0;
         await prisma_1.prisma.club_pools.update({
             where: { id: pool.id },
             data: {
+                cash: String(cashHuman),
                 openPositionsValue: positionsValue.toString(),
                 totalPoolValue: totalPoolValue.toString(),
                 officialTokenPrice: officialTokenPrice.toString()
@@ -54,7 +90,7 @@ async function recalculateOfficialPrices(env) {
         await prisma_1.prisma.club_pool_price_snapshots.create({
             data: {
                 poolId: pool.id,
-                cash: pool.cash,
+                cash: String(cashHuman),
                 positionsValue: positionsValue.toString(),
                 realizedPnl: pool.realizedPnl,
                 totalPoolValue: totalPoolValue.toString(),
@@ -66,7 +102,9 @@ async function recalculateOfficialPrices(env) {
         if (env.RPC_URL) {
             try {
                 const vault = await (0, vaultExecutor_1.getVaultContract)(env, undefined, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
-                await vault.setPoolValuation(positionsValue.toString(), realizedPnl.toString());
+                const posBase = humanUsdToUsdcBaseUnits(positionsValue);
+                const rPnLBase = realizedPnl >= 0 ? humanUsdToUsdcBaseUnits(realizedPnl) : 0n;
+                await vault.setPoolValuation(posBase.toString(), rPnLBase.toString());
             }
             catch {
                 // Optional: onchain valuation update failure should not block price recalculation.

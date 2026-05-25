@@ -6,6 +6,7 @@ import { initDb } from "./db/initDb";
 import { startPriceTicker } from "./workers/priceTicker";
 import { startVaultSyncTicker } from "./workers/vaultSyncTicker";
 import { startChilizRelayer } from "./workers/chilizRelayer";
+import { startBaseRelayer } from "./workers/baseRelayer";
 
 async function main() {
   const env = loadEnv();
@@ -51,6 +52,12 @@ async function main() {
   } catch (err: any) {
     logger.error({ err }, "Chiliz relayer crashed");
   }
+
+  try {
+    startBaseRelayer({ env, logger });
+  } catch (err: any) {
+    logger.error({ err }, "Base relayer crashed");
+  }
 }
 
 // Prevent unhandled promise rejections (e.g. RPC rate limits) from crashing the process
@@ -63,4 +70,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-

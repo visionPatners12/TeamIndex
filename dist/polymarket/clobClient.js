@@ -38,7 +38,16 @@ exports.getBooks = getBooks;
 exports.getMidpoint = getMidpoint;
 exports.getSpreadMap = getSpreadMap;
 exports.postLimitOrder = postLimitOrder;
+exports.getOrderResultStatus = getOrderResultStatus;
+exports.isAcceptedOrderResult = isAcceptedOrderResult;
+exports.getOrderRejectMessage = getOrderRejectMessage;
+exports.getClobClient = getClobClient;
 exports.getOrder = getOrder;
+exports.getPricesHistory = getPricesHistory;
+exports.calculateDepthAtSlippage = calculateDepthAtSlippage;
+exports.estimateSlippage = estimateSlippage;
+exports.getBestBidAsk = getBestBidAsk;
+const polymarketWallet_1 = require("./polymarketWallet");
 function clobBaseUrl(env) {
     return env.CLOB_BASE_URL;
 }
@@ -81,43 +90,124 @@ async function getSpreadMap(env, tokenIds) {
 }
 async function postLimitOrder(env, params) {
     const sdk = await getClobClient(env);
-    // Create and post in one call (SDK signs locally + submits).
-    // Tick size + negRisk must be pulled from orderbook summary or config for production.
+    const { AssetType, OrderType, Side } = await Promise.resolve().then(() => __importStar(require("@polymarket/clob-client-v2")));
+    const [tickSize, negRisk] = await Promise.all([
+        sdk.getTickSize(params.tokenId),
+        sdk.getNegRisk(params.tokenId)
+    ]);
+    await sdk.updateBalanceAllowance({ asset_type: AssetType.COLLATERAL });
     const result = await sdk.createAndPostOrder({
         tokenID: params.tokenId,
         price: Number(params.price),
         size: Number(params.size),
-        side: params.side,
-        taker: params.taker
-    }, { tickSize: "0.01", negRisk: false }, "GTC");
+        side: params.side === "BUY" ? Side.BUY : Side.SELL
+    }, { tickSize, negRisk }, OrderType.GTC);
     return result;
 }
+function getOrderResultStatus(result) {
+    const status = result?.status ?? result?.order?.status;
+    return typeof status === "string" ? status.toLowerCase() : undefined;
+}
+function isAcceptedOrderResult(result) {
+    if (result?.success === false)
+        return false;
+    const status = getOrderResultStatus(result);
+    return status === "live" || status === "matched" || status === "delayed";
+}
+function getOrderRejectMessage(result) {
+    const status = getOrderResultStatus(result) ?? "unknown";
+    const errorMsg = result?.errorMsg ?? result?.error ?? result?.message;
+    return errorMsg ? `CLOB rejected order (${status}): ${errorMsg}` : `CLOB rejected order (${status})`;
+}
 async function getClobClient(env) {
-    // Recommended: use official clob-client SDK (handles signing + L2 auth).
-    // To keep the code compile-safe without hard dependency, we dynamically import.
-    let clobClientMod;
-    try {
-        clobClientMod = await Promise.resolve().then(() => __importStar(require("@polymarket/clob-client")));
+    (0, polymarketWallet_1.assertPolymarketClobConfig)(env);
+    const { Chain, ClobClient, SignatureTypeV2 } = await Promise.resolve().then(() => __importStar(require("@polymarket/clob-client-v2")));
+    const [signer, funderAddress] = await Promise.all([
+        (0, polymarketWallet_1.createPolymarketWalletClient)(env),
+        (0, polymarketWallet_1.resolvePolymarketFunderAddress)(env)
+    ]);
+    if (SignatureTypeV2.POLY_1271 !== polymarketWallet_1.POLY_1271_SIGNATURE_TYPE) {
+        throw new Error("Unexpected @polymarket/clob-client-v2 POLY_1271 signature type");
     }
-    catch (e) {
-        throw new Error("Missing @polymarket/clob-client. Run: npm i @polymarket/clob-client");
-    }
-    const { ClobClient } = clobClientMod;
-    const { Wallet } = await Promise.resolve().then(() => __importStar(require("ethers")));
-    const chainId = 137; // Polygon
-    if (!env.EXECUTOR_PRIVATE_KEY)
-        throw new Error("EXECUTOR_PRIVATE_KEY missing");
-    if (!env.POLY_API_KEY || !env.POLY_PASSPHRASE || !env.POLY_SIGNATURE_SECRET) {
-        throw new Error("Missing POLY_API_KEY / POLY_PASSPHRASE / POLY_SIGNATURE_SECRET for CLOB L2 auth");
-    }
-    return new ClobClient(clobBaseUrl(env), chainId, new Wallet(env.EXECUTOR_PRIVATE_KEY), {
-        apiKey: env.POLY_API_KEY,
-        passphrase: env.POLY_PASSPHRASE,
-        secret: env.POLY_SIGNATURE_SECRET
-    }, 1 // signatureType: 1=POLY_PROXY (adjust to your proxy/funder type)
-    );
+    return new ClobClient({
+        host: clobBaseUrl(env),
+        chain: Chain.POLYGON,
+        signer,
+        creds: {
+            key: env.POLY_API_KEY,
+            passphrase: env.POLY_PASSPHRASE,
+            secret: env.POLY_SIGNATURE_SECRET
+        },
+        signatureType: SignatureTypeV2.POLY_1271,
+        funderAddress,
+        useServerTime: true,
+        throwOnError: true
+    });
 }
 async function getOrder(env, orderId) {
     const sdk = await getClobClient(env);
     return sdk.getOrder(orderId);
+}
+// ─── Read-only data helpers (no auth needed) ──────────────────────────────────
+/**
+ * Fetch price history for a token from CLOB.
+ * Returns array of { t: unix_seconds, p: price }.
+ */
+async function getPricesHistory(env, tokenId, interval = "1d") {
+    try {
+        const url = `${clobBaseUrl(env)}/prices-history?market=${encodeURIComponent(tokenId)}&interval=${interval}`;
+        const raw = await getJson(url);
+        return raw.history ?? [];
+    }
+    catch {
+        return [];
+    }
+}
+/**
+ * Calculate how much USDC can be bought at ≤ slippagePct price impact.
+ * Uses bids (for YES buys) or asks.
+ */
+function calculateDepthAtSlippage(book, refPrice, slippagePct = 0.02) {
+    const asks = book.asks ?? [];
+    const maxPrice = refPrice * (1 + slippagePct);
+    let depth = 0;
+    for (const level of asks) {
+        const p = parseFloat(level.price);
+        const s = parseFloat(level.size);
+        if (p > maxPrice)
+            break;
+        depth += p * s; // approx USDC value
+    }
+    return depth;
+}
+/**
+ * Estimate slippage for a target buy of `targetUsdc` at current ask prices.
+ */
+function estimateSlippage(book, targetUsdc) {
+    const asks = book.asks ?? [];
+    if (!asks.length)
+        return 0.05;
+    const bestAsk = parseFloat(asks[0]?.price ?? "0.5");
+    let remaining = targetUsdc;
+    let worstPrice = bestAsk;
+    for (const level of asks) {
+        const p = parseFloat(level.price);
+        const s = parseFloat(level.size);
+        const levelUsdc = p * s;
+        if (remaining <= 0)
+            break;
+        worstPrice = p;
+        remaining -= Math.min(levelUsdc, remaining);
+    }
+    return Math.abs(worstPrice - bestAsk) / bestAsk;
+}
+/**
+ * Get best bid and best ask from an order book summary.
+ */
+function getBestBidAsk(book) {
+    const bids = book.bids ?? [];
+    const asks = book.asks ?? [];
+    const bestBid = bids.length ? parseFloat(bids[0].price) : 0;
+    const bestAsk = asks.length ? parseFloat(asks[0].price) : 1;
+    return { bestBid, bestAsk };
 }

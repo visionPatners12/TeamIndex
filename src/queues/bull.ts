@@ -23,6 +23,7 @@ export function buildQueue(env: Env) {
 }
 
 export type MatchExecutionJobData = {
+  queueId?: string;
   poolId: string;
   candidateId: string;
   tranche: number;
@@ -34,17 +35,25 @@ export type MatchExecutionJob = Job<MatchExecutionJobData, any, string>;
 export async function addMatchExecutionJob(
   env: Env,
   data: MatchExecutionJobData,
-  runAt: Date
+  runAt: Date,
+  jobId = `match:${data.poolId}:${data.candidateId}:${data.tranche}`
 ) {
   const queue = buildQueue(env);
   const delayMs = Math.max(0, runAt.getTime() - Date.now());
+  const existing = await queue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (["delayed", "waiting", "failed"].includes(state)) {
+      await existing.remove().catch(() => undefined);
+    }
+  }
   await queue.add(
     "execute",
     data,
     {
-      delay: delayMs
+      delay: delayMs,
+      jobId
     }
   );
   await queue.close();
 }
-
