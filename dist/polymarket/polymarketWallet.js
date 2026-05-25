@@ -62,6 +62,12 @@ function getPolymarketSignatureType(env) {
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : null;
 }
+function hasRelayerApiKeyAuth(env) {
+    return Boolean(env.RELAYER_API_KEY?.trim() && env.RELAYER_API_KEY_ADDRESS?.trim());
+}
+function hasBuilderHmacAuth(env) {
+    return Boolean(env.POLY_BUILDER_API_KEY?.trim() && env.POLY_BUILDER_SECRET?.trim() && env.POLY_BUILDER_PASSPHRASE?.trim());
+}
 function getPolymarketMissingConfig(env, scope = "readiness") {
     const missing = [];
     if (!env.EXECUTOR_PRIVATE_KEY)
@@ -75,12 +81,9 @@ function getPolymarketMissingConfig(env, scope = "readiness") {
             missing.push("POLY_SIGNATURE_SECRET");
     }
     if (scope === "builder") {
-        if (!env.POLY_BUILDER_API_KEY && !env.POLY_API_KEY)
-            missing.push("POLY_BUILDER_API_KEY or POLY_API_KEY");
-        if (!env.POLY_BUILDER_SECRET && !env.POLY_SIGNATURE_SECRET)
-            missing.push("POLY_BUILDER_SECRET or POLY_SIGNATURE_SECRET");
-        if (!env.POLY_BUILDER_PASSPHRASE && !env.POLY_PASSPHRASE)
-            missing.push("POLY_BUILDER_PASSPHRASE or POLY_PASSPHRASE");
+        if (!hasRelayerApiKeyAuth(env) && !hasBuilderHmacAuth(env)) {
+            missing.push("RELAYER_API_KEY + RELAYER_API_KEY_ADDRESS or POLY_BUILDER_API_KEY + POLY_BUILDER_SECRET + POLY_BUILDER_PASSPHRASE");
+        }
     }
     if (scope === "readiness") {
         if (!env.RPC_URL)
@@ -125,29 +128,67 @@ async function createPolymarketWalletClient(env) {
     });
 }
 async function createBuilderConfig(env) {
-    const missing = getPolymarketMissingConfig(env, "builder");
+    const missing = [];
+    if (!env.POLY_BUILDER_API_KEY)
+        missing.push("POLY_BUILDER_API_KEY");
+    if (!env.POLY_BUILDER_SECRET)
+        missing.push("POLY_BUILDER_SECRET");
+    if (!env.POLY_BUILDER_PASSPHRASE)
+        missing.push("POLY_BUILDER_PASSPHRASE");
     if (missing.length)
         throw new Error(`Missing Polymarket builder relayer config: ${missing.join(", ")}`);
     const { BuilderConfig } = await Promise.resolve().then(() => __importStar(require("@polymarket/builder-signing-sdk")));
     return new BuilderConfig({
         localBuilderCreds: {
-            key: env.POLY_BUILDER_API_KEY || env.POLY_API_KEY,
-            secret: env.POLY_BUILDER_SECRET || env.POLY_SIGNATURE_SECRET,
-            passphrase: env.POLY_BUILDER_PASSPHRASE || env.POLY_PASSPHRASE
+            key: env.POLY_BUILDER_API_KEY,
+            secret: env.POLY_BUILDER_SECRET,
+            passphrase: env.POLY_BUILDER_PASSPHRASE
         }
     });
+}
+function attachRelayerApiKeyAuth(relay, env) {
+    if (!hasRelayerApiKeyAuth(env))
+        return relay;
+    relay.sendAuthedRequest = async (method, path, body) => {
+        const response = await relay.httpClient.send(`${relay.relayerUrl}${path}`, method, {
+            headers: {
+                RELAYER_API_KEY: env.RELAYER_API_KEY.trim(),
+                RELAYER_API_KEY_ADDRESS: env.RELAYER_API_KEY_ADDRESS.trim()
+            },
+            data: body
+        });
+        return response.data;
+    };
+    return relay;
 }
 async function createRelayClient(env, requireBuilderAuth = false) {
     const [{ RelayClient }, walletClient] = await Promise.all([
         Promise.resolve().then(() => __importStar(require("@polymarket/builder-relayer-client"))),
         createPolymarketWalletClient(env)
     ]);
-    const builderConfig = requireBuilderAuth ? await createBuilderConfig(env) : undefined;
+    const missing = requireBuilderAuth ? getPolymarketMissingConfig(env, "builder") : [];
+    if (missing.length)
+        throw new Error(`Missing Polymarket relayer config: ${missing.join(", ")}`);
+    const builderConfig = requireBuilderAuth && !hasRelayerApiKeyAuth(env) ? await createBuilderConfig(env) : undefined;
     const relay = new RelayClient(env.POLY_RELAYER_URL, exports.POLYGON_CHAIN_ID, walletClient, builderConfig);
     if (env.POLY_DEPOSIT_WALLET_FACTORY) {
         relay.contractConfig.DepositWalletContracts.DepositWalletFactory = env.POLY_DEPOSIT_WALLET_FACTORY;
     }
-    return relay;
+    return attachRelayerApiKeyAuth(relay, env);
+}
+function isWalletRegistryValidationError(err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return message.toLowerCase().includes("wallet registry validation failed");
+}
+async function sleep(ms) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function waitForRelayerConfirmed(relay, response) {
+    if (!response?.transactionID || typeof relay.pollUntilState !== "function") {
+        return typeof response?.wait === "function" ? response.wait() : undefined;
+    }
+    const confirmed = await relay.pollUntilState(response.transactionID, ["STATE_CONFIRMED"], "STATE_FAILED", Number(process.env.POLY_RELAYER_CONFIRMATION_POLLS || 120), Number(process.env.POLY_RELAYER_CONFIRMATION_POLL_MS || 2000));
+    return confirmed ?? (typeof response.wait === "function" ? response.wait() : undefined);
 }
 async function derivePolymarketDepositWallet(env) {
     const relay = await createRelayClient(env);
@@ -166,14 +207,14 @@ async function deployPolymarketDepositWallet(env) {
     const relay = await createRelayClient(env, true);
     const derived = await derivePolymarketDepositWallet(env);
     const response = await relay.deployDepositWallet();
-    const mined = typeof response.wait === "function" ? await response.wait() : undefined;
+    const mined = await waitForRelayerConfirmed(relay, response);
     return {
         signerAddress: derived.signerAddress,
         depositWalletAddress: derived.depositWalletAddress,
         transactionID: response.transactionID,
         transactionHash: mined?.transactionHash ?? response.transactionHash ?? response.hash,
         state: mined?.state ?? response.state,
-        deployed: mined ? mined.state === "STATE_MINED" || mined.state === "STATE_CONFIRMED" : undefined
+        deployed: mined ? mined.state === "STATE_CONFIRMED" : undefined
     };
 }
 async function readDepositWalletCode(env, depositWalletAddress) {
@@ -193,6 +234,9 @@ async function ensurePolymarketDepositWalletDeployed(env) {
         };
     }
     const deployed = await deployPolymarketDepositWallet(env);
+    if (deployed.state && deployed.state !== "STATE_CONFIRMED") {
+        throw new Error(`Polymarket Deposit Wallet deployment not registry-confirmed yet: ${deployed.state}`);
+    }
     return {
         signerAddress: deployed.signerAddress,
         depositWalletAddress: deployed.depositWalletAddress,
@@ -201,6 +245,23 @@ async function ensurePolymarketDepositWalletDeployed(env) {
         transactionHash: deployed.transactionHash,
         state: deployed.state
     };
+}
+async function executeDepositWalletBatchWithRegistryRetry(relay, calls, depositWalletAddress, deadline) {
+    const attempts = Number(process.env.POLY_WALLET_REGISTRY_RETRY_ATTEMPTS || 6);
+    const delayMs = Number(process.env.POLY_WALLET_REGISTRY_RETRY_MS || 5000);
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+        try {
+            return await relay.executeDepositWalletBatch(calls, depositWalletAddress, deadline);
+        }
+        catch (err) {
+            lastErr = err;
+            if (!isWalletRegistryValidationError(err) || i === attempts - 1)
+                break;
+            await sleep(delayMs);
+        }
+    }
+    throw lastErr;
 }
 async function readPusdAllowances(env, depositWalletAddress) {
     if (!env.RPC_URL)
@@ -265,8 +326,8 @@ async function approvePolymarketPusdAllowances(env) {
     }
     const relay = await createRelayClient(env, true);
     const deadline = Math.floor(Date.now() / 1000 + DEPOSIT_WALLET_TX_DEADLINE_SECONDS).toString();
-    const response = await relay.executeDepositWalletBatch(calls, deployment.depositWalletAddress, deadline);
-    const mined = typeof response.wait === "function" ? await response.wait() : undefined;
+    const response = await executeDepositWalletBatchWithRegistryRetry(relay, calls, deployment.depositWalletAddress, deadline);
+    const mined = await waitForRelayerConfirmed(relay, response);
     const afterRaw = await readPusdAllowances(env, deployment.depositWalletAddress);
     const after = {
         pusd: formatTokenAmount(afterRaw.balanceRaw, afterRaw.decimals),
