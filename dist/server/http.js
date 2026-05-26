@@ -77,6 +77,20 @@ function startHttpServer({ env, logger }) {
         return next();
     }
     const manualReconciliationStatus = "NEEDS_MANUAL_RECONCILIATION";
+    function serializeBaseChainDeposit(deposit) {
+        if (!deposit)
+            return deposit;
+        return {
+            ...deposit,
+            sourceAmount: deposit.sourceAmount?.toString?.() ?? deposit.sourceAmount,
+            baseDepositId: deposit.baseDepositId?.toString?.() ?? deposit.baseDepositId,
+            polygonBalanceBeforeBridge: deposit.polygonBalanceBeforeBridge?.toString?.() ?? deposit.polygonBalanceBeforeBridge,
+            usdcAmount: deposit.usdcAmount?.toString?.() ?? deposit.usdcAmount,
+            sharesMinted: deposit.sharesMinted?.toString?.() ?? deposit.sharesMinted,
+            createdAt: deposit.createdAt instanceof Date ? deposit.createdAt.toISOString() : deposit.createdAt,
+            updatedAt: deposit.updatedAt instanceof Date ? deposit.updatedAt.toISOString() : deposit.updatedAt
+        };
+    }
     function inferBaseRetryStatus(deposit) {
         if (deposit.processingStep === "BASE_RELEASE" && !deposit.releaseTxHash)
             return manualReconciliationStatus;
@@ -1394,14 +1408,14 @@ function startHttpServer({ env, logger }) {
         });
         if (!deposit)
             return res.status(404).json({ error: "Deposit not found" });
-        res.json({ ok: true, deposit });
+        res.json({ ok: true, deposit: serializeBaseChainDeposit(deposit) });
     });
     app.get("/base/deposits/user/:userAddress", async (req, res) => {
         const deposits = await prisma_1.prisma.base_chain_deposits.findMany({
             where: { userAddress: req.params.userAddress },
             orderBy: { createdAt: "desc" }
         });
-        res.json({ ok: true, deposits });
+        res.json({ ok: true, deposits: deposits.map(serializeBaseChainDeposit) });
     });
     // GET status of a cross-chain deposit
     app.get("/chiliz/deposits/:depositId", async (req, res) => {

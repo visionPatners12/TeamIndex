@@ -78,6 +78,20 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   const manualReconciliationStatus = "NEEDS_MANUAL_RECONCILIATION" as const;
 
+  function serializeBaseChainDeposit(deposit: any) {
+    if (!deposit) return deposit;
+    return {
+      ...deposit,
+      sourceAmount: deposit.sourceAmount?.toString?.() ?? deposit.sourceAmount,
+      baseDepositId: deposit.baseDepositId?.toString?.() ?? deposit.baseDepositId,
+      polygonBalanceBeforeBridge: deposit.polygonBalanceBeforeBridge?.toString?.() ?? deposit.polygonBalanceBeforeBridge,
+      usdcAmount: deposit.usdcAmount?.toString?.() ?? deposit.usdcAmount,
+      sharesMinted: deposit.sharesMinted?.toString?.() ?? deposit.sharesMinted,
+      createdAt: deposit.createdAt instanceof Date ? deposit.createdAt.toISOString() : deposit.createdAt,
+      updatedAt: deposit.updatedAt instanceof Date ? deposit.updatedAt.toISOString() : deposit.updatedAt
+    };
+  }
+
   function inferBaseRetryStatus(deposit: any) {
     if (deposit.processingStep === "BASE_RELEASE" && !deposit.releaseTxHash) return manualReconciliationStatus;
     if (deposit.processingStep === "LIFI_BRIDGE" && !deposit.lifiBridgeTxHash) return manualReconciliationStatus;
@@ -1509,7 +1523,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       where: { id: req.params.depositId }
     });
     if (!deposit) return res.status(404).json({ error: "Deposit not found" });
-    res.json({ ok: true, deposit });
+    res.json({ ok: true, deposit: serializeBaseChainDeposit(deposit) });
   });
 
   app.get("/base/deposits/user/:userAddress", async (req, res) => {
@@ -1517,7 +1531,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       where: { userAddress: req.params.userAddress },
       orderBy: { createdAt: "desc" }
     });
-    res.json({ ok: true, deposits });
+    res.json({ ok: true, deposits: deposits.map(serializeBaseChainDeposit) });
   });
 
   // GET status of a cross-chain deposit
