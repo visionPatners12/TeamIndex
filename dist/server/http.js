@@ -1272,11 +1272,17 @@ function startHttpServer({ env, logger }) {
     app.post("/pools/:poolId/tx/deposit", async (req, res) => {
         const body = prepareDepositSchema.parse(req.body);
         const poolId = req.params.poolId;
-        const provider = env.RPC_URL ? new ethers_1.ethers.JsonRpcProvider(env.RPC_URL) : undefined;
+        if (!env.RPC_URL)
+            return res.status(500).json({ error: "RPC_URL is required." });
+        const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL);
         const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } });
         if (!pool)
             return res.status(404).json({ error: "Pool not found" });
         const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
+        const assetAddress = await vault.asset();
+        const vaultAddress = vault.target ?? vault.address;
+        const asset = new ethers_1.ethers.Contract(assetAddress, erc20_1.ERC20.abi, provider);
+        const approveTx = await asset.approve.populateTransaction(vaultAddress, body.assets);
         const depositFn = vault.deposit;
         if (!depositFn?.populateTransaction) {
             return res.status(500).json({
@@ -1287,7 +1293,16 @@ function startHttpServer({ env, logger }) {
             });
         }
         const tx = await depositFn.populateTransaction(body.assets, body.receiver);
-        res.json({ ok: true, tx });
+        res.json({
+            ok: true,
+            tx,
+            vaultAddress,
+            assetAddress,
+            txs: {
+                approveTx,
+                depositTx: tx
+            }
+        });
     });
     app.post("/pools/:poolId/tx/mint", async (req, res) => {
         const body = prepareMintSchema.parse(req.body);

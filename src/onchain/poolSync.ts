@@ -19,6 +19,9 @@ type SyncInputs = {
   onlyTransactionHashes?: string[];
   /** When true, do not advance riskParams.lastSyncedBlock (used for targeted post-deposit ingest). */
   skipCursorAdvance?: boolean;
+  logger?: { warn: (obj: Record<string, unknown>, msg?: string) => void };
+  logContext?: Record<string, unknown>;
+  chunkSizeEnv?: string;
 };
 
 function decToStr(x: any) {
@@ -36,7 +39,10 @@ export async function syncVaultEventsToDb({
   fromBlock,
   toBlock,
   onlyTransactionHashes,
-  skipCursorAdvance
+  skipCursorAdvance,
+  logger,
+  logContext,
+  chunkSizeEnv
 }: SyncInputs) {
   if (!env.RPC_URL) throw new Error("RPC_URL missing (required for onchain sync)");
   if (fromBlock > toBlock) return;
@@ -46,12 +52,24 @@ export async function syncVaultEventsToDb({
       ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
       : null;
 
-  const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+  const provider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
   const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
 
-  const depositEvents = await queryFilterInBlockChunks(vault, vault.filters.Deposit(), fromBlock, toBlock);
-  const withdrawEvents = await queryFilterInBlockChunks(vault, vault.filters.Withdraw(), fromBlock, toBlock);
-  const feeEvents = await queryFilterInBlockChunks(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock);
+  const depositEvents = await queryFilterInBlockChunks(vault, vault.filters.Deposit(), fromBlock, toBlock, {
+    chunkSizeEnv,
+    logger,
+    context: { ...(logContext ?? {}), eventName: "Deposit" }
+  });
+  const withdrawEvents = await queryFilterInBlockChunks(vault, vault.filters.Withdraw(), fromBlock, toBlock, {
+    chunkSizeEnv,
+    logger,
+    context: { ...(logContext ?? {}), eventName: "Withdraw" }
+  });
+  const feeEvents = await queryFilterInBlockChunks(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock, {
+    chunkSizeEnv,
+    logger,
+    context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
+  });
 
   // Map txHash -> fee info for deposit/mint transactions.
   const feeByTx = new Map<
@@ -187,4 +205,3 @@ export async function syncVaultEventsToDb({
   }
 
 }
-

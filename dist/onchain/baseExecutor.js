@@ -11,7 +11,7 @@ const wrappedVaultShare_1 = require("../contracts/wrappedVaultShare");
 function getBaseProvider(env) {
     if (!env.BASE_RPC_URL)
         throw new Error("BASE_RPC_URL not set");
-    return new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    return new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
 }
 function getBaseSigner(env) {
     if (!env.BASE_EXECUTOR_PRIVATE_KEY)

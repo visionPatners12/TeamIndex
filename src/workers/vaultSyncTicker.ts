@@ -1,8 +1,17 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
+import { compactRpcError, getRpcRateLimitCooldownUntil, isRpcRateLimitError } from "../onchain/ethersLogChunks";
 import { syncVaultEventsToDb } from "../onchain/poolSync";
+import { getVaultContract } from "../onchain/vaultExecutor";
 import { recalculateOfficialPrices } from "../services/priceEngine";
 import { ethers } from "ethers";
+import {
+  claimChainEventCursor,
+  completeChainEventCursor,
+  cursorBlockNumber,
+  failChainEventCursor,
+  makeCursorWorkerId
+} from "./chainEventCursor";
 
 function getLastSyncedBlock(riskParams: any): number | undefined {
   const v = riskParams?.lastSyncedBlock;
@@ -10,8 +19,16 @@ function getLastSyncedBlock(riskParams: any): number | undefined {
   return undefined;
 }
 
+function positiveIntFromEnv(name: string, fallback: number): number {
+  const n = Number(process.env[name] || fallback);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.floor(n);
+}
+
 export function startVaultSyncTicker({ env, logger }: { env: Env; logger: ReturnType<any> }) {
   const intervalMs = Number(process.env.VAULT_SYNC_INTERVAL_MS || 60_000);
+  const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
+  const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
 
   if (!env.RPC_URL) {
     logger.warn("VAULT_SYNC skipped: RPC_URL missing");
@@ -20,46 +37,118 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
 
   logger.info({ intervalMs }, "Vault sync ticker started");
 
-  const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+  const provider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
+  let isTicking = false;
 
   async function tick() {
-    const pools = await prisma.club_pools.findMany({ where: { status: "ACTIVE" } });
-    if (pools.length === 0) return;
-
-    const latest = await provider.getBlockNumber();
-
-    let didAnySync = false;
-    for (const pool of pools) {
-      const lastSynced = getLastSyncedBlock(pool.riskParams);
-      const fromBlock = lastSynced !== undefined ? lastSynced + 1 : Math.max(0, latest - 2_000);
-      const toBlock = latest;
-
-      try {
-        await syncVaultEventsToDb({
-          env,
-          pool: {
-            id: pool.id,
-            clubName: pool.clubName,
-            vaultAddress: pool.vaultAddress ?? undefined,
-            officialTokenPrice: pool.officialTokenPrice,
-            riskParams: pool.riskParams
-          },
-          fromBlock,
-          toBlock
-        });
-        didAnySync = true;
-      } catch (err: any) {
-        logger.error({ err, poolId: pool.id }, "Vault sync tick failed for pool");
-      }
+    if (isTicking) {
+      logger.warn("Vault sync tick skipped: previous tick still running");
+      return;
     }
+    isTicking = true;
+    try {
+      const pools = await prisma.club_pools.findMany({ where: { status: "ACTIVE" }, orderBy: { updatedAt: "asc" } });
+      if (pools.length === 0) return;
 
-    // Keep pool totals (totalPoolValue / officialTokenPrice) fresh for UI after deposits/withdraws.
-    if (didAnySync) {
-      try {
-        await recalculateOfficialPrices(env);
-      } catch (err: any) {
-        logger.error({ err }, "Vault sync: price recalculation failed");
+      const latest = await provider.getBlockNumber();
+
+      let didAnySync = false;
+      let claimedPools = 0;
+      for (const pool of pools) {
+        if (claimedPools >= poolsPerTick) break;
+
+        let vaultAddress = pool.vaultAddress ?? undefined;
+        if (!vaultAddress) {
+          try {
+            const vault = await getVaultContract(env, provider as any, {
+              clubName: pool.clubName,
+              vaultAddress: undefined
+            });
+            vaultAddress = ((vault as any).target ?? (vault as any).address) as string;
+          } catch (err: any) {
+            logger.warn({ err: compactRpcError(err), poolId: pool.id }, "Vault sync skipped: vault address could not be resolved");
+            continue;
+          }
+        }
+
+        const cursorKey = `polygon:${vaultAddress.toLowerCase()}:VaultEvents:${pool.id}`;
+        const lastSynced = getLastSyncedBlock(pool.riskParams);
+        const startBlock = lastSynced !== undefined ? lastSynced : Math.max(0, latest - 2_001);
+        const workerId = makeCursorWorkerId("vault-sync");
+        const cursor = await claimChainEventCursor(
+          {
+            key: cursorKey,
+            chain: "polygon",
+            contractAddress: vaultAddress,
+            eventName: "VaultEvents",
+            startBlock
+          },
+          workerId
+        );
+        if (!cursor) continue;
+
+        claimedPools += 1;
+        const cursorBlock = cursorBlockNumber(cursor);
+        const lastProcessedBlock = Math.max(cursorBlock, lastSynced ?? 0);
+        if (latest <= lastProcessedBlock) {
+          await completeChainEventCursor({ key: cursorKey, workerId, lastProcessedBlock });
+          continue;
+        }
+
+        const fromBlock = lastProcessedBlock + 1;
+        const toBlock = Math.min(latest, lastProcessedBlock + maxBlocksPerTick);
+
+        try {
+          await syncVaultEventsToDb({
+            env,
+            pool: {
+              id: pool.id,
+              clubName: pool.clubName,
+              vaultAddress,
+              officialTokenPrice: pool.officialTokenPrice,
+              riskParams: pool.riskParams
+            },
+            fromBlock,
+            toBlock,
+            logger,
+            chunkSizeEnv: "POLYGON_GETLOGS_BLOCK_CHUNK",
+            logContext: {
+              chain: "polygon",
+              cursorKey,
+              poolId: pool.id
+            }
+          });
+          await completeChainEventCursor({ key: cursorKey, workerId, lastProcessedBlock: toBlock });
+          didAnySync = true;
+        } catch (err: any) {
+          const cooldownUntil = isRpcRateLimitError(err) ? getRpcRateLimitCooldownUntil() : null;
+          await failChainEventCursor({ key: cursorKey, workerId, err, cooldownUntil });
+          logger.error(
+            {
+              err: compactRpcError(err),
+              poolId: pool.id,
+              chain: "polygon",
+              cursorKey,
+              fromBlock,
+              toBlock,
+              cooldownUntil: cooldownUntil?.toISOString()
+            },
+            "Vault sync tick failed for pool"
+          );
+          if (cooldownUntil) break;
+        }
       }
+
+      // Keep pool totals (totalPoolValue / officialTokenPrice) fresh for UI after deposits/withdraws.
+      if (didAnySync) {
+        try {
+          await recalculateOfficialPrices(env);
+        } catch (err: any) {
+          logger.error({ err }, "Vault sync: price recalculation failed");
+        }
+      }
+    } finally {
+      isTicking = false;
     }
   }
 
@@ -72,4 +161,3 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
     tick().catch((err) => logger.error({ err }, "Vault sync tick failed"));
   }, intervalMs);
 }
-

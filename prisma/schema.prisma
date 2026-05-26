@@ -349,6 +349,24 @@ model cross_chain_redemptions {
   @@index([status])
 }
 
+model chain_event_cursors {
+  key                String   @id
+  chain              String
+  contractAddress    String
+  eventName          String
+  lastProcessedBlock BigInt   @default(0)
+  lockedAt           DateTime?
+  lockedBy           String?
+  cooldownUntil      DateTime?
+  lastError          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([chain, contractAddress, eventName])
+  @@index([lockedAt])
+  @@index([cooldownUntil])
+}
+
 // ============================
 // Global system settings (singleton row with key="default")
 // ============================

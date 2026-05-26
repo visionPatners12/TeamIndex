@@ -5,7 +5,7 @@ import { WRAPPED_VAULT_SHARE } from "../contracts/wrappedVaultShare";
 
 export function getBaseProvider(env: Env) {
   if (!env.BASE_RPC_URL) throw new Error("BASE_RPC_URL not set");
-  return new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+  return new ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
 }
 
 export function getBaseSigner(env: Env) {

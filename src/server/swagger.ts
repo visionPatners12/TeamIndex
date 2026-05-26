@@ -299,7 +299,31 @@ export const swaggerSpec = {
             }
           }
         },
-        responses: { 200: { description: "TransactionRequest" } }
+        responses: {
+          200: {
+            description: "Prepared native Polygon USDC approval and ERC4626 deposit transactions",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    ok: { type: "boolean" },
+                    vaultAddress: { type: "string" },
+                    assetAddress: { type: "string" },
+                    tx: { type: "object" },
+                    txs: {
+                      type: "object",
+                      properties: {
+                        approveTx: { type: "object" },
+                        depositTx: { type: "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/pools/{poolId}/tx/deposit-wrapchz": {

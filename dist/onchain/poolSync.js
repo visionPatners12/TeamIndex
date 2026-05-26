@@ -18,7 +18,7 @@ function decToStr(x) {
         return x.toString();
     return String(x);
 }
-async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransactionHashes, skipCursorAdvance }) {
+async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransactionHashes, skipCursorAdvance, logger, logContext, chunkSizeEnv }) {
     if (!env.RPC_URL)
         throw new Error("RPC_URL missing (required for onchain sync)");
     if (fromBlock > toBlock)
@@ -26,11 +26,23 @@ async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransact
     const onlySet = onlyTransactionHashes && onlyTransactionHashes.length > 0
         ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
         : null;
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL);
+    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
     const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
-    const depositEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Deposit(), fromBlock, toBlock);
-    const withdrawEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Withdraw(), fromBlock, toBlock);
-    const feeEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock);
+    const depositEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Deposit(), fromBlock, toBlock, {
+        chunkSizeEnv,
+        logger,
+        context: { ...(logContext ?? {}), eventName: "Deposit" }
+    });
+    const withdrawEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Withdraw(), fromBlock, toBlock, {
+        chunkSizeEnv,
+        logger,
+        context: { ...(logContext ?? {}), eventName: "Withdraw" }
+    });
+    const feeEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock, {
+        chunkSizeEnv,
+        logger,
+        context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
+    });
     // Map txHash -> fee info for deposit/mint transactions.
     const feeByTx = new Map();
     for (const ev of feeEvents) {

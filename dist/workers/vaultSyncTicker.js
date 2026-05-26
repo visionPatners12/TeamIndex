@@ -2,60 +2,138 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startVaultSyncTicker = startVaultSyncTicker;
 const prisma_1 = require("../db/prisma");
+const ethersLogChunks_1 = require("../onchain/ethersLogChunks");
 const poolSync_1 = require("../onchain/poolSync");
+const vaultExecutor_1 = require("../onchain/vaultExecutor");
 const priceEngine_1 = require("../services/priceEngine");
 const ethers_1 = require("ethers");
+const chainEventCursor_1 = require("./chainEventCursor");
 function getLastSyncedBlock(riskParams) {
     const v = riskParams?.lastSyncedBlock;
     if (typeof v === "number" && Number.isFinite(v))
         return v;
     return undefined;
 }
+function positiveIntFromEnv(name, fallback) {
+    const n = Number(process.env[name] || fallback);
+    if (!Number.isFinite(n) || n < 1)
+        return fallback;
+    return Math.floor(n);
+}
 function startVaultSyncTicker({ env, logger }) {
     const intervalMs = Number(process.env.VAULT_SYNC_INTERVAL_MS || 60_000);
+    const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
+    const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
     if (!env.RPC_URL) {
         logger.warn("VAULT_SYNC skipped: RPC_URL missing");
         return;
     }
     logger.info({ intervalMs }, "Vault sync ticker started");
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL);
+    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
+    let isTicking = false;
     async function tick() {
-        const pools = await prisma_1.prisma.club_pools.findMany({ where: { status: "ACTIVE" } });
-        if (pools.length === 0)
+        if (isTicking) {
+            logger.warn("Vault sync tick skipped: previous tick still running");
             return;
-        const latest = await provider.getBlockNumber();
-        let didAnySync = false;
-        for (const pool of pools) {
-            const lastSynced = getLastSyncedBlock(pool.riskParams);
-            const fromBlock = lastSynced !== undefined ? lastSynced + 1 : Math.max(0, latest - 2_000);
-            const toBlock = latest;
-            try {
-                await (0, poolSync_1.syncVaultEventsToDb)({
-                    env,
-                    pool: {
-                        id: pool.id,
-                        clubName: pool.clubName,
-                        vaultAddress: pool.vaultAddress ?? undefined,
-                        officialTokenPrice: pool.officialTokenPrice,
-                        riskParams: pool.riskParams
-                    },
-                    fromBlock,
-                    toBlock
-                });
-                didAnySync = true;
+        }
+        isTicking = true;
+        try {
+            const pools = await prisma_1.prisma.club_pools.findMany({ where: { status: "ACTIVE" }, orderBy: { updatedAt: "asc" } });
+            if (pools.length === 0)
+                return;
+            const latest = await provider.getBlockNumber();
+            let didAnySync = false;
+            let claimedPools = 0;
+            for (const pool of pools) {
+                if (claimedPools >= poolsPerTick)
+                    break;
+                let vaultAddress = pool.vaultAddress ?? undefined;
+                if (!vaultAddress) {
+                    try {
+                        const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
+                            clubName: pool.clubName,
+                            vaultAddress: undefined
+                        });
+                        vaultAddress = (vault.target ?? vault.address);
+                    }
+                    catch (err) {
+                        logger.warn({ err: (0, ethersLogChunks_1.compactRpcError)(err), poolId: pool.id }, "Vault sync skipped: vault address could not be resolved");
+                        continue;
+                    }
+                }
+                const cursorKey = `polygon:${vaultAddress.toLowerCase()}:VaultEvents:${pool.id}`;
+                const lastSynced = getLastSyncedBlock(pool.riskParams);
+                const startBlock = lastSynced !== undefined ? lastSynced : Math.max(0, latest - 2_001);
+                const workerId = (0, chainEventCursor_1.makeCursorWorkerId)("vault-sync");
+                const cursor = await (0, chainEventCursor_1.claimChainEventCursor)({
+                    key: cursorKey,
+                    chain: "polygon",
+                    contractAddress: vaultAddress,
+                    eventName: "VaultEvents",
+                    startBlock
+                }, workerId);
+                if (!cursor)
+                    continue;
+                claimedPools += 1;
+                const cursorBlock = (0, chainEventCursor_1.cursorBlockNumber)(cursor);
+                const lastProcessedBlock = Math.max(cursorBlock, lastSynced ?? 0);
+                if (latest <= lastProcessedBlock) {
+                    await (0, chainEventCursor_1.completeChainEventCursor)({ key: cursorKey, workerId, lastProcessedBlock });
+                    continue;
+                }
+                const fromBlock = lastProcessedBlock + 1;
+                const toBlock = Math.min(latest, lastProcessedBlock + maxBlocksPerTick);
+                try {
+                    await (0, poolSync_1.syncVaultEventsToDb)({
+                        env,
+                        pool: {
+                            id: pool.id,
+                            clubName: pool.clubName,
+                            vaultAddress,
+                            officialTokenPrice: pool.officialTokenPrice,
+                            riskParams: pool.riskParams
+                        },
+                        fromBlock,
+                        toBlock,
+                        logger,
+                        chunkSizeEnv: "POLYGON_GETLOGS_BLOCK_CHUNK",
+                        logContext: {
+                            chain: "polygon",
+                            cursorKey,
+                            poolId: pool.id
+                        }
+                    });
+                    await (0, chainEventCursor_1.completeChainEventCursor)({ key: cursorKey, workerId, lastProcessedBlock: toBlock });
+                    didAnySync = true;
+                }
+                catch (err) {
+                    const cooldownUntil = (0, ethersLogChunks_1.isRpcRateLimitError)(err) ? (0, ethersLogChunks_1.getRpcRateLimitCooldownUntil)() : null;
+                    await (0, chainEventCursor_1.failChainEventCursor)({ key: cursorKey, workerId, err, cooldownUntil });
+                    logger.error({
+                        err: (0, ethersLogChunks_1.compactRpcError)(err),
+                        poolId: pool.id,
+                        chain: "polygon",
+                        cursorKey,
+                        fromBlock,
+                        toBlock,
+                        cooldownUntil: cooldownUntil?.toISOString()
+                    }, "Vault sync tick failed for pool");
+                    if (cooldownUntil)
+                        break;
+                }
             }
-            catch (err) {
-                logger.error({ err, poolId: pool.id }, "Vault sync tick failed for pool");
+            // Keep pool totals (totalPoolValue / officialTokenPrice) fresh for UI after deposits/withdraws.
+            if (didAnySync) {
+                try {
+                    await (0, priceEngine_1.recalculateOfficialPrices)(env);
+                }
+                catch (err) {
+                    logger.error({ err }, "Vault sync: price recalculation failed");
+                }
             }
         }
-        // Keep pool totals (totalPoolValue / officialTokenPrice) fresh for UI after deposits/withdraws.
-        if (didAnySync) {
-            try {
-                await (0, priceEngine_1.recalculateOfficialPrices)(env);
-            }
-            catch (err) {
-                logger.error({ err }, "Vault sync: price recalculation failed");
-            }
+        finally {
+            isTicking = false;
         }
     }
     // Run once at startup, then interval.

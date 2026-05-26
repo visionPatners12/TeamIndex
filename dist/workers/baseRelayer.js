@@ -8,6 +8,7 @@ const baseExecutor_1 = require("../onchain/baseExecutor");
 const vaultExecutor_1 = require("../onchain/vaultExecutor");
 const ethersLogChunks_1 = require("../onchain/ethersLogChunks");
 const lifiClient_1 = require("../services/lifiClient");
+const chainEventCursor_1 = require("./chainEventCursor");
 const crossChainRelayerUtils_1 = require("./crossChainRelayerUtils");
 const BASE_CHAIN_ID = 8453;
 const POLYGON_CHAIN_ID = 137;
@@ -32,6 +33,8 @@ async function waitForBalanceIncrease(params) {
 }
 function startBaseRelayer({ env, logger }) {
     const intervalMs = Number(process.env.BASE_RELAYER_INTERVAL_MS || 30_000);
+    const maxBlocksRaw = Number(process.env.BASE_RELAYER_MAX_BLOCKS_PER_TICK || 100);
+    const maxBlocksPerTick = Number.isFinite(maxBlocksRaw) && maxBlocksRaw > 0 ? Math.floor(maxBlocksRaw) : 100;
     if (!env.BASE_RPC_URL || !env.BASE_DEPOSIT_RECEIVER_ADDRESS || !env.BASE_WRAPPED_SHARE_ADDRESS || !env.BASE_USDC_ADDRESS) {
         logger.warn("Base relayer skipped: missing BASE_RPC_URL / BASE_DEPOSIT_RECEIVER_ADDRESS / BASE_WRAPPED_SHARE_ADDRESS / BASE_USDC_ADDRESS");
         return;
@@ -47,41 +50,76 @@ function startBaseRelayer({ env, logger }) {
     logger.info({ intervalMs }, "Base relayer started");
     const baseProvider = (0, baseExecutor_1.getBaseProvider)(env);
     const receiver = (0, baseExecutor_1.getBaseDepositReceiverContract)(env, baseProvider);
-    let lastProcessedBlock = 0;
+    const depositCursor = {
+        key: `base:${env.BASE_DEPOSIT_RECEIVER_ADDRESS.toLowerCase()}:DepositReceived`,
+        chain: "base",
+        contractAddress: env.BASE_DEPOSIT_RECEIVER_ADDRESS,
+        eventName: "DepositReceived"
+    };
+    let isTicking = false;
     async function pollNewDeposits() {
         const currentBlock = await baseProvider.getBlockNumber();
-        if (lastProcessedBlock === 0) {
-            lastProcessedBlock = Math.max(0, currentBlock - Number(process.env.BASE_RELAYER_START_BLOCK_LOOKBACK || 1000));
-        }
-        if (currentBlock <= lastProcessedBlock)
+        const startBlock = Math.max(0, currentBlock - Number(process.env.BASE_RELAYER_START_BLOCK_LOOKBACK || 1000));
+        const workerId = (0, chainEventCursor_1.makeCursorWorkerId)("base-deposits");
+        const cursor = await (0, chainEventCursor_1.claimChainEventCursor)({ ...depositCursor, startBlock }, workerId);
+        if (!cursor)
             return;
+        const lastProcessedBlock = (0, chainEventCursor_1.cursorBlockNumber)(cursor);
+        if (currentBlock <= lastProcessedBlock) {
+            await (0, chainEventCursor_1.completeChainEventCursor)({ key: depositCursor.key, workerId, lastProcessedBlock });
+            return;
+        }
         const fromBlock = lastProcessedBlock + 1;
-        const toBlock = currentBlock;
-        const events = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(receiver, receiver.filters.DepositReceived(), fromBlock, toBlock);
-        for (const event of events) {
-            const parsed = event;
-            if (!parsed.args)
-                continue;
-            const [depositId, user, token, amount, poolIdHash] = parsed.args;
-            const existing = await baseDepositsModel().findUnique({
-                where: { baseDepositId: BigInt(depositId.toString()) }
-            });
-            if (existing)
-                continue;
-            await baseDepositsModel().create({
-                data: {
-                    poolIdHash: poolIdHash.toString(),
-                    userAddress: user,
-                    sourceToken: token,
-                    sourceAmount: amount.toString(),
-                    baseDepositId: BigInt(depositId.toString()),
-                    baseTxHash: parsed.transactionHash,
-                    status: "RECEIVED"
+        const toBlock = Math.min(currentBlock, lastProcessedBlock + Math.max(1, maxBlocksPerTick));
+        try {
+            const events = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(receiver, receiver.filters.DepositReceived(), fromBlock, toBlock, {
+                chunkSizeEnv: "BASE_GETLOGS_BLOCK_CHUNK",
+                logger,
+                context: {
+                    chain: "base",
+                    cursorKey: depositCursor.key,
+                    eventName: depositCursor.eventName
                 }
             });
-            logger.info({ depositId: depositId.toString(), user, amount: amount.toString() }, "New Base USDC deposit received");
+            for (const event of events) {
+                const parsed = event;
+                if (!parsed.args)
+                    continue;
+                const [depositId, user, token, amount, poolIdHash] = parsed.args;
+                const existing = await baseDepositsModel().findUnique({
+                    where: { baseDepositId: BigInt(depositId.toString()) }
+                });
+                if (existing)
+                    continue;
+                await baseDepositsModel().create({
+                    data: {
+                        poolIdHash: poolIdHash.toString(),
+                        userAddress: user,
+                        sourceToken: token,
+                        sourceAmount: amount.toString(),
+                        baseDepositId: BigInt(depositId.toString()),
+                        baseTxHash: parsed.transactionHash,
+                        status: "RECEIVED"
+                    }
+                });
+                logger.info({ depositId: depositId.toString(), user, amount: amount.toString() }, "New Base USDC deposit received");
+            }
+            await (0, chainEventCursor_1.completeChainEventCursor)({ key: depositCursor.key, workerId, lastProcessedBlock: toBlock });
         }
-        lastProcessedBlock = toBlock;
+        catch (err) {
+            const cooldownUntil = (0, ethersLogChunks_1.isRpcRateLimitError)(err) ? (0, ethersLogChunks_1.getRpcRateLimitCooldownUntil)() : null;
+            await (0, chainEventCursor_1.failChainEventCursor)({ key: depositCursor.key, workerId, err, cooldownUntil });
+            logger.error({
+                err: (0, ethersLogChunks_1.compactRpcError)(err),
+                chain: "base",
+                cursorKey: depositCursor.key,
+                fromBlock,
+                toBlock,
+                cooldownUntil: cooldownUntil?.toISOString()
+            }, "Base relayer deposit scan failed");
+            if (!cooldownUntil)
+                throw err;
+        }
     }
     async function markManual(depositId, message) {
         await baseDepositsModel().update({
@@ -155,7 +193,7 @@ function startBaseRelayer({ env, logger }) {
     async function processBaseDeposit(deposit) {
         let current = deposit;
         const baseSigner = (0, baseExecutor_1.getBaseSigner)(env);
-        const polygonProvider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL);
+        const polygonProvider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
         const polygonSigner = new ethers_1.ethers.Wallet(env.EXECUTOR_PRIVATE_KEY, polygonProvider);
         const baseSignerAddress = await baseSigner.getAddress();
         const polygonSignerAddress = await polygonSigner.getAddress();
@@ -396,8 +434,18 @@ function startBaseRelayer({ env, logger }) {
         }
     }
     async function tick() {
-        await pollNewDeposits();
-        await processOpenDeposits();
+        if (isTicking) {
+            logger.warn("Base relayer tick skipped: previous tick still running");
+            return;
+        }
+        isTicking = true;
+        try {
+            await pollNewDeposits();
+            await processOpenDeposits();
+        }
+        finally {
+            isTicking = false;
+        }
     }
     tick()
         .then(() => logger.info("Initial Base relayer tick done"))
