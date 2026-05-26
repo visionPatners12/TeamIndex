@@ -315,6 +315,24 @@ exports.swaggerSpec = {
                                 }
                             }
                         }
+                    },
+                    409: {
+                        description: "Pool vault asset is not the configured native Polygon USDC address",
+                        content: {
+                            "application/json": {
+                                schema: {
+                                    type: "object",
+                                    properties: {
+                                        ok: { type: "boolean", example: false },
+                                        code: { type: "string", example: "VAULT_ASSET_MISMATCH" },
+                                        error: { type: "string" },
+                                        vaultAddress: { type: "string" },
+                                        assetAddress: { type: "string" },
+                                        expectedAssetAddress: { type: "string" }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

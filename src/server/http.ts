@@ -1380,6 +1380,16 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
     const assetAddress: string = await (vault as any).asset();
     const vaultAddress: string = (vault as any).target ?? (vault as any).address;
+    if (env.POLYGON_USDC_ADDRESS && assetAddress.toLowerCase() !== env.POLYGON_USDC_ADDRESS.toLowerCase()) {
+      return res.status(409).json({
+        ok: false,
+        code: "VAULT_ASSET_MISMATCH",
+        error: "This pool vault was deployed with a different Polygon USDC contract. Polygon native USDC deposits are disabled for this pool; use Base or create a new pool with the native USDC factory.",
+        vaultAddress,
+        assetAddress,
+        expectedAssetAddress: env.POLYGON_USDC_ADDRESS
+      });
+    }
     const asset = new ethers.Contract(assetAddress, ERC20.abi, provider);
     const approveTx: TransactionRequest = await (asset as any).approve.populateTransaction(vaultAddress, body.assets);
     const depositFn = (vault as any).deposit;

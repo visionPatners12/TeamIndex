@@ -36,6 +36,7 @@ const EnvSchema = zod_1.z.object({
     // Onchain contract integration (optional for MVP)
     RPC_URL: zod_1.z.string().optional(),
     EXECUTOR_PRIVATE_KEY: zod_1.z.string().optional(),
+    POLYGON_USDC_ADDRESS: zod_1.z.string().optional(),
     VAULT_CONTRACT_ADDRESS: zod_1.z.string().optional(),
     VAULT_CONTRACT_ABI_PATH: zod_1.z.string().optional(),
     ETH_GETLOGS_BLOCK_CHUNK: zod_1.z.string().optional().default("10"),
@@ -99,6 +100,7 @@ function loadEnv() {
         MISSED_EXECUTION_GRACE_MINUTES: process.env.MISSED_EXECUTION_GRACE_MINUTES,
         RPC_URL: process.env.RPC_URL,
         EXECUTOR_PRIVATE_KEY: process.env.EXECUTOR_PRIVATE_KEY,
+        POLYGON_USDC_ADDRESS: process.env.POLYGON_USDC_ADDRESS,
         VAULT_CONTRACT_ADDRESS: process.env.VAULT_CONTRACT_ADDRESS,
         ETH_GETLOGS_BLOCK_CHUNK: process.env.ETH_GETLOGS_BLOCK_CHUNK,
         ETH_GETLOGS_MIN_DELAY_MS: process.env.ETH_GETLOGS_MIN_DELAY_MS,
