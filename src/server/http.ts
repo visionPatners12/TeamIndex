@@ -331,14 +331,18 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   // ─── User holdings across all pools ──────────────────────────────────────────
-  // Returns every pool where the given wallet address holds a non-zero share
-  // balance, along with computed USD value per holding and a portfolio total.
+  // Returns every pool where the given wallet address holds shares, combining
+  //   • Polygon direct shares (club_pool_users — populated from vault Deposit/Withdraw events)
+  //   • Base-bridged shares (base_chain_deposits where status=COMPLETED — wrapped ERC20 on Base)
+  // The frontend gets a unified `shares` total plus a `sharesByChain` breakdown.
   app.get("/users/:address/holdings", async (req, res) => {
     const address = String(req.params.address || "").trim();
     if (!address) return res.status(400).json({ error: "Missing address" });
 
-    // Matching is case-insensitive because checksummed vs lowercased addresses
-    // get stored depending on the source (events vs admin input).
+    const VAULT_SHARE_DECIMALS = 6;
+    const decimalDivisor = 10 ** VAULT_SHARE_DECIMALS;
+
+    // Polygon direct holders.
     const userRows = await prisma.club_pool_users.findMany({
       where: {
         userAddress: { equals: address, mode: "insensitive" },
@@ -346,19 +350,42 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       },
     });
 
-    if (userRows.length === 0) {
-      return res.json({ ok: true, holdings: [], totalValueUsd: 0 });
+    // Base bridge holders — only COMPLETED deposits map to onchain wrapped balances.
+    const baseDepositRows = await (prisma as any).base_chain_deposits.findMany({
+      where: {
+        userAddress: { equals: address, mode: "insensitive" },
+        status: "COMPLETED",
+        clubPoolId: { not: null },
+        sharesMinted: { not: null }
+      }
+    });
+
+    // Aggregate Base shares per pool.
+    const baseSharesRawByPool = new Map<string, bigint>();
+    for (const dep of baseDepositRows as Array<{ clubPoolId: string | null; sharesMinted: { toString(): string } | null }>) {
+      if (!dep.clubPoolId || !dep.sharesMinted) continue;
+      const prev = baseSharesRawByPool.get(dep.clubPoolId) ?? 0n;
+      // `sharesMinted` is stored as a Decimal (6-decimal raw integer) — coerce via string.
+      baseSharesRawByPool.set(dep.clubPoolId, prev + BigInt(dep.sharesMinted.toString().split(".")[0]));
+    }
+
+    // Union of all pool IDs we need to load for naming/pricing.
+    const poolIds = new Set<string>();
+    for (const u of userRows) poolIds.add(u.poolId);
+    for (const id of baseSharesRawByPool.keys()) poolIds.add(id);
+
+    if (poolIds.size === 0) {
+      return res.json({ ok: true, address, holdings: [], totalValueUsd: 0 });
     }
 
     const pools = await prisma.club_pools.findMany({
-      where: { id: { in: userRows.map((u) => u.poolId) } },
+      where: { id: { in: Array.from(poolIds) } },
     });
     const poolById = new Map(pools.map((p) => [p.id, p]));
 
     // Re-implementation of the frontend tokenPriceUsdPerWholeShare logic — keep
     // pricing rules centralised so numbers shown on the landing page, dashboard
     // and deposit modal all agree.
-    const VAULT_SHARE_DECIMALS = 6;
     const toTvlHuman = (raw: string | null | undefined) => {
       if (!raw) return 0;
       const s = String(raw).trim();
@@ -369,18 +396,32 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       return n;
     };
 
-    const holdings = userRows
-      .map((u) => {
-        const pool = poolById.get(u.poolId);
+    // Map polygon shares (raw integer string from club_pool_users.tokenBalance) per pool.
+    const polygonRawByPool = new Map<string, bigint>();
+    const polygonUpdatedAtByPool = new Map<string, Date>();
+    for (const u of userRows) {
+      const raw = u.tokenBalance?.toString() ?? "0";
+      polygonRawByPool.set(u.poolId, BigInt(raw.split(".")[0]));
+      polygonUpdatedAtByPool.set(u.poolId, u.updatedAt);
+    }
+
+    const holdings = Array.from(poolIds)
+      .map((poolId) => {
+        const pool = poolById.get(poolId);
         if (!pool) return null;
 
-        const rawBalance = Number(u.tokenBalance?.toString() ?? "0");
-        const shares = rawBalance / 10 ** VAULT_SHARE_DECIMALS;
-        if (!(shares > 0)) return null;
+        const polygonRaw = polygonRawByPool.get(poolId) ?? 0n;
+        const baseRaw = baseSharesRawByPool.get(poolId) ?? 0n;
+        const totalRaw = polygonRaw + baseRaw;
+        if (totalRaw <= 0n) return null;
+
+        const polygonShares = Number(polygonRaw) / decimalDivisor;
+        const baseShares = Number(baseRaw) / decimalDivisor;
+        const shares = polygonShares + baseShares;
 
         const tvl = toTvlHuman(pool.totalPoolValue?.toString());
         const rawSupply = Number(pool.totalTokenSupply?.toString() ?? "0");
-        const sharesHuman = rawSupply > 0 ? rawSupply / 10 ** VAULT_SHARE_DECIMALS : 0;
+        const sharesHuman = rawSupply > 0 ? rawSupply / decimalDivisor : 0;
 
         const stored = Number(pool.officialTokenPrice?.toString() ?? "0");
         let tokenPrice = 1;
@@ -402,10 +443,14 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
           vaultAddress: pool.vaultAddress,
           status: pool.status,
           shares,
-          tokenBalanceRaw: u.tokenBalance?.toString() ?? "0",
+          sharesByChain: {
+            polygon: polygonShares,
+            base: baseShares,
+          },
+          tokenBalanceRaw: totalRaw.toString(),
           tokenPriceUsd: tokenPrice,
           valueUsd,
-          updatedAt: u.updatedAt,
+          updatedAt: polygonUpdatedAtByPool.get(poolId) ?? new Date(),
         };
       })
       .filter((h): h is NonNullable<typeof h> => h !== null)
@@ -414,6 +459,54 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const totalValueUsd = holdings.reduce((s, h) => s + h.valueUsd, 0);
 
     res.json({ ok: true, address, holdings, totalValueUsd });
+  });
+
+  // ─── Pending Base deposits for a user ────────────────────────────────────────
+  // Returns the user's in-flight cross-chain deposits from Base — those that
+  // were received on the BaseDepositReceiver but haven't been fully processed
+  // into wrapped shares yet. Lets the Dashboard surface a "Bridging…" banner.
+  app.get("/users/:address/pending-base-deposits", async (req, res) => {
+    const address = String(req.params.address || "").trim();
+    if (!address) return res.status(400).json({ error: "Missing address" });
+
+    const PENDING_STATUSES = ["RECEIVED", "BRIDGING", "DEPOSITING", "MINTING_SHARES"];
+
+    const pending = await (prisma as any).base_chain_deposits.findMany({
+      where: {
+        userAddress: { equals: address, mode: "insensitive" },
+        status: { in: PENDING_STATUSES }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 25
+    });
+
+    // Enrich with club name when known.
+    const poolIds = Array.from(new Set(pending.map((d: any) => d.clubPoolId).filter(Boolean) as string[]));
+    const pools = poolIds.length
+      ? await prisma.club_pools.findMany({ where: { id: { in: poolIds } } })
+      : [];
+    const poolById = new Map(pools.map((p) => [p.id, p]));
+
+    res.json({
+      ok: true,
+      address,
+      deposits: pending.map((d: any) => {
+        const pool = d.clubPoolId ? poolById.get(d.clubPoolId) : undefined;
+        return {
+          id: d.id,
+          clubPoolId: d.clubPoolId,
+          clubName: pool?.clubName ?? null,
+          symbol: pool?.symbol ?? null,
+          status: d.status,
+          processingStep: d.processingStep,
+          sourceAmount: d.sourceAmount?.toString() ?? null,
+          baseTxHash: d.baseTxHash ?? null,
+          baseDepositId: d.baseDepositId?.toString() ?? null,
+          lastError: d.lastError ?? null,
+          createdAt: d.createdAt
+        };
+      })
+    });
   });
 
   app.get("/pools/:poolId/price-snapshots/latest", async (req, res) => {
