@@ -2,6 +2,7 @@ import type { Env } from "../config/env";
 import { getMidpoint } from "../polymarket/clobClient";
 import { prisma } from "../db/prisma";
 import { getVaultContract } from "../onchain/vaultExecutor";
+import { enqueuePolygonTx, resetPolygonNonce } from "../onchain/polygonSigner";
 import { parseUnits } from "ethers";
 
 function decToNumber(d: any): number {
@@ -101,17 +102,29 @@ export async function recalculateOfficialPrices(env: Env) {
 
     // Keep onchain valuation inputs in sync with offchain calculations.
     // This makes ERC4626 conversions use the same "official token price" basis.
-    if (env.RPC_URL) {
+    // Serialized via the polygonSigner queue so multiple pool updates don't pile up
+    // in the mempool from the shared EXECUTOR wallet.
+    if (env.RPC_URL && env.EXECUTOR_PRIVATE_KEY) {
       try {
-        const vault = await getVaultContract(env, undefined, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
         const posBase = humanUsdToUsdcBaseUnits(positionsValue);
         // realizedPnl is now `int256` onchain — preserve sign so losses are reflected in NAV.
         const rPnLBase = realizedPnl >= 0
           ? humanUsdToUsdcBaseUnits(realizedPnl)
           : -humanUsdToUsdcBaseUnits(-realizedPnl);
-        await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
+        const tx = await enqueuePolygonTx(env, async (signer, provider) => {
+          // Build a contract bound to the singleton signer so the NonceManager controls nonces.
+          const vault = await getVaultContract(env, provider as any, {
+            clubName: pool.clubName,
+            vaultAddress: pool.vaultAddress ?? undefined
+          });
+          return (vault.connect(signer) as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
+        });
+        await tx.wait(); // serialize: don't return until this NAV update has mined
       } catch {
-        // Optional: onchain valuation update failure should not block price recalculation.
+        // Onchain valuation update failure shouldn't block price recalculation.
+        // If the failure was a nonce desync, drop the cached counter so the next
+        // attempt re-reads from the network.
+        await resetPolygonNonce(env).catch(() => undefined);
       }
     }
   }

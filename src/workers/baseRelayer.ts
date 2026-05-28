@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import { ERC20 } from "../contracts/erc20";
 import { getBaseDepositReceiverContract, getBaseProvider, getBaseSigner, mintBaseWrappedShares } from "../onchain/baseExecutor";
 import { getVaultContract } from "../onchain/vaultExecutor";
+import { getPolygonSigner } from "../onchain/polygonSigner";
 import { compactRpcError, getRpcRateLimitCooldownUntil, isRpcRateLimitError, queryFilterInBlockChunks } from "../onchain/ethersLogChunks";
 import { getLifiQuote, lifiQuoteToTransactionRequest } from "../services/lifiClient";
 import {
@@ -215,7 +216,7 @@ export function startBaseRelayer({ env, logger }: { env: Env; logger: ReturnType
     return targetPool;
   }
 
-  async function getPolygonVaultContext(targetPool: { clubName: string; vaultAddress: string | null }, polygonProvider: ethers.JsonRpcProvider, polygonSigner: ethers.Wallet) {
+  async function getPolygonVaultContext(targetPool: { clubName: string; vaultAddress: string | null }, polygonProvider: ethers.JsonRpcProvider, polygonSigner: ethers.Signer) {
     const vault = await getVaultContract(env, polygonProvider as any, {
       clubName: targetPool.clubName,
       vaultAddress: targetPool.vaultAddress ?? undefined
@@ -229,8 +230,9 @@ export function startBaseRelayer({ env, logger }: { env: Env; logger: ReturnType
   async function processBaseDeposit(deposit: any) {
     let current = deposit;
     const baseSigner = getBaseSigner(env);
-    const polygonProvider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
-    const polygonSigner = new ethers.Wallet(env.EXECUTOR_PRIVATE_KEY!, polygonProvider);
+    // Use the shared Polygon signer so nonces are coordinated across the priceEngine
+    // and any other subsystem that writes to Polygon from the EXECUTOR wallet.
+    const { signer: polygonSigner, provider: polygonProvider } = getPolygonSigner(env);
     const baseSignerAddress = await baseSigner.getAddress();
     const polygonSignerAddress = await polygonSigner.getAddress();
 
