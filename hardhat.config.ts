@@ -6,10 +6,14 @@ const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
     settings: {
+      // Vaults are deployed once via Clones but their entry-point functions
+      // (deposit/withdraw/executeWhitelistedCall) are called many times.
+      // High `runs` minimizes runtime gas for those hot paths.
       optimizer: {
         enabled: true,
-        runs: 200
-      }
+        runs: 10_000
+      },
+      viaIR: true
     }
   },
   paths: {

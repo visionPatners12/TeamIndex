@@ -1,16 +1,43 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
+/// @title USDC4626Vault
+/// @notice Per-club ERC4626 vault holding USDC, designed to be deployed as an EIP-1167 clone.
+/// @dev Uses the Initializable pattern so that each clone is configured via `initialize()`
+///      instead of a constructor. The implementation contract itself is locked via
+///      `_disableInitializers()` to prevent direct usage.
+contract USDC4626Vault is
+    Initializable,
+    ERC4626Upgradeable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20 for IERC20;
+    using Address for address;
+
+    // ─── Constants ────────────────────────────────────────────────────────────
+
+    /// @notice Basis-point denominator used for fee math (100% = 10_000 bps).
+    uint256 public constant BPS_DENOMINATOR = 10_000;
+
+    /// @notice Hard cap on entry / exit fees (5%) — owner cannot exceed this.
+    uint256 public constant MAX_FEE_BPS = 500;
+
+    // ─── Storage ──────────────────────────────────────────────────────────────
 
     struct OperatorInfo {
         bool authorized;
@@ -21,7 +48,20 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
 
     uint256 public depositCap;
     uint256 public openPositionsValue;
-    uint256 public realizedPnl;
+    /// @notice Signed realized PnL — can be negative if the vault took losses.
+    int256 public realizedPnl;
+
+    /// @notice Optional entry fee in basis points (max 500 = 5%).
+    uint256 public entryFeeBps;
+    /// @notice Optional exit fee in basis points (max 500 = 5%).
+    uint256 public exitFeeBps;
+    /// @notice Address receiving fees. If zero, no fees are taken even if rates > 0.
+    address public feeRecipient;
+
+    /// @notice Authorized to update pool valuation (NAV) without being a full owner.
+    /// @dev Lets a hot backend wallet update NAV in the background without holding the
+    ///      privileged admin keys. Settable only by `owner`. `address(0)` disables it.
+    address public valuator;
 
     mapping(address => OperatorInfo) private operators;
     address[] private operatorList;
@@ -32,10 +72,13 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
     mapping(address => bool) private trustedStrategies;
     address[] private trustedStrategyList;
 
+    // ─── Events ───────────────────────────────────────────────────────────────
+
     event OperatorAdded(address indexed operator, uint256 allocation, uint256 transactionCap);
     event OperatorRemoved(address indexed operator);
     event OperatorAllocationUpdated(address indexed operator, uint256 allocation);
     event OperatorTransactionCapUpdated(address indexed operator, uint256 transactionCap);
+    event OperatorAllocationReset(address indexed operator);
     event WhitelistedContractAdded(address indexed contractAddress);
     event WhitelistedContractRemoved(address indexed contractAddress);
     event TrustedStrategyAdded(address indexed strategy);
@@ -48,31 +91,84 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         uint256 minReturn,
         bytes result
     );
-    event PoolValuationUpdated(uint256 openPositionsValue, uint256 realizedPnl);
+    event PoolValuationUpdated(uint256 openPositionsValue, int256 realizedPnl);
+    /// @notice Emitted when an entry/exit fee is taken.
+    /// @param payer   Caller for entry fees, receiver for exit fees.
+    /// @param treasury Fee recipient at the time of the call.
+    /// @param grossAssets Total assets involved in the operation.
+    /// @param feeAssets   Fee portion taken.
+    /// @param netAssets   grossAssets - feeAssets.
+    event VaultFeeCharged(
+        address indexed payer,
+        address indexed treasury,
+        uint256 grossAssets,
+        uint256 feeAssets,
+        uint256 netAssets
+    );
+    event FeeConfigUpdated(uint256 entryFeeBps, uint256 exitFeeBps, address feeRecipient);
+    event DepositCapUpdated(uint256 newCap);
+    event ValuatorUpdated(address indexed oldValuator, address indexed newValuator);
 
-    constructor(
+    // ─── Construction / Initialization ────────────────────────────────────────
+
+    /// @dev Locks the implementation contract — only clones can be initialized.
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initialize a freshly-cloned vault. Can only be called once.
+    /// @param asset_ The underlying ERC20 (USDC).
+    /// @param name_ ERC20 name of the share token.
+    /// @param symbol_ ERC20 symbol of the share token.
+    /// @param depositCap_ Max total assets the vault accepts (0 = unlimited).
+    /// @param initialOwner_ Address granted ownership of the vault.
+    /// @param initialValuator_ Address allowed to update NAV via `setPoolValuation`. Zero disables.
+    function initialize(
         IERC20 asset_,
         string memory name_,
         string memory symbol_,
         uint256 depositCap_,
-        address initialOwner
-    ) ERC4626(asset_) ERC20(name_, symbol_) Ownable(initialOwner) {
+        address initialOwner_,
+        address initialValuator_
+    ) external initializer {
+        require(address(asset_) != address(0), "Vault: zero asset");
+        require(initialOwner_ != address(0), "Vault: zero owner");
+
+        __ERC20_init(name_, symbol_);
+        __ERC4626_init(IERC20(address(asset_)));
+        __Ownable_init(initialOwner_);
+        __Pausable_init();
+        __ReentrancyGuard_init();
+
         depositCap = depositCap_;
+        valuator = initialValuator_;
+        if (initialValuator_ != address(0)) {
+            emit ValuatorUpdated(address(0), initialValuator_);
+        }
     }
 
     receive() external payable {}
+
+    // ─── Access ───────────────────────────────────────────────────────────────
 
     modifier onlyAuthorizedOperatorOrOwner() {
         require(msg.sender == owner() || operators[msg.sender].authorized, "Vault: unauthorized operator");
         _;
     }
 
+    // ─── NAV / accounting ────────────────────────────────────────────────────
+
     function totalCash() public view returns (uint256) {
         return IERC20(asset()).balanceOf(address(this));
     }
 
+    /// @notice Total assets under management, accounting for open positions and signed PnL.
+    /// @dev If realizedPnl is negative and the loss exceeds (cash + openPositionsValue),
+    ///      we return 0 instead of reverting so deposits/withdraws can still preview safely.
     function totalAssets() public view override returns (uint256) {
-        return totalCash() + openPositionsValue + realizedPnl;
+        int256 gross = int256(totalCash() + openPositionsValue) + realizedPnl;
+        return gross > 0 ? uint256(gross) : 0;
     }
 
     function maxDeposit(address receiver) public view override returns (uint256) {
@@ -105,6 +201,82 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         if (paused()) return 0;
         return super.maxRedeem(owner_);
     }
+
+    // ─── Fees (OZ ERC4626 fee pattern) ────────────────────────────────────────
+
+    function previewDeposit(uint256 assets) public view override returns (uint256) {
+        uint256 fee = _feeOnTotal(assets, entryFeeBps);
+        return super.previewDeposit(assets - fee);
+    }
+
+    function previewMint(uint256 shares) public view override returns (uint256) {
+        uint256 assets = super.previewMint(shares);
+        return assets + _feeOnRaw(assets, entryFeeBps);
+    }
+
+    function previewWithdraw(uint256 assets) public view override returns (uint256) {
+        uint256 fee = _feeOnRaw(assets, exitFeeBps);
+        return super.previewWithdraw(assets + fee);
+    }
+
+    function previewRedeem(uint256 shares) public view override returns (uint256) {
+        uint256 assets = super.previewRedeem(shares);
+        return assets - _feeOnTotal(assets, exitFeeBps);
+    }
+
+    function _feeOnRaw(uint256 assets, uint256 feeBps) private pure returns (uint256) {
+        if (feeBps == 0) return 0;
+        return Math.mulDiv(assets, feeBps, BPS_DENOMINATOR, Math.Rounding.Ceil);
+    }
+
+    function _feeOnTotal(uint256 assets, uint256 feeBps) private pure returns (uint256) {
+        if (feeBps == 0) return 0;
+        return Math.mulDiv(assets, feeBps, feeBps + BPS_DENOMINATOR, Math.Rounding.Ceil);
+    }
+
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        uint256 fee = _feeOnTotal(assets, entryFeeBps);
+        address recipient = feeRecipient;
+
+        // Pull full `assets` from caller into the vault first…
+        SafeERC20.safeTransferFrom(IERC20(asset()), caller, address(this), assets);
+
+        // …then forward the fee out (if any) so the vault's effective deposit is `assets - fee`.
+        if (fee > 0 && recipient != address(0)) {
+            SafeERC20.safeTransfer(IERC20(asset()), recipient, fee);
+            emit VaultFeeCharged(caller, recipient, assets, fee, assets - fee);
+        }
+
+        _mint(receiver, shares);
+        emit Deposit(caller, receiver, assets, shares);
+    }
+
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner_,
+        uint256 assets,
+        uint256 shares
+    ) internal override {
+        if (caller != owner_) {
+            _spendAllowance(owner_, caller, shares);
+        }
+
+        _burn(owner_, shares);
+
+        uint256 fee = _feeOnRaw(assets, exitFeeBps);
+        address recipient = feeRecipient;
+
+        if (fee > 0 && recipient != address(0)) {
+            SafeERC20.safeTransfer(IERC20(asset()), recipient, fee);
+            emit VaultFeeCharged(receiver, recipient, assets + fee, fee, assets);
+        }
+        SafeERC20.safeTransfer(IERC20(asset()), receiver, assets);
+
+        emit Withdraw(caller, receiver, owner_, assets, shares);
+    }
+
+    // ─── Public ERC4626 entry points (with pause + reentrancy guards) ─────────
 
     function deposit(uint256 assets, address receiver)
         public
@@ -146,6 +318,8 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         return super.redeem(shares, receiver, owner_);
     }
 
+    // ─── Operator management ──────────────────────────────────────────────────
+
     function addAuthorizedOperator(address operator, uint256 allocation, uint256 transactionCap) external onlyOwner {
         require(operator != address(0), "Vault: zero operator");
         if (!operators[operator].authorized) operatorList.push(operator);
@@ -172,6 +346,17 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         emit OperatorTransactionCapUpdated(operator, newTxCap);
     }
 
+    /// @notice Resets an operator's `currentAlloc` back to zero so they can keep
+    ///         executing whitelisted calls without losing their seat.
+    /// @dev Intended to be called when positions are closed and capital is returned to the vault,
+    ///      or at the start of a new allocation period. Without this, an operator that exhausts
+    ///      their `totalAlloc` is permanently blocked.
+    function resetOperatorAllocation(address operator) external onlyOwner {
+        require(operators[operator].authorized, "Vault: operator missing");
+        operators[operator].currentAlloc = 0;
+        emit OperatorAllocationReset(operator);
+    }
+
     function getAllOperators() external view returns (address[] memory) {
         return operatorList;
     }
@@ -184,6 +369,8 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         OperatorInfo memory info = operators[operator];
         return (info.authorized, info.totalAlloc, info.currentAlloc, info.txCap);
     }
+
+    // ─── Whitelist management ─────────────────────────────────────────────────
 
     function addWhitelistedContract(address contractAddress) external onlyOwner {
         require(contractAddress != address(0), "Vault: zero contract");
@@ -233,6 +420,8 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         return trustedStrategyList;
     }
 
+    // ─── Admin ────────────────────────────────────────────────────────────────
+
     function pause() external onlyOwner {
         _pause();
     }
@@ -243,14 +432,43 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
 
     function setDepositCap(uint256 newDepositCap) external onlyOwner {
         depositCap = newDepositCap;
+        emit DepositCapUpdated(newDepositCap);
     }
 
-    function setPoolValuation(uint256 newOpenPositionsValue, uint256 newRealizedPnl) external onlyOwner {
+    /// @notice Updates pool valuation. Callable by `owner` OR the dedicated `valuator` role
+    ///         so a hot backend wallet can refresh NAV without holding owner powers.
+    /// @dev `newRealizedPnl` is signed so losses are representable.
+    function setPoolValuation(uint256 newOpenPositionsValue, int256 newRealizedPnl) external {
+        require(msg.sender == owner() || (valuator != address(0) && msg.sender == valuator), "Vault: not valuator");
         openPositionsValue = newOpenPositionsValue;
         realizedPnl = newRealizedPnl;
         emit PoolValuationUpdated(newOpenPositionsValue, newRealizedPnl);
     }
 
+    /// @notice Updates the valuator address. Only owner can rotate this role.
+    function setValuator(address newValuator) external onlyOwner {
+        address old = valuator;
+        valuator = newValuator;
+        emit ValuatorUpdated(old, newValuator);
+    }
+
+    /// @notice Configure fees. Both rates are capped at MAX_FEE_BPS (5%).
+    function setFeeConfig(uint256 newEntryFeeBps, uint256 newExitFeeBps, address newFeeRecipient) external onlyOwner {
+        require(newEntryFeeBps <= MAX_FEE_BPS, "Vault: entry fee too high");
+        require(newExitFeeBps <= MAX_FEE_BPS, "Vault: exit fee too high");
+        if (newEntryFeeBps > 0 || newExitFeeBps > 0) {
+            require(newFeeRecipient != address(0), "Vault: fee recipient required");
+        }
+        entryFeeBps = newEntryFeeBps;
+        exitFeeBps = newExitFeeBps;
+        feeRecipient = newFeeRecipient;
+        emit FeeConfigUpdated(newEntryFeeBps, newExitFeeBps, newFeeRecipient);
+    }
+
+    // ─── Operator-initiated external calls ────────────────────────────────────
+
+    /// @notice Executes a call to a whitelisted target, enforcing tx-cap and allocation limits.
+    /// @dev Uses Address.functionCallWithValue for safer call semantics than raw `.call`.
     function executeWhitelistedCall(
         address target,
         bytes calldata data,
@@ -270,8 +488,7 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         }
 
         uint256 cashBefore = totalCash();
-        (bool ok, bytes memory result) = target.call{value: value}(data);
-        require(ok, "Vault: target call failed");
+        bytes memory result = target.functionCallWithValue(data, value);
 
         if (minReturn > 0) {
             uint256 cashAfter = totalCash();
@@ -282,7 +499,12 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         return result;
     }
 
+    // ─── Rescue ───────────────────────────────────────────────────────────────
+
+    /// @notice Recovers arbitrary ERC20 tokens stuck on the vault.
+    /// @dev Cannot be used to rug the underlying asset — `rescueTokens` reverts on `asset()`.
     function rescueTokens(address token, uint256 amount) external onlyOwner {
+        require(token != asset(), "Vault: cannot rescue underlying");
         IERC20(token).safeTransfer(owner(), amount);
     }
 
@@ -290,6 +512,8 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
         (bool ok, ) = owner().call{value: amount}("");
         require(ok, "Vault: native transfer failed");
     }
+
+    // ─── Internal helpers ─────────────────────────────────────────────────────
 
     function _removeAddress(address[] storage values, address value) private {
         uint256 len = values.length;
@@ -301,4 +525,7 @@ contract USDC4626Vault is ERC4626, Ownable, Pausable, ReentrancyGuard {
             }
         }
     }
+
+    /// @dev Reserved storage slots so future upgrades don't shift storage layout.
+    uint256[40] private __gap;
 }

@@ -4,6 +4,9 @@
 export const USDC4626VAULT = {
   name: "USDC4626Vault",
   abi: [
+    // Initializer — called by ClubVaultFactory after cloning. Listed here for completeness.
+    "function initialize(address asset_, string name_, string symbol_, uint256 depositCap_, address initialOwner_, address initialValuator_) external",
+
     // Minimal fragment: omit mutability keywords for ethers ABI parsing stability.
     "function executeWhitelistedCall(address target, bytes data, uint256 value, uint256 assetAmount, uint256 minReturn, bool isTrustedRequired) returns (bytes)",
 
@@ -11,6 +14,7 @@ export const USDC4626VAULT = {
     "function removeAuthorizedOperator(address operator) external",
     "function setOperatorAllocation(address operator, uint256 newAllocation) external",
     "function setOperatorTransactionCap(address operator, uint256 newTxCap) external",
+    "function resetOperatorAllocation(address operator) external",
 
     "function getAllOperators() external view returns (address[])",
     "function getOperatorInfo(address operator) external view returns (bool authorized, uint256 totalAlloc, uint256 currentAlloc, uint256 txCap)",
@@ -53,13 +57,24 @@ export const USDC4626VAULT = {
     // Ownable helpers (optional)
     "function owner() external view returns (address)",
 
+    // Fee configuration
+    "function entryFeeBps() external view returns (uint256)",
+    "function exitFeeBps() external view returns (uint256)",
+    "function feeRecipient() external view returns (address)",
+    "function setFeeConfig(uint256 newEntryFeeBps, uint256 newExitFeeBps, address newFeeRecipient) external",
+
+    // Pool valuation — callable by owner OR valuator. `realizedPnl` is signed so losses can be represented onchain.
+    "function openPositionsValue() external view returns (uint256)",
+    "function realizedPnl() external view returns (int256)",
+    "function setPoolValuation(uint256 openPositionsValue, int256 realizedPnl) external",
+    "function valuator() external view returns (address)",
+    "function setValuator(address newValuator) external",
+
     // Events used for onchain->DB sync
     "event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares)",
     "event Withdraw(address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)",
     "event VaultFeeCharged(address indexed payer, address indexed treasury, uint256 grossAssets, uint256 feeAssets, uint256 netAssets)",
-    "event PoolValuationUpdated(uint256 openPositionsValue, uint256 realizedPnl)",
-
-    "function setPoolValuation(uint256 openPositionsValue, uint256 realizedPnl) external"
+    "event PoolValuationUpdated(uint256 openPositionsValue, int256 realizedPnl)",
+    "event ValuatorUpdated(address indexed oldValuator, address indexed newValuator)"
   ]
 } as const;
-

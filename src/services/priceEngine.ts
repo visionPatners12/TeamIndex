@@ -105,7 +105,10 @@ export async function recalculateOfficialPrices(env: Env) {
       try {
         const vault = await getVaultContract(env, undefined, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
         const posBase = humanUsdToUsdcBaseUnits(positionsValue);
-        const rPnLBase = realizedPnl >= 0 ? humanUsdToUsdcBaseUnits(realizedPnl) : 0n;
+        // realizedPnl is now `int256` onchain — preserve sign so losses are reflected in NAV.
+        const rPnLBase = realizedPnl >= 0
+          ? humanUsdToUsdcBaseUnits(realizedPnl)
+          : -humanUsdToUsdcBaseUnits(-realizedPnl);
         await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
       } catch {
         // Optional: onchain valuation update failure should not block price recalculation.
