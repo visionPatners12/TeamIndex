@@ -2,7 +2,26 @@
   "permissions": {
     "allow": [
       "Bash(npx hardhat *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(cat /Users/karlemmanuelavodo/Documents/GitHub/remix-of-game-verse-casino-hub-662826d5/supabase/config.toml 2>/dev/null | head -5)",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"VirtualCondition\\\\\"\\) { fields { name description type { name kind ofType { name kind } } } } }\"}')",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"VirtualGame\\\\\"\\) { fields { name description type { name kind ofType { name kind } } } } }\"}')",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"ConditionState\\\\\"\\) { enumValues { name } } }\"}')",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"GameState\\\\\"\\) { enumValues { name } } }\"}')",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"EventName\\\\\"\\) { enumValues { name } } }\"}')",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"Participant\\\\\"\\) { fields { name type { name kind ofType { name kind } } } } }\"}')",
+      "Bash(curl -s -X POST https://thegraph-1.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-data-feed-polygon -H 'Content-Type: application/json' -d '{\"query\":\"{ __type\\(name: \\\\\"Sport\\\\\"\\) { fields { name type { name kind ofType { name kind } } } } }\"}')",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__list_organizations",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__list_projects",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__execute_sql",
+      "Bash(curl -s \"https://gamma-api.polymarket.com/markets?slug_or_question=arsenal&closed=false&limit=20\")",
+      "Bash(curl -s \"https://gamma-api.polymarket.com/markets?related_tag_slug=arsenal&closed=false&limit=20\")",
+      "Bash(curl -s \"https://gamma-api.polymarket.com/markets?related_tag_slug=arsenal&closed=false&limit=50\")",
+      "Bash(curl -s \"https://gamma-api.polymarket.com/markets?related_tag_slug=arsenal&closed=false&limit=50\" -o /tmp/arsenal_markets.json)",
+      "Bash(curl -s \"https://gamma-api.polymarket.com/markets?related_tag_slug=arsenal-fc&closed=false&limit=50\" -o /tmp/arsenal_markets.json)",
+      "Bash(curl -s https://clob.polymarket.com/book?token_id=48266155784016844137166283546442505319002353733298913457784203021568892550163)",
+      "Bash(python3 -m json.tool)"
     ]
   }
 }

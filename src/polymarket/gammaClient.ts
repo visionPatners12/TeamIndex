@@ -143,9 +143,39 @@ function formatMarket(raw: Record<string, any>): FormattedGammaMarket {
     if (Array.isArray(parsed)) prices = parsed.map(Number);
   } catch {}
 
-  const tokens = Array.isArray(raw.tokens)
-    ? raw.tokens.map((t: any) => ({ token_id: String(t.token_id ?? ""), outcome: String(t.outcome ?? "") }))
-    : [];
+  // Gamma's market shape stores CLOB tokens and outcomes as JSON-encoded
+  // string arrays (e.g. `clobTokenIds: '["123…", "456…"]'`, `outcomes: '["Yes","No"]'`).
+  // The older shape returns a parsed `tokens` array directly. Handle both so
+  // downstream code always sees `[{token_id, outcome}, ...]`.
+  let tokens: Array<{ token_id: string; outcome: string }> = [];
+  if (Array.isArray(raw.tokens) && raw.tokens.length > 0) {
+    tokens = raw.tokens.map((t: any) => ({
+      token_id: String(t.token_id ?? ""),
+      outcome: String(t.outcome ?? "")
+    }));
+  } else if (raw.clobTokenIds) {
+    const tokenIds: string[] = (() => {
+      try {
+        const parsed = typeof raw.clobTokenIds === "string" ? JSON.parse(raw.clobTokenIds) : raw.clobTokenIds;
+        return Array.isArray(parsed) ? parsed.map((x) => String(x)) : [];
+      } catch {
+        return [];
+      }
+    })();
+    const outcomes: string[] = (() => {
+      try {
+        const parsed = typeof raw.outcomes === "string" ? JSON.parse(raw.outcomes) : raw.outcomes;
+        return Array.isArray(parsed) ? parsed.map((x) => String(x)) : [];
+      } catch {
+        return [];
+      }
+    })();
+    tokens = tokenIds.map((token_id, i) => ({
+      token_id,
+      // Polymarket convention: clobTokenIds[0] = YES, [1] = NO.
+      outcome: outcomes[i] ?? (i === 0 ? "Yes" : i === 1 ? "No" : `Outcome ${i}`)
+    }));
+  }
 
   const eventId     = String(raw.eventId ?? raw.event?.id ?? "");
   const eventSlug   = String(raw.event?.slug ?? raw.eventSlug ?? "");
