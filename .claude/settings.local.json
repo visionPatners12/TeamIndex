@@ -67,7 +67,20 @@
       "Bash(sed -n '1,60p' src/db/initDb.ts)",
       "Bash(grep -c '\\\\b__TRACKED_VAR__\\\\b' src/server/http.ts)",
       "Bash(npx prisma *)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(node -e ' *)",
+      "Bash(echo \"tsc EXIT $?\")",
+      "Bash(git -C /Users/karlemmanuelavodo/Documents/GitHub/TeamIndex log --oneline -5)",
+      "Bash(git -C /Users/karlemmanuelavodo/Documents/GitHub/TeamIndex diff --stat)",
+      "Bash(git -C /Users/karlemmanuelavodo/Documents/GitHub/TeamIndex status)",
+      "Bash(git -C /Users/karlemmanuelavodo/Documents/GitHub/TeamIndex log --oneline -6)",
+      "Bash(git -C /Users/karlemmanuelavodo/Documents/GitHub/TeamIndex-Front/artifacts/team-index status --short)",
+      "Bash(git -C /Users/karlemmanuelavodo/Documents/GitHub/TeamIndex-Front/artifacts/team-index log --oneline -3 -- src/features/pools/MarketsSection.tsx)",
+      "Bash(echo \"=== tsc exit: $? ===\")",
+      "Bash(echo \"backend tsc exit: $?\")",
+      "Read(//tmp/**)",
+      "Bash(grep -v ':0$')",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__get_advisors"
     ]
   }
 }

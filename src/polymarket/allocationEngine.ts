@@ -37,6 +37,12 @@ const MAX_PER_EVENT    = 0.15;  // 15% NAV
 const MAX_PER_CLUSTER  = 0.25;  // 25% NAV
 const MAX_BY_LIQUIDITY = 0.10;  // 10% of market liquidity
 const MAX_BY_DEPTH_PCT = 0.50;  // 50% of depth @ 2% slippage
+// The per-market ceiling (MAX_PER_MARKET) is only reached by a position that is
+// UNCORRELATED with the rest of the book. The cap is shrunk continuously by a
+// market's correlation burden, so highly-correlated near-duplicate bets each
+// get a smaller slice instead of both maxing out.
+const CORR_CAP_PENALTY = 0.70;  // how hard correlation shrinks the per-market cap
+const CORR_CAP_FLOOR   = 0.30;  // a fully-correlated market still keeps 30% of the cap
 
 // Elimination thresholds
 const MIN_DAYS_TO_RESOLUTION = 0.5;     // reject if resolving within ~12h
@@ -295,10 +301,54 @@ function alignedLogitReturnCorr(a: TsSeries, b: TsSeries): { corr: number; n: nu
   return { corr: clamp(cov / d, -1, 1), n };
 }
 
+// Words that carry no subject information for prediction-market questions.
+const SUBJECT_STOPWORDS = new Set([
+  "will", "win", "wins", "won", "the", "a", "an", "of", "in", "on", "to", "at",
+  "for", "and", "or", "vs", "versus", "be", "is", "by", "with", "this", "that",
+  "fc", "cf", "afc", "sc", "club", "team", "match", "game", "final", "season",
+  "title", "trophy", "cup", "league", "champion", "champions", "championship",
+]);
+
+/** Significant subject tokens of a market question (team/player/topic names). */
+function questionSubject(q: string): Set<string> {
+  const cleaned = (q ?? "")
+    .toLowerCase()
+    .replace(/\d{4}[-/]\d{1,2}[-/]\d{1,2}/g, " ") // ISO dates
+    .replace(/\d{2,4}[–-]\d{2,4}/g, " ")          // "2025–26"
+    .replace(/[^a-z\s]/g, " ");
+  return new Set(
+    cleaned
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !SUBJECT_STOPWORDS.has(w))
+  );
+}
+
+/** Overlap of the smaller subject set captured by the other (0..1). */
+function subjectOverlap(a: string, b: string): number {
+  const sa = questionSubject(a);
+  const sb = questionSubject(b);
+  if (sa.size === 0 || sb.size === 0) return 0;
+  let inter = 0;
+  for (const w of sa) if (sb.has(w)) inter++;
+  return inter / Math.min(sa.size, sb.size);
+}
+
 function structuralCorr(a: SelectedMarket, b: SelectedMarket): number {
   if (a.conditionId === b.conditionId) return a.selectedSide !== b.selectedSide ? -0.95 : 0.95;
   if (a.eventId && a.eventId === b.eventId) return 0.55;
   if (a.manualClusterId && b.manualClusterId && a.manualClusterId === b.manualClusterId) return 0.45;
+
+  // Same underlying subject (e.g. same team) inferred from the question text.
+  // This alone is only WEAK-to-MODERATE evidence — sharing a team name does not
+  // make two markets the same bet. We return a modest prior and let the sample
+  // correlation from price history (blended in via shrinkage) decide the real
+  // strength. A "game" + "future" pair on the same subject is a nested outcome,
+  // so it gets a slightly higher prior than two same-type markets.
+  const overlap = subjectOverlap(a.question, b.question);
+  if (overlap >= 0.5) {
+    const base = a.marketType !== b.marketType ? 0.45 : 0.30;
+    return clamp(base, 0, 0.6);
+  }
   return 0.05;
 }
 
@@ -519,7 +569,7 @@ export function runAllocationEngine(
   const gross = clamp(MIN_EXPOSURE + (volGross - MIN_EXPOSURE) * confidence, MIN_EXPOSURE, MAX_EXPOSURE);
 
   // ── Step 5: constraint projection (water-filling + group caps) ──
-  const { amounts, binding } = projectConstraints(prepared, wUnit, nav, gross);
+  const { amounts, binding } = projectConstraints(prepared, wUnit, nav, gross, corr);
 
   // ── Step 6: diagnostics & output ──
   const a = amounts.map(x => x / nav);                  // weights on NAV
@@ -619,20 +669,40 @@ function projectConstraints(
   prepared: Prepared[],
   wUnit: number[],
   nav: number,
-  gross: number
+  gross: number,
+  corr: number[][]
 ): { amounts: number[]; binding: (ScoredAllocation["bindingConstraint"])[] } {
   const n = prepared.length;
   const totalBudget = nav * gross;
   const binding: (ScoredAllocation["bindingConstraint"])[] = new Array(n).fill(null);
 
-  // per-market caps (and which term binds)
-  const caps = prepared.map(p => {
-    const cMarket = nav * MAX_PER_MARKET;
-    const cLiq    = p.clob.liquidity * MAX_BY_LIQUIDITY;
-    const cDepth  = p.clob.depthAt2PctSlippage * MAX_BY_DEPTH_PCT;
+  // Correlation burden of market i: the wUnit-weighted average positive
+  // correlation to every OTHER market (0 = independent, 1 = duplicate).
+  const corrBurden = (i: number): number => {
+    let num = 0, den = 0;
+    for (let j = 0; j < n; j++) {
+      if (j === i) continue;
+      const wj = Math.max(wUnit[j], 0);
+      num += wj * Math.max(corr[i][j], 0);
+      den += wj;
+    }
+    return den > 1e-9 ? clamp(num / den, 0, 1) : 0;
+  };
+
+  // per-market caps (and which term binds). The per-market ceiling is shrunk by
+  // the correlation burden: a fully-independent market can reach MAX_PER_MARKET,
+  // a correlated one is haircut toward CORR_CAP_FLOOR × MAX_PER_MARKET.
+  const caps = prepared.map((p, i) => {
+    const haircut    = clamp(1 - CORR_CAP_PENALTY * corrBurden(i), CORR_CAP_FLOOR, 1);
+    const cMarketTop = nav * MAX_PER_MARKET;
+    const cMarket    = cMarketTop * haircut;
+    const cLiq       = p.clob.liquidity * MAX_BY_LIQUIDITY;
+    const cDepth     = p.clob.depthAt2PctSlippage * MAX_BY_DEPTH_PCT;
     const cap = Math.min(cMarket, cLiq, cDepth);
-    const src: ScoredAllocation["bindingConstraint"] =
-      cap === cLiq ? "liquidity" : cap === cDepth ? "depth" : "per-market";
+    let src: ScoredAllocation["bindingConstraint"];
+    if (cap === cLiq)        src = "liquidity";
+    else if (cap === cDepth) src = "depth";
+    else                     src = haircut < 0.999 ? "corr-group" : "per-market";
     return { cap, src };
   });
 
