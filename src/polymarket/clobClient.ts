@@ -177,12 +177,15 @@ export function calculateDepthAtSlippage(
   refPrice: number,
   slippagePct = 0.02
 ): number {
-  const asks = book.asks ?? [];
+  // Polymarket returns asks in DESCENDING price order (best/lowest ask is last),
+  // so we must sort ascending before walking out from the best ask.
+  const asks = (book.asks ?? [])
+    .map((l) => ({ p: parseFloat(l.price), s: parseFloat(l.size) }))
+    .filter((l) => Number.isFinite(l.p) && Number.isFinite(l.s))
+    .sort((a, b) => a.p - b.p);
   const maxPrice = refPrice * (1 + slippagePct);
   let depth = 0;
-  for (const level of asks) {
-    const p = parseFloat(level.price);
-    const s = parseFloat(level.size);
+  for (const { p, s } of asks) {
     if (p > maxPrice) break;
     depth += p * s; // approx USDC value
   }
@@ -193,20 +196,21 @@ export function calculateDepthAtSlippage(
  * Estimate slippage for a target buy of `targetUsdc` at current ask prices.
  */
 export function estimateSlippage(book: OrderBookSummary, targetUsdc: number): number {
-  const asks = book.asks ?? [];
+  // Sort ascending: best (lowest) ask first, then walk up the book.
+  const asks = (book.asks ?? [])
+    .map((l) => ({ p: parseFloat(l.price), s: parseFloat(l.size) }))
+    .filter((l) => Number.isFinite(l.p) && Number.isFinite(l.s))
+    .sort((a, b) => a.p - b.p);
   if (!asks.length) return 0.05;
-  const bestAsk = parseFloat(asks[0]?.price ?? "0.5");
+  const bestAsk = asks[0].p;
   let remaining = targetUsdc;
   let worstPrice = bestAsk;
-  for (const level of asks) {
-    const p = parseFloat(level.price);
-    const s = parseFloat(level.size);
-    const levelUsdc = p * s;
+  for (const { p, s } of asks) {
     if (remaining <= 0) break;
     worstPrice = p;
-    remaining -= Math.min(levelUsdc, remaining);
+    remaining -= Math.min(p * s, remaining);
   }
-  return Math.abs(worstPrice - bestAsk) / bestAsk;
+  return bestAsk > 0 ? Math.abs(worstPrice - bestAsk) / bestAsk : 0.05;
 }
 
 /**
