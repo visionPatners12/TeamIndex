@@ -119,6 +119,8 @@ model pool_allocation_proposals {
   portfolioQuality Decimal  @db.Decimal(78, 18) @default(0)
   proposalJson     Json
   selectedMarketsJson Json
+  /// Snapshot of the CLOB/Gamma market data the engine consumed (keyed by conditionId).
+  marketDataJson   Json?
   status           String   @default("ACCEPTED")
   createdAt        DateTime @default(now())
 

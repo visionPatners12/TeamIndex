@@ -37,15 +37,9 @@ import { ERC20 } from "../contracts/erc20";
 import { UNISWAP_V2_ROUTER } from "../contracts/uniswapV2Router";
 import { BASE_DEPOSIT_RECEIVER } from "../contracts/baseDepositReceiver";
 import { listTeams, searchMarketsByKeyword } from "../polymarket/gammaClient";
-import {
-  getBooks,
-  getMidpoint,
-  getSpreadMap,
-  getPricesHistory,
-  calculateDepthAtSlippage,
-  estimateSlippage,
-  getBestBidAsk,
-} from "../polymarket/clobClient";
+import { fetchMarketData } from "../polymarket/marketData";
+import { runAllocationEngine } from "../polymarket/allocationEngine";
+import type { SelectedMarket, MarketClobData } from "../polymarket/allocationTypes";
 import {
   approvePolymarketPusdAllowances,
   bootstrapPolymarketTradingWallet,
@@ -766,64 +760,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     }
 
     try {
-      // Fetch CLOB + Gamma data in parallel
-      const [books, midStr, spreadMap, history, gammaMarket] = await Promise.all([
-        getBooks(env, [tokenId]).catch(() => []),
-        getMidpoint(env, tokenId).catch(() => "0.5"),
-        getSpreadMap(env, [tokenId]).catch(() => ({} as Record<string, string>)),
-        getPricesHistory(env, tokenId, "1d"),
-        // Gamma: get market metadata (volume24h, endDate, liquidity, closed status)
-        import("../polymarket/gammaClient").then(m =>
-          m.getMarketById(env, conditionId).catch(() => null)
-        ),
-      ]);
-
-      const book     = (books as any[])[0];
-      const midpoint = parseFloat(midStr as string);
-      const spread   = parseFloat((spreadMap as Record<string, string>)[tokenId] ?? "0");
-      const { bestBid, bestAsk } = book
-        ? getBestBidAsk(book)
-        : { bestBid: midpoint - 0.01, bestAsk: midpoint + 0.01 };
-
-      const depthAt2Pct = book ? calculateDepthAtSlippage(book, bestAsk, 0.02) : 0;
-      const slippage    = book ? estimateSlippage(book, 5_000) : 0.03;
-
-      // Liquidity from order book depth
-      const bookLiquidity = book
-        ? ((book.bids ?? []) as any[]).reduce((s: number, b: any) => s + parseFloat(b.price) * parseFloat(b.size), 0) +
-          ((book.asks ?? []) as any[]).reduce((s: number, a: any) => s + parseFloat(a.price) * parseFloat(a.size), 0)
-        : 0;
-
-      // Prefer Gamma for liquidity/volume (more accurate than order book snapshot)
-      const gamma        = gammaMarket as Record<string, any> | null;
-      const gammaLiq     = Number(gamma?.liquidityAmountUSD ?? gamma?.liquidity ?? 0);
-      const liquidity    = gammaLiq > 0 ? gammaLiq : bookLiquidity;
-      const volume24h    = Number(gamma?.volume24hr ?? gamma?.oneDayVolume ?? gamma?.volume24h ?? 0);
-      const isClosed     = Boolean(gamma?.closed ?? false);
-      const endDateIso: string | null = gamma?.endDate ?? gamma?.resolutionTime ?? null;
-
-      // Days to resolution: compute from Gamma endDate if available
-      let daysToResolution = 14;
-      if (endDateIso) {
-        const endMs = new Date(endDateIso).getTime();
-        daysToResolution = Math.max(0, Math.round((endMs - Date.now()) / 86_400_000));
-      }
-
-      res.json({
-        conditionId,
-        price:               midpoint,
-        bestBid,
-        bestAsk,
-        midpoint,
-        spread:              spread || Math.abs(bestAsk - bestBid),
-        liquidity,
-        volume24h,
-        depthAt2PctSlippage: depthAt2Pct,
-        estimatedSlippage:   slippage,
-        daysToResolution,
-        marketStatus:        isClosed ? "closed" : "open",
-        historicalPrices:    history,
-      });
+      const data = await fetchMarketData(env, conditionId, tokenId);
+      res.json(data);
     } catch (e: any) {
       logger.error({ err: e }, "polymarket/market-data failed");
       res.status(502).json({ error: e?.message ?? "CLOB/Gamma data fetch failed" });
@@ -1033,6 +971,121 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       res.json({ ok: true, proposal });
     } catch (e: any) {
       res.status(500).json({ error: e?.message ?? "DB error" });
+    }
+  });
+
+  // ─── Run the allocation engine server-side ─────────────────────────────────
+  //
+  // POST /admin/pools/:poolId/allocation/run
+  //   Body: { nav: number, selectedMarkets?: SelectedMarket[], persist?: boolean }
+  //
+  // Loads the pool's selected markets (from the body, or from the DB when
+  // omitted), fetches a fresh CLOB/Gamma snapshot for each, runs the v2 quant
+  // engine, and (by default) persists both the snapshot and the resulting
+  // proposal as a COMPUTED row. Returns the proposal for immediate display.
+  const allocationRunSchema = z.object({
+    nav: z.number().positive(),
+    persist: z.boolean().optional().default(true),
+    selectedMarkets: z
+      .array(
+        z.object({
+          marketId:        z.string().min(1),
+          conditionId:     z.string().min(1),
+          tokenId:         z.string().min(1),
+          eventId:         z.string().optional().default(""),
+          question:        z.string().min(1),
+          marketType:      z.enum(["game", "future"]).default("game"),
+          selectedSide:    z.enum(["YES", "NO"]).default("YES"),
+          manualClusterId: z.string().optional(),
+        })
+      )
+      .optional(),
+  });
+
+  app.post("/admin/pools/:poolId/allocation/run", requireAdmin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+
+    const { nav, persist, selectedMarkets: bodyMarkets } = allocationRunSchema.parse(req.body);
+
+    // Resolve the market set: prefer the body, else the pool's saved markets.
+    let selectedMarkets: SelectedMarket[];
+    if (bodyMarkets && bodyMarkets.length > 0) {
+      selectedMarkets = bodyMarkets.map((m) => ({
+        marketId:        m.marketId,
+        conditionId:     m.conditionId,
+        tokenId:         m.tokenId,
+        eventId:         m.eventId ?? "",
+        question:        m.question,
+        marketType:      m.marketType,
+        selectedSide:    m.selectedSide,
+        manualClusterId: m.manualClusterId,
+      }));
+    } else {
+      const rows = await (prisma as any).pool_selected_markets.findMany({
+        where: { poolId, enabled: true },
+        orderBy: { createdAt: "asc" },
+      });
+      selectedMarkets = (rows as any[]).map((r) => ({
+        marketId:        r.marketId,
+        conditionId:     r.conditionId,
+        tokenId:         r.tokenId,
+        eventId:         r.eventId ?? "",
+        question:        r.question,
+        marketType:      (r.marketType as "game" | "future") ?? "game",
+        selectedSide:    (r.selectedSide as "YES" | "NO") ?? "YES",
+        manualClusterId: r.manualClusterId ?? undefined,
+      }));
+    }
+
+    if (selectedMarkets.length === 0) {
+      return res.status(400).json({ error: "No selected markets for this pool" });
+    }
+
+    try {
+      // Fetch a fresh snapshot for each market (resilient: failures are skipped
+      // and surface as "Market data unavailable" rejections in the proposal).
+      const snapshots = await Promise.all(
+        selectedMarkets.map(async (m) => {
+          try {
+            const data = await fetchMarketData(env, m.conditionId, m.tokenId);
+            return [m.conditionId, data] as const;
+          } catch (err) {
+            logger.warn({ err, conditionId: m.conditionId }, "market-data fetch failed for allocation run");
+            return null;
+          }
+        })
+      );
+
+      const clobData = new Map<string, MarketClobData>();
+      for (const s of snapshots) if (s) clobData.set(s[0], s[1]);
+
+      const proposal = runAllocationEngine(selectedMarkets, clobData, nav);
+
+      let proposalId: string | undefined;
+      if (persist) {
+        const saved = await (prisma as any).pool_allocation_proposals.create({
+          data: {
+            poolId,
+            nav:                 proposal.nav,
+            targetExposure:      proposal.targetExposure,
+            cashWeight:          proposal.cashWeight,
+            cashAmount:          proposal.cashAmount,
+            portfolioQuality:    proposal.portfolioQuality ?? 0,
+            proposalJson:        proposal as any,
+            selectedMarketsJson: selectedMarkets as any,
+            marketDataJson:      Object.fromEntries(clobData) as any,
+            status:              "COMPUTED",
+          },
+        });
+        proposalId = (saved as any).id;
+      }
+
+      res.json({ ok: true, proposal, proposalId });
+    } catch (e: any) {
+      logger.error({ err: e }, "allocation/run failed");
+      res.status(502).json({ error: e?.message ?? "Allocation run failed" });
     }
   });
 

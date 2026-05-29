@@ -53,8 +53,9 @@ export async function getBooks(env: Env, tokenIds: string[]): Promise<OrderBookS
 
 export async function getMidpoint(env: Env, tokenId: string): Promise<string> {
   const url = `${clobBaseUrl(env)}/midpoint?token_id=${encodeURIComponent(tokenId)}`;
-  const r = await getJson<{ mid_price: string }>(url);
-  return r.mid_price;
+  // CLOB returns `{"mid":"0.305"}`; some deployments use `mid_price`. Handle both.
+  const r = await getJson<{ mid?: string; mid_price?: string }>(url);
+  return r.mid ?? r.mid_price ?? "0.5";
 }
 
 export async function getSpreadMap(env: Env, tokenIds: string[]): Promise<Record<string, string>> {
@@ -212,9 +213,15 @@ export function estimateSlippage(book: OrderBookSummary, targetUsdc: number): nu
  * Get best bid and best ask from an order book summary.
  */
 export function getBestBidAsk(book: OrderBookSummary): { bestBid: number; bestAsk: number } {
-  const bids = book.bids ?? [];
-  const asks = book.asks ?? [];
-  const bestBid = bids.length ? parseFloat(bids[0].price) : 0;
-  const bestAsk = asks.length ? parseFloat(asks[0].price) : 1;
+  const bids = (book.bids ?? [])
+    .map((b) => parseFloat(b.price))
+    .filter((p) => Number.isFinite(p));
+  const asks = (book.asks ?? [])
+    .map((a) => parseFloat(a.price))
+    .filter((p) => Number.isFinite(p));
+  // Best bid = highest buy price; best ask = lowest sell price.
+  // CLOB book ordering is not guaranteed, so reduce instead of taking index 0.
+  const bestBid = bids.length ? Math.max(...bids) : 0;
+  const bestAsk = asks.length ? Math.min(...asks) : 1;
   return { bestBid, bestAsk };
 }

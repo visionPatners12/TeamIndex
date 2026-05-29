@@ -67,6 +67,19 @@ export async function getMarketById(env: Env, marketId: string) {
   return getJson<any>(`${env.GAMMA_BASE_URL}/markets/${marketId}`);
 }
 
+/**
+ * Resolve a Gamma market by its on-chain conditionId (0x…), not its numeric id.
+ * The `/markets/{id}` route only accepts the numeric id, so for a conditionId
+ * we must query the list endpoint with the `condition_ids` filter.
+ */
+export async function getMarketByConditionId(env: Env, conditionId: string) {
+  const arr = await listMarkets(env, { condition_ids: conditionId, limit: 1 });
+  if (Array.isArray(arr)) return arr[0] ?? null;
+  // Some Gamma responses wrap results in `{ data: [...] }`.
+  if (arr && Array.isArray((arr as any).data)) return (arr as any).data[0] ?? null;
+  return null;
+}
+
 // ─── Market search for allocation engine ─────────────────────────────────────
 
 export type MarketTypeHint = "game" | "future";
