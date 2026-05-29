@@ -21,7 +21,20 @@
       "Bash(curl -s \"https://gamma-api.polymarket.com/markets?related_tag_slug=arsenal&closed=false&limit=50\" -o /tmp/arsenal_markets.json)",
       "Bash(curl -s \"https://gamma-api.polymarket.com/markets?related_tag_slug=arsenal-fc&closed=false&limit=50\" -o /tmp/arsenal_markets.json)",
       "Bash(curl -s https://clob.polymarket.com/book?token_id=48266155784016844137166283546442505319002353733298913457784203021568892550163)",
-      "Bash(python3 -m json.tool)"
+      "Bash(python3 -m json.tool)",
+      "Read(//Users/karlemmanuelavodo/.claude/**)",
+      "Read(//Users/karlemmanuelavodo/Documents/GitHub/**)",
+      "Bash(ls ~/.claude/ 2>/dev/null)",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__list_tables",
+      "WebFetch(domain:docs.polymarket.com)",
+      "WebFetch(domain:gamma-api.polymarket.com)",
+      "WebFetch(domain:clob.polymarket.com)",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__apply_migration",
+      "Bash(npx --prefix /Users/karlemmanuelavodo/Documents/GitHub/remix-of-game-verse-casino-hub-662826d5 tsc --noEmit --project /Users/karlemmanuelavodo/Documents/GitHub/remix-of-game-verse-casino-hub-662826d5/tsconfig.app.json)",
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__deploy_edge_function",
+      "Bash(npm run *)",
+      "Bash(echo \"typecheck exit: $?\")",
+      "Bash(npx --prefix /Users/karlemmanuelavodo/Documents/GitHub/remix-of-game-verse-casino-hub-662826d5 tsc --noEmit --project /Users/karlemmanuelavodo/Documents/GitHub/remix-of-game-verse-casino-hub-662826d5/tsconfig.json)"
     ]
   }
 }
