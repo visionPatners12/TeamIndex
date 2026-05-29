@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import { z } from "zod";
 import { createLogger } from "../config/log";
 import type { Env } from "../config/env";
@@ -51,24 +52,71 @@ import {
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
 
-  app.use((_req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+  // ── CORS ──────────────────────────────────────────────────────────────
+  const allowedOrigins = (env.CORS_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const isDev = env.NODE_ENV === "development";
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && (isDev || allowedOrigins.includes(origin))) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+    }
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type,x-admin-key");
-    if (_req.method === "OPTIONS") return res.sendStatus(204);
+    if (req.method === "OPTIONS") return res.sendStatus(204);
     next();
   });
 
+  // ── Rate limiting (simple in-memory) ──────────────────────────────────
+  const rateLimitWindowMs = 60_000;
+  const rateLimitMaxRequests = 100;
+  const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+  app.use((req, res, next) => {
+    const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+    const now = Date.now();
+    let entry = rateLimitStore.get(ip);
+    if (!entry || now >= entry.resetAt) {
+      entry = { count: 0, resetAt: now + rateLimitWindowMs };
+      rateLimitStore.set(ip, entry);
+    }
+    entry.count += 1;
+    if (entry.count > rateLimitMaxRequests) {
+      res.setHeader("Retry-After", String(Math.ceil((entry.resetAt - now) / 1000)));
+      return res.status(429).json({ error: "Too many requests" });
+    }
+    next();
+  });
+
+  // Periodically clean up stale entries
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of rateLimitStore) {
+      if (now >= entry.resetAt) rateLimitStore.delete(ip);
+    }
+  }, rateLimitWindowMs).unref();
+
   app.use(express.json({ limit: "1mb" }));
 
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
   function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-    if (!env.ADMIN_API_KEY) return next();
+    if (!env.ADMIN_API_KEY) {
+      return res.status(403).json({ error: "ADMIN_API_KEY not configured — all admin endpoints are disabled" });
+    }
     const key = String(req.headers["x-admin-key"] ?? "");
-    if (!key || key !== env.ADMIN_API_KEY) return res.status(403).json({ error: "Forbidden" });
+    if (!key) return res.status(403).json({ error: "Forbidden" });
+    const a = Buffer.from(key);
+    const b = Buffer.from(env.ADMIN_API_KEY);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     return next();
   }
+
+  app.use("/docs", requireAdmin, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   const manualReconciliationStatus = "NEEDS_MANUAL_RECONCILIATION" as const;
 

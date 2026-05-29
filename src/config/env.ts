@@ -76,7 +76,10 @@ const EnvSchema = z.object({
   LIFI_BASE_URL: z.string().optional().default("https://li.quest/v1"),
   LIFI_API_KEY: z.string().optional(),
   LIFI_INTEGRATOR: z.string().optional().default("teamindex"),
-  LIFI_SLIPPAGE: z.string().optional().default("0.005")
+  LIFI_SLIPPAGE: z.string().optional().default("0.005"),
+
+  // CORS
+  CORS_ALLOWED_ORIGINS: z.string().optional()
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -142,6 +145,8 @@ export function loadEnv(): Env {
     LIFI_BASE_URL: process.env.LIFI_BASE_URL,
     LIFI_API_KEY: process.env.LIFI_API_KEY,
     LIFI_INTEGRATOR: process.env.LIFI_INTEGRATOR,
-    LIFI_SLIPPAGE: process.env.LIFI_SLIPPAGE
+    LIFI_SLIPPAGE: process.env.LIFI_SLIPPAGE,
+
+    CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS
   });
 }
