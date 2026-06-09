@@ -1,9 +1,7 @@
 import type { Env } from "../config/env";
-import { getMidpoint } from "../polymarket/clobClient";
 import { prisma } from "../db/prisma";
 import { getVaultContract } from "../onchain/vaultExecutor";
-import { enqueuePolygonTx, resetPolygonNonce } from "../onchain/polygonSigner";
-import { parseUnits } from "ethers";
+import { JsonRpcProvider, parseUnits } from "ethers";
 
 function decToNumber(d: any): number {
   // Prisma Decimal -> string
@@ -49,26 +47,13 @@ export async function recalculateOfficialPrices(env: Env) {
     });
 
     let positionsValue = 0;
-    const positionUpdates: Promise<any>[] = [];
     for (const pos of openPositions) {
-      // For MVP: use midpoint price for each open token and value by current quantity.
-      // Polymarket binary token price is an implied probability; if your settlement differs,
-      // adjust valuation formula accordingly.
-      const mid = await getMidpoint(env, pos.tokenId).catch(() => "0");
-      const midNum = Number(mid);
-      const quantity = decToNumber(pos.quantity);
-      const currentValue = midNum * quantity;
-      positionsValue += currentValue;
-
-      // Keep position-level mark-to-market currentValue in sync.
-      positionUpdates.push(
-        prisma.club_pool_positions.update({
-          where: { id: pos.id },
-          data: { currentValue: currentValue.toString() }
-        })
-      );
+      // `currentValue` is the marked-to-market value maintained by
+      // `syncLimitlessFillsAndSettle` (Limitless mid-price × matched quantity),
+      // which runs immediately before this recalc in the price ticker. We treat it
+      // as the single source of truth instead of re-fetching mid-prices here.
+      positionsValue += decToNumber(pos.currentValue);
     }
-    await Promise.all(positionUpdates);
 
     const cashHuman = vaultCashDbToHuman(pool.cash);
     const realizedPnl = decToNumber(pool.realizedPnl);
@@ -100,31 +85,27 @@ export async function recalculateOfficialPrices(env: Env) {
       }
     });
 
-    // Keep onchain valuation inputs in sync with offchain calculations.
-    // This makes ERC4626 conversions use the same "official token price" basis.
-    // Serialized via the polygonSigner queue so multiple pool updates don't pile up
-    // in the mempool from the shared EXECUTOR wallet.
-    if (env.RPC_URL && env.EXECUTOR_PRIVATE_KEY) {
+    // Keep onchain valuation inputs in sync with offchain calculations so ERC4626
+    // conversions use the same "official token price" basis. The vault lives on Base
+    // and `getVaultContract` returns a contract already bound to the Base executor
+    // signer. Pools are processed sequentially in this loop, so nonces from the shared
+    // executor wallet don't collide (each `tx.wait()` mines before the next pool).
+    if (env.BASE_RPC_URL && env.BASE_EXECUTOR_PRIVATE_KEY) {
       try {
         const posBase = humanUsdToUsdcBaseUnits(positionsValue);
-        // realizedPnl is now `int256` onchain — preserve sign so losses are reflected in NAV.
+        // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
         const rPnLBase = realizedPnl >= 0
           ? humanUsdToUsdcBaseUnits(realizedPnl)
           : -humanUsdToUsdcBaseUnits(-realizedPnl);
-        const tx = await enqueuePolygonTx(env, async (signer, provider) => {
-          // Build a contract bound to the singleton signer so the NonceManager controls nonces.
-          const vault = await getVaultContract(env, provider as any, {
-            clubName: pool.clubName,
-            vaultAddress: pool.vaultAddress ?? undefined
-          });
-          return (vault.connect(signer) as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
+        const provider = new JsonRpcProvider(env.BASE_RPC_URL);
+        const vault = await getVaultContract(env, provider, {
+          clubName: pool.clubName,
+          vaultAddress: pool.vaultAddress ?? undefined
         });
+        const tx = await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
         await tx.wait(); // serialize: don't return until this NAV update has mined
       } catch {
         // Onchain valuation update failure shouldn't block price recalculation.
-        // If the failure was a nonce desync, drop the cached counter so the next
-        // attempt re-reads from the network.
-        await resetPolygonNonce(env).catch(() => undefined);
       }
     }
   }

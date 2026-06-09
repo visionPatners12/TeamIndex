@@ -24,12 +24,12 @@ function startVaultSyncTicker({ env, logger }) {
     const intervalMs = Number(process.env.VAULT_SYNC_INTERVAL_MS || 60_000);
     const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
     const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
-    if (!env.RPC_URL) {
+    if (!env.BASE_RPC_URL) {
         logger.warn("VAULT_SYNC skipped: RPC_URL missing");
         return;
     }
     logger.info({ intervalMs }, "Vault sync ticker started");
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
+    const provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
     let isTicking = false;
     async function tick() {
         if (isTicking) {

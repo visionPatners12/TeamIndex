@@ -38,9 +38,9 @@ async function resolveVaultAddressFromFactory(env, provider, pool) {
 }
 async function getVaultContract(env, provider, pool) {
     if (!provider) {
-        if (!env.RPC_URL)
+        if (!env.BASE_RPC_URL)
             throw new Error("RPC_URL missing");
-        provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL);
+        provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL);
     }
     const placeholderAddress = "0x0000000000000000000000000000000000000001";
     // Priority:
@@ -58,7 +58,7 @@ async function getVaultContract(env, provider, pool) {
     if (vaultAddress === "0x0000000000000000000000000000000000000001") {
         throw new Error("VAULT_CONTRACT_ADDRESS is still a placeholder. Set VAULT_CONTRACT_ADDRESS or configure CLUB_VAULT_FACTORY_ADDRESS.");
     }
-    const signer = env.EXECUTOR_PRIVATE_KEY ? new ethers_1.ethers.Wallet(env.EXECUTOR_PRIVATE_KEY, provider) : undefined;
+    const signer = env.BASE_EXECUTOR_PRIVATE_KEY ? new ethers_1.ethers.Wallet(env.BASE_EXECUTOR_PRIVATE_KEY, provider) : undefined;
     return new ethers_1.ethers.Contract(vaultAddress, usdc4626vault_1.USDC4626VAULT.abi, signer ?? provider);
 }
 async function executeWhitelistedCallViaVault(env, pool, params) {

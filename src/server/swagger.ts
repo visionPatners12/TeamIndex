@@ -5,7 +5,7 @@ export const swaggerSpec = {
   info: {
     title: "Club Pool Backend API",
     version: "0.1.0",
-    description: "MVP API for club pool asset connected to Polymarket"
+    description: "MVP API for club pool asset connected to Limitless markets"
   },
   servers: [{ url: "http://localhost:3001" }],
   components: {
@@ -23,7 +23,7 @@ export const swaggerSpec = {
     { name: "health" },
     { name: "read" },
     { name: "admin" },
-    { name: "polymarket" },
+    { name: "limitless" },
     { name: "user-tx" },
     { name: "base" }
   ],
@@ -87,53 +87,6 @@ export const swaggerSpec = {
       }
     },
 
-    "/admin/polymarket/readiness": {
-      get: {
-        tags: ["polymarket"],
-        summary: "Dry readiness check for Deposit Wallet + CLOB trading",
-        security: [{ adminApiKey: [] }],
-        parameters: [
-          { name: "tokenId", in: "query", required: false, schema: { type: "string" } }
-        ],
-        responses: { 200: { description: "Polymarket readiness report" } }
-      }
-    },
-    "/admin/polymarket/deposit-wallet/derive": {
-      get: {
-        tags: ["polymarket"],
-        summary: "Derive the expected Polymarket Deposit Wallet address",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "Derived Deposit Wallet address" } }
-      }
-    },
-    "/admin/polymarket/deposit-wallet/deploy": {
-      post: {
-        tags: ["polymarket"],
-        summary: "Deploy the Polymarket Deposit Wallet through the relayer",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "Relayer deployment response" } }
-      }
-    },
-    "/admin/polymarket/deposit-wallet/approve-pusd": {
-      post: {
-        tags: ["polymarket"],
-        summary: "Approve pUSD from Deposit Wallet to Polymarket exchanges",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "pUSD approval relayer response" } }
-      }
-    },
-    "/admin/polymarket/deposit-wallet/bootstrap": {
-      post: {
-        tags: ["polymarket"],
-        summary: "Derive/deploy Deposit Wallet, approve pUSD, and return readiness",
-        security: [{ adminApiKey: [] }],
-        parameters: [
-          { name: "tokenId", in: "query", required: false, schema: { type: "string" } }
-        ],
-        responses: { 200: { description: "Complete Polymarket trading wallet bootstrap" } }
-      }
-    },
-
     "/admin/pools": {
       post: {
         tags: ["admin"],
@@ -148,9 +101,9 @@ export const swaggerSpec = {
                 properties: {
                   clubName: { type: "string" },
                   symbol: { type: "string" },
+                  sportsDataTeamId: { type: "string", format: "uuid" },
                   totalTokenSupply: { type: "number", example: 0 },
                   deployOnchain: { type: "boolean", example: true, default: false },
-                  bootstrapPolymarket: { type: "boolean", example: true, description: "Defaults to true when a vault address exists." },
                   depositCap: { type: "string", example: "0" },
                   riskParams: {
                     type: "object",
@@ -161,7 +114,7 @@ export const swaggerSpec = {
                     }
                   }
                 },
-                required: ["clubName", "symbol"]
+                required: ["clubName", "symbol", "sportsDataTeamId"]
               }
             }
           }
@@ -170,34 +123,10 @@ export const swaggerSpec = {
       }
     },
 
-    "/admin/club-team-map": {
-      post: {
-        tags: ["admin"],
-        summary: "Set club -> Polymarket team mapping",
-        security: [{ adminApiKey: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  internalClubName: { type: "string" },
-                  polymarketTeamId: { type: "string" }
-                },
-                required: ["internalClubName", "polymarketTeamId"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "Scheduling summary with created/updated/skipped counts" } }
-      }
-    },
-
     "/admin/{poolId}/discover": {
       post: {
         tags: ["admin"],
-        summary: "Discover eligible Polymarket win markets and create candidates",
+        summary: "Discover eligible Limitless markets by sports_data team id and create candidates",
         security: [{ adminApiKey: [] }],
         parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
         requestBody: {
@@ -208,7 +137,7 @@ export const swaggerSpec = {
                 type: "object",
                 properties: {
                   clubName: { type: "string" },
-                  teamPolymarketId: { type: "string" },
+                  sportsDataTeamId: { type: "string", format: "uuid" },
                   riskPerMatchPct: { type: "number", example: 3 },
                   liquidityMinUsd: { type: "number", example: 50000 }
                 },

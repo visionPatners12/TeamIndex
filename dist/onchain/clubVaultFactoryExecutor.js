@@ -20,11 +20,11 @@ async function ensureClubVaultExists(params) {
     if (!env.CLUB_VAULT_FACTORY_ADDRESS) {
         throw new Error("CLUB_VAULT_FACTORY_ADDRESS missing (factory auto-deploy disabled)");
     }
-    if (!env.RPC_URL) {
+    if (!env.BASE_RPC_URL) {
         throw new Error("RPC_URL missing (needed for factory reads/writes)");
     }
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL);
-    const signer = env.EXECUTOR_PRIVATE_KEY ? new ethers_1.ethers.Wallet(env.EXECUTOR_PRIVATE_KEY, provider) : undefined;
+    const provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    const signer = env.BASE_EXECUTOR_PRIVATE_KEY ? new ethers_1.ethers.Wallet(env.BASE_EXECUTOR_PRIVATE_KEY, provider) : undefined;
     const factory = new ethers_1.ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, CLUB_VAULT_FACTORY_ABI, signer ?? provider);
     const clubId = computeClubId(clubName);
     const existing = (await factory.getVaultByClub(clubId));

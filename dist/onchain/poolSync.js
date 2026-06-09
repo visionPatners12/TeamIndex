@@ -19,14 +19,14 @@ function decToStr(x) {
     return String(x);
 }
 async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransactionHashes, skipCursorAdvance, logger, logContext, chunkSizeEnv }) {
-    if (!env.RPC_URL)
+    if (!env.BASE_RPC_URL)
         throw new Error("RPC_URL missing (required for onchain sync)");
     if (fromBlock > toBlock)
         return;
     const onlySet = onlyTransactionHashes && onlyTransactionHashes.length > 0
         ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
         : null;
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
+    const provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
     const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
     const depositEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Deposit(), fromBlock, toBlock, {
         chunkSizeEnv,

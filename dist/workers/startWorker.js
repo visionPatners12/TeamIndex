@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.startWorker = startWorker;
 const bullmq_1 = require("bullmq");
 const bull_1 = require("../queues/bull");
-const executor_1 = require("../services/executor");
+const limitlessExecutor_1 = require("../limitless/limitlessExecutor");
 function startWorker({ env, logger }) {
     const concurrency = Number(env.QUEUE_CONCURRENCY || 1);
     const connection = (0, bull_1.buildConnection)(env);
@@ -44,7 +44,7 @@ function startWorker({ env, logger }) {
         const { queueId, poolId, candidateId, tranche } = job.data;
         logger.info({ queueId, poolId, candidateId, tranche }, "execute job start");
         try {
-            await (0, executor_1.executeTranche)({ env, queueId, poolId, candidateId, tranche, expectedExecutionTimeMs: job.data.expectedExecutionTimeMs });
+            await (0, limitlessExecutor_1.executeLimitlessTranche)({ env, queueId, poolId, candidateId, tranche, expectedExecutionTimeMs: job.data.expectedExecutionTimeMs });
             logger.info({ queueId, poolId, candidateId, tranche }, "execute job done");
         }
         catch (err) {

@@ -80,7 +80,12 @@
       "Bash(echo \"backend tsc exit: $?\")",
       "Read(//tmp/**)",
       "Bash(grep -v ':0$')",
-      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__get_advisors"
+      "mcp__6032df9b-7648-4684-97eb-5b49cf511d71__get_advisors",
+      "WebSearch",
+      "WebFetch(domain:docs.limitless.exchange)",
+      "Bash(gh api *)",
+      "Bash(xargs ls -la)",
+      "Bash(awk '{print $NF}')"
     ]
   }
 }

@@ -3,9 +3,7 @@ import { z } from "zod";
 import { createLogger } from "../config/log";
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
-import { discoverClubCandidates } from "../services/discoveryService";
 import { scheduleMatchTranches } from "../services/scheduler";
-import { executeTranche } from "../services/executor";
 import { recalculateOfficialPrices } from "../services/priceEngine";
 import {
   executeWhitelistedCallViaVault,
@@ -34,19 +32,21 @@ import type { TransactionRequest } from "ethers";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import { ERC20 } from "../contracts/erc20";
-import { UNISWAP_V2_ROUTER } from "../contracts/uniswapV2Router";
-import { BASE_DEPOSIT_RECEIVER } from "../contracts/baseDepositReceiver";
-import { listTeams, searchMarketsByKeyword } from "../polymarket/gammaClient";
-import { fetchMarketData } from "../polymarket/marketData";
 import { runAllocationEngine } from "../polymarket/allocationEngine";
 import type { SelectedMarket, MarketClobData } from "../polymarket/allocationTypes";
 import {
-  approvePolymarketPusdAllowances,
-  bootstrapPolymarketTradingWallet,
-  deployPolymarketDepositWallet,
-  derivePolymarketDepositWallet,
-  getPolymarketReadiness
-} from "../polymarket/polymarketWallet";
+  syncCategories,
+  syncMarkets,
+  syncPrices,
+  enrichSportsGames,
+  runFullLimitlessSync,
+} from "../limitless/limitlessSyncService";
+import { discoverLimitlessClubCandidates } from "../limitless/limitlessDiscoveryService";
+import { syncLimitlessFillsAndSettle } from "../limitless/limitlessPositionSync";
+import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
+import { fetchLimitlessMarketData, fetchLimitlessMarketDataBatch } from "../limitless/limitlessMarketData";
+import { isLimitlessTradingReady } from "../limitless/limitlessOrderClient";
+import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
@@ -250,8 +250,23 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.get("/teams", async (_req, res) => {
-    const teams = await prisma.club_teams_map.findMany({ orderBy: { internalClubName: "asc" } });
-    res.json({ ok: true, teams });
+    try {
+      const teams = await listLimitlessTeams(prisma);
+      res.json({ ok: true, teams });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "teams_error" });
+    }
+  });
+
+  app.get("/teams/:teamId/limitless-markets", async (req, res) => {
+    try {
+      assertUuid(req.params.teamId, "teamId");
+      const markets = await getLimitlessMarketsForTeam(prisma, req.params.teamId);
+      res.json({ ok: true, teamId: req.params.teamId, total: markets.length, markets });
+    } catch (e: any) {
+      const message = e?.message ?? "team_markets_error";
+      res.status(message.includes("UUID") ? 400 : 500).json({ ok: false, error: message });
+    }
   });
 
   app.get("/pools/:poolId", async (req, res) => {
@@ -514,12 +529,11 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   const poolCreateSchema = z.object({
     clubName: z.string().min(1),
     symbol: z.string().min(1),
-    polymarketTeamId: z.string().optional(),
+    sportsDataTeamId: z.string().uuid(),
     totalTokenSupply: z.number().optional().default(0),
     depositCap: z.coerce.bigint().optional().default(0n),
     vaultAddress: z.string().optional(),
     deployOnchain: z.boolean().optional().default(false),
-    bootstrapPolymarket: z.boolean().optional(),
     riskParams: z
       .object({
         maxPerMatchPct: z.number().optional(),
@@ -540,11 +554,11 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     if (!env.CLUB_VAULT_FACTORY_ADDRESS) {
       return res.status(400).json({ error: "CLUB_VAULT_FACTORY_ADDRESS not set in backend .env" });
     }
-    if (!env.RPC_URL) {
+    if (!env.BASE_RPC_URL) {
       return res.status(400).json({ error: "RPC_URL not set in backend .env" });
     }
 
-    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
     const FACTORY_ABI = [
       "function getVaultByClub(bytes32) view returns (address)",
       "function createClubVault(bytes32, string, string, uint256) returns (address)"
@@ -595,9 +609,9 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
       // If vaultAddress not provided, try to resolve from factory (read-only, no signing)
       let resolvedVaultAddress = vaultDeployment?.vaultAddress ?? body.vaultAddress ?? null;
-      if (!resolvedVaultAddress && env.CLUB_VAULT_FACTORY_ADDRESS && env.RPC_URL) {
+      if (!resolvedVaultAddress && env.CLUB_VAULT_FACTORY_ADDRESS && env.BASE_RPC_URL) {
         try {
-          const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+          const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
           const FACTORY_ABI = ["function getVaultByClub(bytes32) view returns (address)"];
           const factory = new ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, FACTORY_ABI, provider);
           const clubId = ethers.solidityPackedKeccak256(["string"], [body.clubName]);
@@ -610,16 +624,11 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         }
       }
 
-      const shouldBootstrapPolymarket = body.bootstrapPolymarket ?? Boolean(resolvedVaultAddress);
-      const polymarketBootstrap = shouldBootstrapPolymarket
-        ? await bootstrapPolymarketTradingWallet(env)
-        : null;
-
-      const pool = await prisma.club_pools.create({
+      const pool = await (prisma as any).club_pools.create({
         data: {
           clubName: body.clubName,
           symbol: body.symbol,
-          polymarketTeamId: body.polymarketTeamId?.trim() || null,
+          sportsDataTeamId: body.sportsDataTeamId,
           vaultAddress: resolvedVaultAddress,
           depositCap: body.depositCap.toString(),
           cash: "0",
@@ -633,7 +642,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         }
       });
 
-      return res.json({ ok: true, pool, vaultDeployment, polymarketBootstrap });
+      return res.json({ ok: true, pool, vaultDeployment });
     } catch (e: any) {
       logger.error({ err: e }, "admin/pools create failed");
       return res.status(500).json({ ok: false, error: e?.message ?? "Pool creation failed" });
@@ -644,7 +653,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const { poolId } = req.params;
     const updateSchema = z.object({
       vaultAddress: z.string().optional(),
-      polymarketTeamId: z.string().nullable().optional(),
+      sportsDataTeamId: z.string().uuid().nullable().optional(),
       status: z.enum(["ACTIVE", "PAUSED"]).optional(),
       officialTokenPrice: z.string().optional(),
       totalPoolValue: z.string().optional(),
@@ -662,162 +671,6 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.delete("/admin/pools/:poolId", requireAdmin, async (req, res) => {
     await prisma.club_pools.delete({ where: { id: req.params.poolId } });
     res.json({ ok: true });
-  });
-
-  const clubTeamMapSchema = z.object({
-    internalClubName: z.string().min(1),
-    polymarketTeamId: z.string().min(1)
-  });
-
-  app.post("/admin/club-team-map", requireAdmin, async (req, res) => {
-    const body = clubTeamMapSchema.parse(req.body);
-    await prisma.club_teams_map.createMany({
-      data: [{ internalClubName: body.internalClubName, polymarketTeamId: body.polymarketTeamId }],
-      skipDuplicates: true
-    });
-    res.json({ ok: true });
-  });
-
-  app.get("/admin/gamma-teams", requireAdmin, async (req, res) => {
-    const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
-    const offset = Math.max(Number(req.query.offset) || 0, 0);
-    const result = await listTeams(env, limit, offset);
-    const teams = (result?.teams ?? []).map((t: Record<string, unknown>) => {
-      const name = String(t.name ?? t.slug ?? t.slugKey ?? t.id ?? "").trim();
-      return {
-        id: String(t.id ?? ""),
-        name,
-        slug: t.slug != null ? String(t.slug) : undefined,
-        league: t.league != null ? String(t.league) : undefined
-      };
-    }).filter((t) => t.name.length > 0);
-    res.json({ ok: true, teams });
-  });
-
-  app.post("/admin/club-team-map/sync-from-gamma", requireAdmin, async (_req, res) => {
-    try {
-      const maxTeams = 5000;
-      const pageSize = 100;
-      let offset = 0;
-      let inserted = 0;
-      let pages = 0;
-      while (offset < maxTeams) {
-        const batch = await listTeams(env, pageSize, offset);
-        const raw = batch?.teams ?? [];
-        if (!raw.length) break;
-        pages += 1;
-        const rows: { internalClubName: string; polymarketTeamId: string }[] = [];
-        for (const t of raw) {
-          const rec = t as Record<string, unknown>;
-          const label = String(rec.name ?? rec.slug ?? rec.slugKey ?? rec.id ?? "").trim();
-          if (!label) continue;
-          rows.push({ internalClubName: label, polymarketTeamId: label });
-        }
-        if (rows.length) {
-          const r = await prisma.club_teams_map.createMany({ data: rows, skipDuplicates: true });
-          inserted += r.count;
-        }
-        offset += raw.length;
-        if (raw.length < pageSize) break;
-      }
-      res.json({ ok: true, inserted, pagesFetched: pages });
-    } catch (e: any) {
-      logger.error({ err: e }, "sync-from-gamma failed");
-      res.status(502).json({ error: e?.message ?? "Gamma /teams request failed" });
-    }
-  });
-
-  // ─── Polymarket Market Search & Data ────────────────────────────────────────
-
-  /**
-   * GET /admin/polymarket/search?q=Arsenal
-   * Searches Polymarket Gamma API for markets matching the keyword.
-   * Returns formatted markets with marketType (game/future) detection.
-   */
-  app.get("/admin/polymarket/search", requireAdmin, async (req, res) => {
-    const q = String(req.query.q ?? "").trim();
-    if (!q) return res.status(400).json({ error: "q is required" });
-
-    try {
-      const markets = await searchMarketsByKeyword(env, q, 50);
-      res.json({ ok: true, markets });
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/search failed");
-      res.status(502).json({ error: e?.message ?? "Polymarket search failed" });
-    }
-  });
-
-  /**
-   * GET /admin/polymarket/market-data?conditionId=...&tokenId=...
-   * Fetches live CLOB + Gamma data (price, spread, depth, volume24h, history, endDate).
-   */
-  app.get("/admin/polymarket/market-data", requireAdmin, async (req, res) => {
-    const conditionId = String(req.query.conditionId ?? "").trim();
-    const tokenId     = String(req.query.tokenId ?? "").trim();
-
-    if (!conditionId || !tokenId) {
-      return res.status(400).json({ error: "conditionId and tokenId are required" });
-    }
-
-    try {
-      const data = await fetchMarketData(env, conditionId, tokenId);
-      res.json(data);
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/market-data failed");
-      res.status(502).json({ error: e?.message ?? "CLOB/Gamma data fetch failed" });
-    }
-  });
-
-  app.get("/admin/polymarket/readiness", requireAdmin, async (req, res) => {
-    const tokenId = String(req.query.tokenId ?? "").trim() || undefined;
-    try {
-      const readiness = await getPolymarketReadiness(env, tokenId);
-      res.json({ ok: true, readiness });
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/readiness failed");
-      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket readiness failed" });
-    }
-  });
-
-  app.get("/admin/polymarket/deposit-wallet/derive", requireAdmin, async (_req, res) => {
-    try {
-      const wallet = await derivePolymarketDepositWallet(env);
-      res.json({ ok: true, wallet });
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/deposit-wallet/derive failed");
-      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket Deposit Wallet derivation failed" });
-    }
-  });
-
-  app.post("/admin/polymarket/deposit-wallet/deploy", requireAdmin, async (_req, res) => {
-    try {
-      const deployment = await deployPolymarketDepositWallet(env);
-      res.json({ ok: true, deployment });
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/deposit-wallet/deploy failed");
-      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket Deposit Wallet deployment failed" });
-    }
-  });
-
-  app.post("/admin/polymarket/deposit-wallet/approve-pusd", requireAdmin, async (_req, res) => {
-    try {
-      const approvals = await approvePolymarketPusdAllowances(env);
-      res.json({ ok: true, approvals });
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/deposit-wallet/approve-pusd failed");
-      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket pUSD allowance approval failed" });
-    }
-  });
-
-  app.post("/admin/polymarket/deposit-wallet/bootstrap", requireAdmin, async (req, res) => {
-    const tokenId = String(req.query.tokenId ?? req.body?.tokenId ?? "").trim() || undefined;
-    try {
-      const bootstrap = await bootstrapPolymarketTradingWallet(env, tokenId);
-      res.json({ ok: true, bootstrap });
-    } catch (e: any) {
-      logger.error({ err: e }, "polymarket/deposit-wallet/bootstrap failed");
-      res.status(500).json({ ok: false, error: e?.message ?? "Polymarket Deposit Wallet bootstrap failed" });
-    }
   });
 
   // ─── Selected Markets (admin saves/retrieves market selection) ───────────────
@@ -1049,7 +902,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       const snapshots = await Promise.all(
         selectedMarkets.map(async (m) => {
           try {
-            const data = await fetchMarketData(env, m.conditionId, m.tokenId);
+            const data = await fetchLimitlessMarketData(env, m.marketId, m.conditionId);
             return [m.conditionId, data] as const;
           } catch (err) {
             logger.warn({ err, conditionId: m.conditionId }, "market-data fetch failed for allocation run");
@@ -1091,7 +944,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   const discoverSchema = z.object({
     clubName: z.string().min(1).optional(),
-    teamPolymarketId: z.string().optional(),
+    sportsDataTeamId: z.string().uuid().optional(),
     riskPerMatchPct: z.number().optional().default(3),
     liquidityMinUsd: z.number().optional().default(50_000)
   });
@@ -1106,19 +959,21 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const clubName = (body.clubName?.trim() || pool.clubName).trim();
     if (!clubName) return res.status(400).json({ error: "clubName missing" });
 
-    const teamPolymarketId =
-      body.teamPolymarketId?.trim() || pool.polymarketTeamId?.trim() || undefined;
+    const sportsDataTeamId =
+      body.sportsDataTeamId?.trim() || (pool as any).sportsDataTeamId?.trim?.() || undefined;
+    if (!sportsDataTeamId) return res.status(400).json({ error: "sportsDataTeamId missing" });
 
-    await discoverClubCandidates({
+    const result = await discoverLimitlessClubCandidates({
       poolId,
       clubName,
-      teamPolymarketId,
+      sportsDataTeamId,
       riskPerMatchPct: body.riskPerMatchPct,
       liquidityMinUsd: body.liquidityMinUsd,
       env
     });
 
-    res.json({ ok: true });
+    const candidates = await prisma.club_market_candidates.findMany({ where: { poolId } });
+    res.json({ ok: true, ...result, count: candidates.length, candidates });
   });
 
   // Create scheduled queue entries (T-48h and T-24h) for the latest candidates.
@@ -1277,7 +1132,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       });
     }
 
-    const result = await executeTranche({
+    const result = await executeLimitlessTranche({
       env,
       queueId: queue.id,
       poolId: req.params.poolId,
@@ -1337,8 +1192,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
 
-    if (!env.RPC_URL) return res.status(400).json({ error: "RPC_URL missing" });
-    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+    if (!env.BASE_RPC_URL) return res.status(400).json({ error: "RPC_URL missing" });
+    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
 
     const latest = await provider.getBlockNumber();
     const lastSynced = typeof (pool.riskParams as any)?.lastSyncedBlock === "number" ? (pool.riskParams as any).lastSyncedBlock : undefined;
@@ -1385,78 +1240,6 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     depositAssets: z.coerce.bigint().optional()
   });
 
-  app.post("/pools/:poolId/tx/deposit-wrapchz", async (req, res) => {
-    const body = prepareDepositWrapChzSchema.parse(req.body);
-    const poolId = req.params.poolId;
-
-    if (!env.RPC_URL) return res.status(500).json({ error: "RPC_URL is required." });
-    if (!env.WRAPCHZ_TOKEN_ADDRESS) return res.status(500).json({ error: "WRAPCHZ_TOKEN_ADDRESS is not set." });
-    if (!env.UNISWAP_V2_ROUTER_ADDRESS) return res.status(500).json({ error: "UNISWAP_V2_ROUTER_ADDRESS is not set." });
-
-    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
-    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
-    if (!pool) return res.status(404).json({ error: "Pool not found" });
-
-    const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
-    const assetAddress: string = await (vault as any).asset();
-    const vaultAddress: string = (vault as any).target ?? (vault as any).address;
-
-    const depositAssets = body.depositAssets ?? body.usdcAmountOutMin;
-    if (depositAssets > body.usdcAmountOutMin) {
-      return res.status(400).json({
-        error: "depositAssets must be <= usdcAmountOutMin.",
-        depositAssets: depositAssets.toString(),
-        usdcAmountOutMin: body.usdcAmountOutMin.toString()
-      });
-    }
-
-    const wrapChz = new ethers.Contract(env.WRAPCHZ_TOKEN_ADDRESS, ERC20.abi, provider);
-    const usdc = new ethers.Contract(assetAddress, ERC20.abi, provider);
-    const router = new ethers.Contract(env.UNISWAP_V2_ROUTER_ADDRESS, UNISWAP_V2_ROUTER.abi, provider);
-
-    const approveWrapChzTx: TransactionRequest = await (wrapChz as any).approve.populateTransaction(
-      env.UNISWAP_V2_ROUTER_ADDRESS,
-      body.wrapChzAmountIn
-    );
-
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 20 * 60);
-    const path = [env.WRAPCHZ_TOKEN_ADDRESS, assetAddress];
-    const swapTx: TransactionRequest = await (router as any).swapExactTokensForTokens.populateTransaction(
-      body.wrapChzAmountIn,
-      body.usdcAmountOutMin,
-      path,
-      body.sender,
-      deadline
-    );
-
-    const approveUsdcTx: TransactionRequest = await (usdc as any).approve.populateTransaction(vaultAddress, depositAssets);
-
-    const depositFn = (vault as any).deposit;
-    if (!depositFn?.populateTransaction) {
-      return res.status(500).json({
-        error: "Vault does not expose deposit().populateTransaction (ethers v6 ABI wiring issue)",
-        poolId,
-        clubName: pool.clubName,
-        vaultAddress: pool.vaultAddress ?? null
-      });
-    }
-    const depositTx: TransactionRequest = await depositFn.populateTransaction(depositAssets, body.receiver);
-
-    res.json({
-      ok: true,
-      meta: {
-        vaultAddress,
-        usdcAssetAddress: assetAddress,
-        wrapChzAddress: env.WRAPCHZ_TOKEN_ADDRESS,
-        routerAddress: env.UNISWAP_V2_ROUTER_ADDRESS,
-        deadline: deadline.toString(),
-        depositAssets: depositAssets.toString(),
-        usdcAmountOutMin: body.usdcAmountOutMin.toString()
-      },
-      txs: { approveWrapChzTx, swapTx, approveUsdcTx, depositTx }
-    });
-  });
-
   // Immediately ingest a confirmed vault deposit tx into DB (single block; does not advance lastSyncedBlock).
   app.post("/pools/:poolId/deposit/confirm", async (req, res) => {
     const poolId = req.params.poolId;
@@ -1467,7 +1250,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       .parse(req.body);
     const txLc = body.txHash.toLowerCase();
 
-    if (!env.RPC_URL) {
+    if (!env.BASE_RPC_URL) {
       return res.status(400).json({ error: "RPC_URL missing" });
     }
 
@@ -1477,7 +1260,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       return res.status(400).json({ error: "Pool vaultAddress not configured" });
     }
 
-    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
     const receipt = await provider.getTransactionReceipt(body.txHash);
     if (!receipt || receipt.status !== 1) {
       return res.status(400).json({ error: "Transaction not found or not successful" });
@@ -1519,21 +1302,21 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/deposit", async (req, res) => {
     const body = prepareDepositSchema.parse(req.body);
     const poolId = req.params.poolId;
-    if (!env.RPC_URL) return res.status(500).json({ error: "RPC_URL is required." });
-    const provider = new ethers.JsonRpcProvider(env.RPC_URL);
+    if (!env.BASE_RPC_URL) return res.status(500).json({ error: "RPC_URL is required." });
+    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
     const assetAddress: string = await (vault as any).asset();
     const vaultAddress: string = (vault as any).target ?? (vault as any).address;
-    if (env.POLYGON_USDC_ADDRESS && assetAddress.toLowerCase() !== env.POLYGON_USDC_ADDRESS.toLowerCase()) {
+    if (env.BASE_USDC_ADDRESS && assetAddress.toLowerCase() !== env.BASE_USDC_ADDRESS.toLowerCase()) {
       return res.status(409).json({
         ok: false,
         code: "VAULT_ASSET_MISMATCH",
-        error: "This pool vault was deployed with a different Polygon USDC contract. Polygon native USDC deposits are disabled for this pool; use Base or create a new pool with the native USDC factory.",
+        error: "This pool vault was deployed with a different USDC contract than the configured Base USDC. Deposits are disabled for this pool; create a new pool with the Base native USDC factory.",
         vaultAddress,
         assetAddress,
-        expectedAssetAddress: env.POLYGON_USDC_ADDRESS
+        expectedAssetAddress: env.BASE_USDC_ADDRESS
       });
     }
     const asset = new ethers.Contract(assetAddress, ERC20.abi, provider);
@@ -1563,7 +1346,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/mint", async (req, res) => {
     const body = prepareMintSchema.parse(req.body);
     const poolId = req.params.poolId;
-    const provider = env.RPC_URL ? new ethers.JsonRpcProvider(env.RPC_URL) : undefined;
+    const provider = env.BASE_RPC_URL ? new ethers.JsonRpcProvider(env.BASE_RPC_URL) : undefined;
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1583,7 +1366,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/withdraw", async (req, res) => {
     const body = prepareWithdrawSchema.parse(req.body);
     const poolId = req.params.poolId;
-    const provider = env.RPC_URL ? new ethers.JsonRpcProvider(env.RPC_URL) : undefined;
+    const provider = env.BASE_RPC_URL ? new ethers.JsonRpcProvider(env.BASE_RPC_URL) : undefined;
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1603,7 +1386,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/redeem", async (req, res) => {
     const body = prepareRedeemSchema.parse(req.body);
     const poolId = req.params.poolId;
-    const provider = env.RPC_URL ? new ethers.JsonRpcProvider(env.RPC_URL) : undefined;
+    const provider = env.BASE_RPC_URL ? new ethers.JsonRpcProvider(env.BASE_RPC_URL) : undefined;
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1643,38 +1426,6 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   const baseDepositUsdcSchema = z.object({
     poolId: z.string().min(1),
     amount: z.coerce.bigint()
-  });
-
-  app.post("/base/tx/deposit-usdc", async (req, res) => {
-    const body = baseDepositUsdcSchema.parse(req.body);
-
-    if (!env.BASE_RPC_URL || !env.BASE_USDC_ADDRESS || !env.BASE_DEPOSIT_RECEIVER_ADDRESS) {
-      return res.status(500).json({
-        error: "Base env not configured (BASE_RPC_URL / BASE_USDC_ADDRESS / BASE_DEPOSIT_RECEIVER_ADDRESS)."
-      });
-    }
-
-    const pool = await prisma.club_pools.findUnique({ where: { id: body.poolId } });
-    if (!pool) return res.status(404).json({ error: "Pool not found" });
-
-    const poolIdHash = ethers.keccak256(ethers.toUtf8Bytes(pool.clubName));
-    const baseProvider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
-    const usdc = new ethers.Contract(env.BASE_USDC_ADDRESS, ERC20.abi, baseProvider);
-    const receiver = new ethers.Contract(env.BASE_DEPOSIT_RECEIVER_ADDRESS, BASE_DEPOSIT_RECEIVER.abi, baseProvider);
-
-    const approveTx: TransactionRequest = await (usdc as any).approve.populateTransaction(
-      env.BASE_DEPOSIT_RECEIVER_ADDRESS,
-      body.amount
-    );
-    const depositTx: TransactionRequest = await (receiver as any).depositUSDC.populateTransaction(body.amount, poolIdHash);
-
-    res.json({
-      ok: true,
-      receiverAddress: env.BASE_DEPOSIT_RECEIVER_ADDRESS,
-      usdcAddress: env.BASE_USDC_ADDRESS,
-      poolIdHash,
-      txs: { approveTx, depositTx }
-    });
   });
 
   app.post("/admin/base/retry-failed", requireAdmin, async (_req, res) => {
@@ -1727,79 +1478,6 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     poolId: z.string().min(1) // backend poolId (we hash clubName to get bytes32)
   });
 
-  app.post("/chiliz/tx/deposit-chz", async (req, res) => {
-    const body = chilizDepositChzSchema.parse(req.body);
-
-    if (!env.CHILIZ_RPC_URL || !env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS) {
-      return res.status(500).json({ error: "Chiliz env not configured (CHILIZ_RPC_URL / CHILIZ_DEPOSIT_RECEIVER_ADDRESS)." });
-    }
-
-    const pool = await prisma.club_pools.findUnique({ where: { id: body.poolId } });
-    if (!pool) return res.status(404).json({ error: "Pool not found" });
-
-    const poolIdHash = ethers.keccak256(ethers.toUtf8Bytes(pool.clubName));
-
-    const chilizProvider = new ethers.JsonRpcProvider(env.CHILIZ_RPC_URL);
-    const receiver = new ethers.Contract(
-      env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS,
-      ["function depositCHZ(bytes32 poolId) external payable"],
-      chilizProvider
-    );
-
-    const tx = await (receiver as any).depositCHZ.populateTransaction(poolIdHash);
-    res.json({
-      ok: true,
-      receiverAddress: env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS,
-      poolIdHash,
-      tx
-    });
-  });
-
-  // Prepare unsigned tx for user to call depositToken (fan token) on Chiliz chain
-  const chilizDepositTokenSchema = z.object({
-    poolId: z.string().min(1),
-    token: ethAddressSchema,
-    amount: z.coerce.bigint()
-  });
-
-  app.post("/chiliz/tx/deposit-token", async (req, res) => {
-    const body = chilizDepositTokenSchema.parse(req.body);
-
-    if (!env.CHILIZ_RPC_URL || !env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS) {
-      return res.status(500).json({ error: "Chiliz env not configured." });
-    }
-
-    const pool = await prisma.club_pools.findUnique({ where: { id: body.poolId } });
-    if (!pool) return res.status(404).json({ error: "Pool not found" });
-
-    const poolIdHash = ethers.keccak256(ethers.toUtf8Bytes(pool.clubName));
-
-    const chilizProvider = new ethers.JsonRpcProvider(env.CHILIZ_RPC_URL);
-    const tokenContract = new ethers.Contract(body.token, [
-      "function approve(address spender, uint256 amount) external returns (bool)"
-    ], chilizProvider);
-
-    const approveTx = await (tokenContract as any).approve.populateTransaction(
-      env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS,
-      body.amount
-    );
-
-    const receiver = new ethers.Contract(
-      env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS,
-      ["function depositToken(address token, uint256 amount, bytes32 poolId) external"],
-      chilizProvider
-    );
-
-    const depositTx = await (receiver as any).depositToken.populateTransaction(body.token, body.amount, poolIdHash);
-
-    res.json({
-      ok: true,
-      receiverAddress: env.CHILIZ_DEPOSIT_RECEIVER_ADDRESS,
-      poolIdHash,
-      txs: { approveTx, depositTx }
-    });
-  });
-
   // Redemption: user burns wrapped shares → gets value back on Chiliz
   const chilizRedeemSchema = z.object({
     poolId: z.string().min(1),
@@ -1829,6 +1507,307 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     });
     if (!redemption) return res.status(404).json({ error: "Redemption not found" });
     res.json({ ok: true, redemption });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Limitless pipeline — /sports + /admin/limitless/*
+  // Pipeline-only routes: not queried by the client-side app.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /sports
+   * Returns enriched sport fixtures from lim_games joined with limitless_markets.
+   * Filters: ?sport=soccer&league=Premier+League&limit=50&offset=0&upcoming=true
+   * Admin-only (internal pipeline / dashboard).
+   */
+  app.get("/sports", requireAdmin, async (req, res) => {
+    try {
+      const sport = req.query.sport ? String(req.query.sport) : undefined;
+      const league = req.query.league ? String(req.query.league) : undefined;
+      const limit = Math.min(Number(req.query.limit ?? 50), 200);
+      const offset = Number(req.query.offset ?? 0);
+      const upcomingOnly = req.query.upcoming === "true";
+
+      const where: Record<string, unknown> = {};
+      if (sport) where.sport = sport;
+      if (league) where.league = league;
+      if (upcomingOnly) where.gameTime = { gte: new Date() };
+
+      const [games, total] = await Promise.all([
+        (prisma as any).lim_games.findMany({
+          where,
+          include: {
+            market: {
+              select: {
+                id: true,
+                title: true,
+                status: true,
+                yesPrice: true,
+                noPrice: true,
+                liquidity: true,
+                volume: true,
+                endDate: true,
+                categoryId: true,
+              },
+            },
+          },
+          orderBy: { gameTime: "asc" },
+          take: limit,
+          skip: offset,
+        }),
+        (prisma as any).lim_games.count({ where }),
+      ]);
+
+      res.json({ ok: true, total, limit, offset, games });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "sports_error" });
+    }
+  });
+
+  /**
+   * GET /admin/limitless/sync-state
+   * Returns current sync state (provider, cursor, status, last sync time, counts).
+   */
+  app.get("/admin/limitless/sync-state", requireAdmin, async (_req, res) => {
+    try {
+      const state = await (prisma as any).limitless_sync_state.findUnique({
+        where: { id: "default" },
+      });
+      res.json({ ok: true, state: state ?? { id: "default", provider: "limitless", status: "IDLE", marketsSynced: 0 } });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "sync_state_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/sync/categories
+   * Trigger a one-off category sync.
+   */
+  app.post("/admin/limitless/sync/categories", requireAdmin, async (_req, res) => {
+    try {
+      const upserted = await syncCategories(env);
+      res.json({ ok: true, upserted });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "sync_categories_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/sync/markets
+   * Trigger a full market crawl (all pages, all statuses).
+   * Long-running — may take tens of seconds for a large market set.
+   */
+  app.post("/admin/limitless/sync/markets", requireAdmin, async (_req, res) => {
+    try {
+      const synced = await syncMarkets(env);
+      res.json({ ok: true, synced });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "sync_markets_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/sync/prices
+   * Refresh price ticks for active markets.
+   * Query param: ?limit=200 (max markets to refresh per call)
+   */
+  app.post("/admin/limitless/sync/prices", requireAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit ?? env.LIMITLESS_PRICE_SYNC_BATCH ?? 200), 500);
+      const stored = await syncPrices(env, limit);
+      res.json({ ok: true, stored });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "sync_prices_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/sync/enrich
+   * Run sport/league/team enrichment pass on un-enriched markets.
+   */
+  app.post("/admin/limitless/sync/enrich", requireAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit ?? env.LIMITLESS_ENRICH_BATCH ?? 500), 2000);
+      const enriched = await enrichSportsGames(env, limit);
+      res.json({ ok: true, enriched });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "enrich_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/sync/full
+   * Run the complete pipeline: categories → markets → prices → sport enrichment.
+   */
+  app.post("/admin/limitless/sync/full", requireAdmin, async (_req, res) => {
+    try {
+      const result = await runFullLimitlessSync(env);
+      res.json({ ok: true, ...result });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "full_sync_error" });
+    }
+  });
+
+  /**
+   * GET /admin/limitless/markets
+   * Browse raw limitless_markets with optional filters.
+   * ?status=ACTIVE&categoryId=...&limit=50&offset=0
+   */
+  app.get("/admin/limitless/markets", requireAdmin, async (req, res) => {
+    try {
+      const status = req.query.status ? String(req.query.status) : undefined;
+      const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
+      const limit = Math.min(Number(req.query.limit ?? 50), 200);
+      const offset = Number(req.query.offset ?? 0);
+
+      const where: Record<string, unknown> = {};
+      if (status) where.status = status;
+      if (categoryId) where.categoryId = categoryId;
+
+      const [markets, total] = await Promise.all([
+        (prisma as any).limitless_markets.findMany({
+          where,
+          select: {
+            id: true, title: true, status: true,
+            yesPrice: true, noPrice: true, liquidity: true,
+            volume: true, endDate: true, categoryId: true, syncedAt: true,
+          },
+          orderBy: { liquidity: "desc" },
+          take: limit,
+          skip: offset,
+        }),
+        (prisma as any).limitless_markets.count({ where }),
+      ]);
+
+      res.json({ ok: true, total, limit, offset, markets });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "markets_list_error" });
+    }
+  });
+
+  /**
+   * GET /admin/limitless/categories
+   * List all synced categories.
+   */
+  app.get("/admin/limitless/categories", requireAdmin, async (_req, res) => {
+    try {
+      const categories = await (prisma as any).limitless_categories.findMany({
+        orderBy: { label: "asc" },
+      });
+      res.json({ ok: true, categories });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "categories_error" });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Limitless — Discovery + execution
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * POST /admin/limitless/discover/:poolId
+   * Discover Limitless markets for a pool's club and create club_market_candidates.
+   * Body: { sportsDataTeamId?, clubName?, riskPerMatchPct?, liquidityMinUsd? }
+   */
+  app.post("/admin/limitless/discover/:poolId", requireAdmin, async (req, res) => {
+    try {
+      const poolId = req.params.poolId;
+      const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+      if (!pool) return res.status(404).json({ error: "Pool not found" });
+
+      const clubName = String(req.body?.clubName ?? pool.clubName);
+      const sportsDataTeamId =
+        req.body?.sportsDataTeamId ? String(req.body.sportsDataTeamId) : (pool as any).sportsDataTeamId;
+      if (!sportsDataTeamId) return res.status(400).json({ error: "sportsDataTeamId missing" });
+      const riskPerMatchPct = Number(req.body?.riskPerMatchPct ?? (pool.riskParams as any)?.maxPerMatchPct ?? 3);
+      const liquidityMinUsd = Number(req.body?.liquidityMinUsd ?? (pool.riskParams as any)?.liquidityMinUsd ?? 50_000);
+
+      const result = await discoverLimitlessClubCandidates({
+        poolId, clubName, sportsDataTeamId, riskPerMatchPct, liquidityMinUsd, env,
+      });
+
+      const candidates = await prisma.club_market_candidates.findMany({ where: { poolId } });
+      res.json({ ok: true, ...result, count: candidates.length, candidates });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "discovery_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/execute
+   * Execute a single queue tranche on Limitless.
+   * Body: { poolId, candidateId, tranche, queueId? }
+   */
+  app.post("/admin/limitless/execute", requireAdmin, async (req, res) => {
+    try {
+      const poolId = String(req.body?.poolId ?? "");
+      const candidateId = String(req.body?.candidateId ?? "");
+      const tranche = Number(req.body?.tranche ?? 1);
+      const queueId = req.body?.queueId ? String(req.body.queueId) : undefined;
+
+      if (!poolId || !candidateId) {
+        return res.status(400).json({ error: "poolId and candidateId are required" });
+      }
+
+      const result = await executeLimitlessTranche({ poolId, candidateId, tranche, queueId, env });
+      res.json({ ok: true, ...result });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "execute_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/position-sync
+   * Reconcile fills and settle resolved Limitless positions.
+   */
+  app.post("/admin/limitless/position-sync", requireAdmin, async (_req, res) => {
+    try {
+      await syncLimitlessFillsAndSettle(env);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "position_sync_error" });
+    }
+  });
+
+  /**
+   * GET /admin/limitless/market-data/:marketId
+   * Fetch a live MarketClobData snapshot for a Limitless market.
+   * Used by the allocation engine admin UI.
+   */
+  app.get("/admin/limitless/market-data/:marketId", requireAdmin, async (req, res) => {
+    try {
+      const data = await fetchLimitlessMarketData(env, req.params.marketId);
+      res.json({ ok: true, data });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "market_data_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/market-data/batch
+   * Fetch MarketClobData for multiple markets.
+   * Body: { marketIds: string[] }
+   */
+  app.post("/admin/limitless/market-data/batch", requireAdmin, async (req, res) => {
+    try {
+      const ids: string[] = Array.isArray(req.body?.marketIds) ? req.body.marketIds : [];
+      if (ids.length === 0) return res.status(400).json({ error: "marketIds required" });
+      if (ids.length > 50) return res.status(400).json({ error: "max 50 marketIds per batch" });
+
+      const map = await fetchLimitlessMarketDataBatch(env, ids);
+      res.json({ ok: true, data: Object.fromEntries(map) });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e?.message ?? "batch_market_data_error" });
+    }
+  });
+
+  /**
+   * GET /admin/limitless/readiness
+   * Check if Limitless trading wallet is configured and ready.
+   */
+  app.get("/admin/limitless/readiness", requireAdmin, (_req, res) => {
+    const readiness = isLimitlessTradingReady(env);
+    res.json({ ok: true, ...readiness });
   });
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;

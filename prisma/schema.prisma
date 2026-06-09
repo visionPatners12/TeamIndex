@@ -56,7 +56,9 @@ model club_pools {
   id                     String   @id @default(cuid())
   clubName               String
   symbol                 String
-  // From club_teams_map.polymarketTeamId when pool is created from mapped team (Polymarket discovery).
+  // Canonical sports_data.teams.id used to discover Limitless markets by home_id/away_id.
+  sportsDataTeamId       String?  @db.Uuid
+  // Legacy Polymarket mapping kept only for old rows.
   polymarketTeamId       String?
   // If using `ClubVaultFactory`, this is the deployed per-club vault address.
   // Used so `tx/deposit` and admin vault calls always target the same vault.
@@ -81,6 +83,8 @@ model club_pools {
   matchQueue           club_match_queue[]
   selectedMarkets      pool_selected_markets[]
   allocationProposals  pool_allocation_proposals[]
+
+  @@index([sportsDataTeamId])
 }
 
 // Admin-selected Polymarket markets for a pool (used by allocation engine)
@@ -379,4 +383,109 @@ model system_settings {
   /// The admin panel can still toggle it, and CHZ/USD price is always shown.
   chilizEnabled   Boolean  @default(false)
   updatedAt       DateTime @updatedAt
+}
+
+// ============================
+// Limitless pipeline (migration from Polymarket)
+// ============================
+
+/// Singleton row tracking the Limitless sync state.
+/// provider = 'polymarket' | 'limitless' — which data source is currently active.
+model limitless_sync_state {
+  id            String    @id @default("default")
+  provider      String    @default("limitless")
+  /// Pagination cursor returned by the last Limitless API page (market id or offset).
+  cursor        String?
+  lastSyncedAt  DateTime?
+  marketsSynced Int       @default(0)
+  /// IDLE | SYNCING | ERROR
+  status        String    @default("IDLE")
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+/// Market categories fetched from Limitless API — pipeline only, not queried client-side.
+model limitless_categories {
+  id        String    @id
+  slug      String    @unique
+  label     String
+  rawJson   Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  markets   limitless_markets[]
+}
+
+/// Raw markets fetched from Limitless API — pipeline only, not queried client-side.
+model limitless_markets {
+  id          String    @id
+  categoryId  String?
+  title       String
+  description String?
+  /// ACTIVE | CLOSED | RESOLVED
+  status      String    @default("ACTIVE")
+  /// Winning outcome title when the market is resolved.
+  resolution  String?
+  /// Implied probability for outcome[0] (YES / first outcome).
+  yesPrice    Decimal   @db.Decimal(10, 6) @default(0)
+  /// Implied probability for outcome[1] (NO / second outcome).
+  noPrice     Decimal   @db.Decimal(10, 6) @default(0)
+  liquidity   Decimal   @db.Decimal(20, 6) @default(0)
+  volume      Decimal   @db.Decimal(20, 6) @default(0)
+  endDate     DateTime?
+  rawJson     Json?
+  syncedAt    DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category    limitless_categories? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  prices      limitless_prices[]
+  game        lim_games?
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([endDate])
+}
+
+/// Historical price ticks per market outcome — pipeline only, not queried client-side.
+model limitless_prices {
+  id           BigInt   @id @default(autoincrement())
+  marketId     String
+  /// 0 = YES / first outcome, 1 = NO / second outcome.
+  outcomeIndex Int      @default(0)
+  price        Decimal  @db.Decimal(10, 6)
+  /// Point-in-time when this price was observed.
+  timestamp    DateTime
+  createdAt    DateTime @default(now())
+
+  market limitless_markets @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@unique([marketId, outcomeIndex, timestamp])
+  @@index([marketId, timestamp(sort: Desc)])
+}
+
+/// Sport/league/team enrichment for Limitless markets — populated by /sports pipeline.
+/// One row per market identified as a sports fixture. Not queried client-side.
+model lim_games {
+  id        String    @id @default(cuid())
+  marketId  String    @unique
+  /// e.g. "soccer", "basketball", "tennis"
+  sport     String?
+  /// e.g. "Premier League", "NBA", "Champions League"
+  league    String?
+  /// Home team or first player name.
+  homeTeam  String?
+  /// Away team or second player name.
+  awayTeam  String?
+  /// Expected kick-off / start time of the fixture.
+  gameTime  DateTime?
+  rawJson   Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  market limitless_markets @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([sport, league])
+  @@index([gameTime])
 }

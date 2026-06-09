@@ -31,8 +31,8 @@ export async function getVaultContract(
   pool?: PoolIdentity
 ) {
   if (!provider) {
-    if (!env.RPC_URL) throw new Error("RPC_URL missing");
-    provider = new ethers.JsonRpcProvider(env.RPC_URL);
+    if (!env.BASE_RPC_URL) throw new Error("RPC_URL missing");
+    provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
   }
 
   const placeholderAddress = "0x0000000000000000000000000000000000000001";
@@ -55,7 +55,7 @@ export async function getVaultContract(
     );
   }
 
-  const signer = env.EXECUTOR_PRIVATE_KEY ? new ethers.Wallet(env.EXECUTOR_PRIVATE_KEY, provider) : undefined;
+  const signer = env.BASE_EXECUTOR_PRIVATE_KEY ? new ethers.Wallet(env.BASE_EXECUTOR_PRIVATE_KEY, provider) : undefined;
   return new ethers.Contract(vaultAddress, USDC4626VAULT.abi, signer ?? provider);
 }
 

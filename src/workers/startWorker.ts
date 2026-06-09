@@ -1,7 +1,7 @@
 import { Worker } from "bullmq";
 import type { Env } from "../config/env";
 import { QUEUE_NAMES, buildConnection } from "../queues/bull";
-import { executeTranche } from "../services/executor";
+import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
 
 export function startWorker({ env, logger }: { env: Env; logger: ReturnType<any> }) {
   const concurrency = Number(env.QUEUE_CONCURRENCY || 1);
@@ -14,7 +14,7 @@ export function startWorker({ env, logger }: { env: Env; logger: ReturnType<any>
       logger.info({ queueId, poolId, candidateId, tranche }, "execute job start");
 
       try {
-        await executeTranche({ env, queueId, poolId, candidateId, tranche, expectedExecutionTimeMs: (job.data as any).expectedExecutionTimeMs });
+        await executeLimitlessTranche({ env, queueId, poolId, candidateId, tranche, expectedExecutionTimeMs: (job.data as any).expectedExecutionTimeMs });
         logger.info({ queueId, poolId, candidateId, tranche }, "execute job done");
       } catch (err: any) {
         await job.discard();

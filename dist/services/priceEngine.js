@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recalculateOfficialPrices = recalculateOfficialPrices;
-const clobClient_1 = require("../polymarket/clobClient");
 const prisma_1 = require("../db/prisma");
 const vaultExecutor_1 = require("../onchain/vaultExecutor");
 const ethers_1 = require("ethers");
@@ -54,23 +53,13 @@ async function recalculateOfficialPrices(env) {
             where: { poolId: pool.id, status: "OPEN" }
         });
         let positionsValue = 0;
-        const positionUpdates = [];
         for (const pos of openPositions) {
-            // For MVP: use midpoint price for each open token and value by current quantity.
-            // Polymarket binary token price is an implied probability; if your settlement differs,
-            // adjust valuation formula accordingly.
-            const mid = await (0, clobClient_1.getMidpoint)(env, pos.tokenId).catch(() => "0");
-            const midNum = Number(mid);
-            const quantity = decToNumber(pos.quantity);
-            const currentValue = midNum * quantity;
-            positionsValue += currentValue;
-            // Keep position-level mark-to-market currentValue in sync.
-            positionUpdates.push(prisma_1.prisma.club_pool_positions.update({
-                where: { id: pos.id },
-                data: { currentValue: currentValue.toString() }
-            }));
+            // `currentValue` is the marked-to-market value maintained by
+            // `syncLimitlessFillsAndSettle` (Limitless mid-price × matched quantity),
+            // which runs immediately before this recalc in the price ticker. We treat it
+            // as the single source of truth instead of re-fetching mid-prices here.
+            positionsValue += decToNumber(pos.currentValue);
         }
-        await Promise.all(positionUpdates);
         const cashHuman = vaultCashDbToHuman(pool.cash);
         const realizedPnl = decToNumber(pool.realizedPnl);
         const totalPoolValue = cashHuman + positionsValue + realizedPnl;
@@ -97,17 +86,28 @@ async function recalculateOfficialPrices(env) {
                 officialTokenPrice: officialTokenPrice.toString()
             }
         });
-        // Keep onchain valuation inputs in sync with offchain calculations.
-        // This makes ERC4626 conversions use the same "official token price" basis.
-        if (env.RPC_URL) {
+        // Keep onchain valuation inputs in sync with offchain calculations so ERC4626
+        // conversions use the same "official token price" basis. The vault lives on Base
+        // and `getVaultContract` returns a contract already bound to the Base executor
+        // signer. Pools are processed sequentially in this loop, so nonces from the shared
+        // executor wallet don't collide (each `tx.wait()` mines before the next pool).
+        if (env.BASE_RPC_URL && env.BASE_EXECUTOR_PRIVATE_KEY) {
             try {
-                const vault = await (0, vaultExecutor_1.getVaultContract)(env, undefined, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
                 const posBase = humanUsdToUsdcBaseUnits(positionsValue);
-                const rPnLBase = realizedPnl >= 0 ? humanUsdToUsdcBaseUnits(realizedPnl) : 0n;
-                await vault.setPoolValuation(posBase.toString(), rPnLBase.toString());
+                // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
+                const rPnLBase = realizedPnl >= 0
+                    ? humanUsdToUsdcBaseUnits(realizedPnl)
+                    : -humanUsdToUsdcBaseUnits(-realizedPnl);
+                const provider = new ethers_1.JsonRpcProvider(env.BASE_RPC_URL);
+                const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
+                    clubName: pool.clubName,
+                    vaultAddress: pool.vaultAddress ?? undefined
+                });
+                const tx = await vault.setPoolValuation(posBase.toString(), rPnLBase.toString());
+                await tx.wait(); // serialize: don't return until this NAV update has mined
             }
             catch {
-                // Optional: onchain valuation update failure should not block price recalculation.
+                // Onchain valuation update failure shouldn't block price recalculation.
             }
         }
     }

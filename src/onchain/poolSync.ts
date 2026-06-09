@@ -44,7 +44,7 @@ export async function syncVaultEventsToDb({
   logContext,
   chunkSizeEnv
 }: SyncInputs) {
-  if (!env.RPC_URL) throw new Error("RPC_URL missing (required for onchain sync)");
+  if (!env.BASE_RPC_URL) throw new Error("RPC_URL missing (required for onchain sync)");
   if (fromBlock > toBlock) return;
 
   const onlySet =
@@ -52,7 +52,7 @@ export async function syncVaultEventsToDb({
       ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
       : null;
 
-  const provider = new ethers.JsonRpcProvider(env.RPC_URL, undefined, { batchMaxCount: 1 });
+  const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
   const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
 
   const depositEvents = await queryFilterInBlockChunks(vault, vault.filters.Deposit(), fromBlock, toBlock, {
