@@ -1,4 +1,5 @@
 import express from "express";
+import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { createLogger } from "../config/log";
 import type { Env } from "../config/env";
@@ -46,7 +47,20 @@ import { syncLimitlessFillsAndSettle } from "../limitless/limitlessPositionSync"
 import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
 import { fetchLimitlessMarketData, fetchLimitlessMarketDataBatch } from "../limitless/limitlessMarketData";
 import { isLimitlessTradingReady } from "../limitless/limitlessOrderClient";
+import {
+  createPartnerServerAccount,
+  partnerAccountCreationEnabled,
+} from "../limitless/partnerAccounts";
+import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
 import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
+
+declare global {
+  namespace Express {
+    interface Request {
+      rawBody?: Buffer;
+    }
+  }
+}
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
@@ -59,7 +73,12 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     next();
   });
 
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({
+    limit: "1mb",
+    verify: (req, _res, buf) => {
+      (req as express.Request).rawBody = Buffer.from(buf);
+    },
+  }));
 
   app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -68,6 +87,20 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const key = String(req.headers["x-admin-key"] ?? "");
     if (!key || key !== env.ADMIN_API_KEY) return res.status(403).json({ error: "Forbidden" });
     return next();
+  }
+
+  function verifyCdpWebhook(req: express.Request) {
+    if (!env.CDP_WEBHOOK_SECRET) return true;
+    const raw = req.rawBody;
+    const signature =
+      String(req.headers["x-cdp-signature"] ?? req.headers["x-webhook-signature"] ?? "");
+    if (!raw || !signature) return false;
+
+    const digest = createHmac("sha256", env.CDP_WEBHOOK_SECRET).update(raw).digest("hex");
+    const normalized = signature.replace(/^sha256=/i, "");
+    const a = Buffer.from(digest, "hex");
+    const b = Buffer.from(normalized, "hex");
+    return a.length === b.length && timingSafeEqual(a, b);
   }
 
   const manualReconciliationStatus = "NEEDS_MANUAL_RECONCILIATION" as const;
@@ -161,6 +194,116 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       .then(() => true)
       .catch(() => false);
     res.json({ ok: true, db: dbOk });
+  });
+
+  const cdpWebhookEventSchema = z.object({
+    network: z.string().optional(),
+    chain: z.string().optional(),
+    event: z.record(z.unknown()).optional(),
+    activity: z.record(z.unknown()).optional(),
+    transactionHash: z.string().optional(),
+    txHash: z.string().optional(),
+    logIndex: z.union([z.number(), z.string()]).optional(),
+    blockNumber: z.union([z.number(), z.string()]).optional(),
+    blockHash: z.string().optional(),
+    contractAddress: z.string().optional(),
+    address: z.string().optional(),
+    eventName: z.string().optional(),
+    eventSignature: z.string().optional(),
+    timestamp: z.string().optional(),
+  }).passthrough();
+
+  function nestedRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  }
+
+  function stringFrom(...values: unknown[]) {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim()) return value;
+      if (typeof value === "number" && Number.isFinite(value)) return String(value);
+    }
+    return "";
+  }
+
+  function numberFrom(...values: unknown[]) {
+    for (const value of values) {
+      const n = typeof value === "number" ? value : Number(value);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }
+
+  app.post("/webhooks/cdp/onchain-activity", async (req, res) => {
+    if (!verifyCdpWebhook(req)) {
+      return res.status(401).json({ ok: false, error: "Invalid webhook signature" });
+    }
+
+    const body = cdpWebhookEventSchema.parse(req.body ?? {});
+    const event = nestedRecord(body.event);
+    const activity = nestedRecord(body.activity);
+    const parameters = nestedRecord(event.parameters ?? activity.parameters ?? (body as any).parameters);
+
+    const transactionHash = stringFrom(
+      body.transactionHash,
+      body.txHash,
+      event.transactionHash,
+      event.txHash,
+      activity.transactionHash,
+      activity.txHash,
+    ).toLowerCase();
+    const logIndex = numberFrom(body.logIndex, event.logIndex, activity.logIndex);
+
+    if (!transactionHash || logIndex === null) {
+      return res.status(400).json({ ok: false, error: "transactionHash and logIndex are required" });
+    }
+
+    const network = stringFrom(body.network, body.chain, event.network, activity.network, "base").toLowerCase();
+    const contractAddress = stringFrom(
+      body.contractAddress,
+      body.address,
+      event.contractAddress,
+      event.address,
+      activity.contractAddress,
+      activity.address,
+    ).toLowerCase();
+    const eventName = stringFrom(body.eventName, event.eventName, activity.eventName, "Transfer");
+    const eventSignature = stringFrom(body.eventSignature, event.eventSignature, activity.eventSignature);
+    const blockNumber = numberFrom(body.blockNumber, event.blockNumber, activity.blockNumber);
+    const blockHash = stringFrom(body.blockHash, event.blockHash, activity.blockHash) || null;
+    const timestampRaw = stringFrom(body.timestamp, event.timestamp, activity.timestamp);
+    const timestamp = timestampRaw ? new Date(timestampRaw) : null;
+
+    const row = await (prisma as any).onchain_events.upsert({
+      where: {
+        onchain_events_network_transactionHash_logIndex_key: {
+          network,
+          transactionHash,
+          logIndex,
+        },
+      },
+      update: {
+        rawJson: body as any,
+        parametersJson: parameters as any,
+      },
+      create: {
+        network,
+        transactionHash,
+        logIndex,
+        blockNumber: blockNumber === null ? undefined : BigInt(Math.trunc(blockNumber)),
+        blockHash,
+        contractAddress,
+        eventName,
+        eventSignature,
+        timestamp: timestamp && Number.isFinite(timestamp.getTime()) ? timestamp : undefined,
+        parametersJson: parameters as any,
+        rawJson: body as any,
+        processingStatus: "PENDING",
+      },
+    });
+
+    return res.json({ ok: true, eventId: row.id });
   });
 
   // ────────────────────────────────────────────────────────────────────────
@@ -529,11 +672,13 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   const poolCreateSchema = z.object({
     clubName: z.string().min(1),
     symbol: z.string().min(1),
-    sportsDataTeamId: z.string().uuid(),
+    primarySportsDataTeamId: z.string().uuid().optional(),
+    sportsDataTeamId: z.string().uuid().optional(),
     totalTokenSupply: z.number().optional().default(0),
     depositCap: z.coerce.bigint().optional().default(0n),
     vaultAddress: z.string().optional(),
     deployOnchain: z.boolean().optional().default(false),
+    createLimitlessAccount: z.boolean().optional(),
     riskParams: z
       .object({
         maxPerMatchPct: z.number().optional(),
@@ -595,6 +740,10 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/admin/pools", requireAdmin, async (req, res) => {
     try {
       const body = poolCreateSchema.parse(req.body);
+      const primarySportsDataTeamId = body.primarySportsDataTeamId ?? body.sportsDataTeamId;
+      if (!primarySportsDataTeamId) {
+        return res.status(400).json({ ok: false, error: "primarySportsDataTeamId is required" });
+      }
       const riskParams = body.riskParams ?? { maxPerMatchPct: 3, maxTotalExposurePct: 20, liquidityMinUsd: 50_000 };
 
       let vaultDeployment: { vaultAddress: string; created: boolean } | null = null;
@@ -628,7 +777,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         data: {
           clubName: body.clubName,
           symbol: body.symbol,
-          sportsDataTeamId: body.sportsDataTeamId,
+          primarySportsDataTeamId,
+          sportsDataTeamId: primarySportsDataTeamId,
           vaultAddress: resolvedVaultAddress,
           depositCap: body.depositCap.toString(),
           cash: "0",
@@ -642,7 +792,48 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         }
       });
 
-      return res.json({ ok: true, pool, vaultDeployment });
+      await (prisma as any).pool_teams.create({
+        data: {
+          poolId: pool.id,
+          sportsDataTeamId: primarySportsDataTeamId,
+          role: "PRIMARY",
+          weight: "1",
+        },
+      });
+
+      const displayName = `pool-${body.symbol.trim().toLowerCase()}-${String(pool.id).slice(-6)}`;
+      let limitlessAccount: unknown = null;
+      const shouldCreateLimitless =
+        body.createLimitlessAccount ?? partnerAccountCreationEnabled(env);
+
+      if (shouldCreateLimitless) {
+        const created = await createPartnerServerAccount(env, displayName);
+        limitlessAccount = await (prisma as any).pool_limitless_accounts.create({
+          data: {
+            poolId: pool.id,
+            limitlessProfileId: created.limitlessProfileId,
+            accountAddress: created.accountAddress,
+            displayName: created.displayName,
+            serverWallet: true,
+            allowanceStatus: "PENDING",
+            status: created.accountAddress ? "ACTIVE" : "PENDING",
+            rawJson: created.rawJson as any,
+          },
+        });
+      } else {
+        limitlessAccount = await (prisma as any).pool_limitless_accounts.create({
+          data: {
+            poolId: pool.id,
+            displayName,
+            serverWallet: true,
+            allowanceStatus: "PENDING",
+            status: "PENDING",
+            rawJson: { skipped: "LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED is false" },
+          },
+        });
+      }
+
+      return res.json({ ok: true, pool, vaultDeployment, limitlessAccount });
     } catch (e: any) {
       logger.error({ err: e }, "admin/pools create failed");
       return res.status(500).json({ ok: false, error: e?.message ?? "Pool creation failed" });
@@ -653,6 +844,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const { poolId } = req.params;
     const updateSchema = z.object({
       vaultAddress: z.string().optional(),
+      primarySportsDataTeamId: z.string().uuid().nullable().optional(),
       sportsDataTeamId: z.string().uuid().nullable().optional(),
       status: z.enum(["ACTIVE", "PAUSED"]).optional(),
       officialTokenPrice: z.string().optional(),
@@ -661,9 +853,16 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       depositCap: z.string().optional(),
     });
     const body = updateSchema.parse(req.body);
+    const data: Record<string, unknown> = { ...body };
+    if (body.primarySportsDataTeamId && body.sportsDataTeamId === undefined) {
+      data.sportsDataTeamId = body.primarySportsDataTeamId;
+    }
+    if (body.sportsDataTeamId && body.primarySportsDataTeamId === undefined) {
+      data.primarySportsDataTeamId = body.sportsDataTeamId;
+    }
     const pool = await prisma.club_pools.update({
       where: { id: poolId },
-      data: body
+      data
     });
     res.json({ ok: true, pool });
   });
@@ -960,7 +1159,10 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     if (!clubName) return res.status(400).json({ error: "clubName missing" });
 
     const sportsDataTeamId =
-      body.sportsDataTeamId?.trim() || (pool as any).sportsDataTeamId?.trim?.() || undefined;
+      body.sportsDataTeamId?.trim() ||
+      (pool as any).primarySportsDataTeamId?.trim?.() ||
+      (pool as any).sportsDataTeamId?.trim?.() ||
+      undefined;
     if (!sportsDataTeamId) return res.status(400).json({ error: "sportsDataTeamId missing" });
 
     const result = await discoverLimitlessClubCandidates({
@@ -1717,7 +1919,9 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
       const clubName = String(req.body?.clubName ?? pool.clubName);
       const sportsDataTeamId =
-        req.body?.sportsDataTeamId ? String(req.body.sportsDataTeamId) : (pool as any).sportsDataTeamId;
+        req.body?.sportsDataTeamId
+          ? String(req.body.sportsDataTeamId)
+          : ((pool as any).primarySportsDataTeamId ?? (pool as any).sportsDataTeamId);
       if (!sportsDataTeamId) return res.status(400).json({ error: "sportsDataTeamId missing" });
       const riskPerMatchPct = Number(req.body?.riskPerMatchPct ?? (pool.riskParams as any)?.maxPerMatchPct ?? 3);
       const liquidityMinUsd = Number(req.body?.liquidityMinUsd ?? (pool.riskParams as any)?.liquidityMinUsd ?? 50_000);
@@ -1766,6 +1970,16 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       res.json({ ok: true });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e?.message ?? "position_sync_error" });
+    }
+  });
+
+  app.post("/admin/limitless/portfolio-sync/:poolId", requireAdmin, async (req, res) => {
+    try {
+      const result = await syncLimitlessPortfolioForPool(env, req.params.poolId);
+      res.json({ ok: true, ...result });
+    } catch (e: any) {
+      logger.error({ err: e, poolId: req.params.poolId }, "limitless portfolio sync failed");
+      res.status(502).json({ ok: false, error: e?.message ?? "portfolio_sync_error" });
     }
   });
 

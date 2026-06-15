@@ -33,7 +33,7 @@ async function sportsDataColumns(prisma: PrismaClient) {
     select table_name, column_name
     from information_schema.columns
     where table_schema = 'sports_data'
-      and table_name in ('limitless_team', 'limitless_markets', 'teams')
+      and table_name in ('limitless_team', 'limitless_markets', 'teams', 'games')
   `);
 
   const byTable = new Map<string, Set<string>>();
@@ -116,14 +116,33 @@ export async function getLimitlessMarketsForTeam(
 ): Promise<SportsDataMarket[]> {
   assertUuid(teamId, "teamId");
   const columns = await sportsDataColumns(prisma);
-  requireColumns(columns, "limitless_markets", ["home_id", "away_id"]);
+  const marketColumns = columns.get("limitless_markets") ?? new Set<string>();
+  const gameColumns = columns.get("games") ?? new Set<string>();
 
-  const rows = (await prisma.$queryRaw`
-    select lm.*
-    from sports_data.limitless_markets lm
-    where lm.home_id::text = ${teamId}
-       or lm.away_id::text = ${teamId}
-  `) as Array<Record<string, unknown>>;
+  let rows: Array<Record<string, unknown>>;
+  const canJoinGames =
+    marketColumns.has("game_id") &&
+    gameColumns.has("id") &&
+    gameColumns.has("home_id") &&
+    gameColumns.has("away_id");
+
+  if (canJoinGames) {
+    rows = (await prisma.$queryRaw`
+      select lm.*, g.home_id, g.away_id
+      from sports_data.limitless_markets lm
+      join sports_data.games g on g.id::text = lm.game_id::text
+      where g.home_id::text = ${teamId}
+         or g.away_id::text = ${teamId}
+    `) as Array<Record<string, unknown>>;
+  } else {
+    requireColumns(columns, "limitless_markets", ["home_id", "away_id"]);
+    rows = (await prisma.$queryRaw`
+      select lm.*
+      from sports_data.limitless_markets lm
+      where lm.home_id::text = ${teamId}
+         or lm.away_id::text = ${teamId}
+    `) as Array<Record<string, unknown>>;
+  }
 
   return rows
     .map((row) => {

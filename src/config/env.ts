@@ -30,8 +30,14 @@ const EnvSchema = z.object({
 
   // ─── Limitless Exchange (market data + trading, Base chain) ──────────────
   LIMITLESS_BASE_URL: z.string().optional().default("https://api.limitless.exchange"),
-  // REST auth header — created at limitless.exchange → Profile → API keys
+  // Legacy REST auth header — existing API-key users only.
   LIMITLESS_API_KEY: z.string().optional(),
+  // Scoped HMAC token used for partner accounts and delegated signing.
+  LIMITLESS_API_SECRET: z.string().optional(),
+  LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: z
+    .string()
+    .optional()
+    .default("false"),
   // Fee rate in bps (Bronze=200, Silver=150, Gold=100, Diamond=50)
   LIMITLESS_FEE_RATE_BPS: z.string().optional().default("200"),
   // chainId for EIP-712 signing (8453 = Base mainnet)
@@ -40,6 +46,9 @@ const EnvSchema = z.object({
   LIMITLESS_PRICE_SYNC_BATCH: z.string().optional().default("200"),
   // How many markets to scan per sport-enrichment tick
   LIMITLESS_ENRICH_BATCH: z.string().optional().default("500"),
+
+  // ─── Coinbase CDP webhooks ───────────────────────────────────────────────
+  CDP_WEBHOOK_SECRET: z.string().optional(),
 
   // ─── Scheduling / BullMQ ─────────────────────────────────────────────────
   REDIS_URL: z.string().optional(),
@@ -74,10 +83,14 @@ export function loadEnv(): Env {
 
     LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
     LIMITLESS_API_KEY: process.env.LIMITLESS_API_KEY,
+    LIMITLESS_API_SECRET: process.env.LIMITLESS_API_SECRET,
+    LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: process.env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED,
     LIMITLESS_FEE_RATE_BPS: process.env.LIMITLESS_FEE_RATE_BPS,
     LIMITLESS_CHAIN_ID: process.env.LIMITLESS_CHAIN_ID,
     LIMITLESS_PRICE_SYNC_BATCH: process.env.LIMITLESS_PRICE_SYNC_BATCH,
     LIMITLESS_ENRICH_BATCH: process.env.LIMITLESS_ENRICH_BATCH,
+
+    CDP_WEBHOOK_SECRET: process.env.CDP_WEBHOOK_SECRET,
 
     REDIS_URL: process.env.REDIS_URL,
     QUEUE_CONCURRENCY: process.env.QUEUE_CONCURRENCY,
