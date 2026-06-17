@@ -171,6 +171,63 @@ describe("USDC4626Vault", function () {
     await expectRevert(vault.connect(owner).rescueTokens(await usdc.getAddress(), 1n), "cannot rescue underlying");
   });
 
+  it("validates ERC-1271 signatures from authorized order signers", async function () {
+    const { owner, user, operator, vault } = await fixture();
+    const vaultAddress = await vault.getAddress();
+    const magicValue = "0x1626ba7e";
+    const invalidValue = "0xffffffff";
+
+    const domain = {
+      name: "Limitless CTF Exchange",
+      version: "1",
+      chainId: 8453,
+      verifyingContract: "0x0000000000000000000000000000000000000001",
+    };
+    const types = {
+      Order: [
+        { name: "salt", type: "uint256" },
+        { name: "maker", type: "address" },
+        { name: "signer", type: "address" },
+        { name: "taker", type: "address" },
+        { name: "tokenId", type: "uint256" },
+        { name: "makerAmount", type: "uint256" },
+        { name: "takerAmount", type: "uint256" },
+        { name: "expiration", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "feeRateBps", type: "uint256" },
+        { name: "side", type: "uint8" },
+        { name: "signatureType", type: "uint8" },
+      ],
+    };
+    const value = {
+      salt: 1n,
+      maker: vaultAddress,
+      signer: vaultAddress,
+      taker: ethers.ZeroAddress,
+      tokenId: 123n,
+      makerAmount: 1_000_000n,
+      takerAmount: 2_000_000n,
+      expiration: 0n,
+      nonce: 0n,
+      feeRateBps: 200n,
+      side: 0,
+      signatureType: 3,
+    };
+    const digest = ethers.TypedDataEncoder.hash(domain, types, value);
+
+    await vault.connect(owner).setOrderSigner(operator.address, true);
+    assert.equal(await vault.isOrderSigner(operator.address), true);
+
+    const validSignature = await operator.signTypedData(domain, types, value);
+    assert.equal(await vault.isValidSignature(digest, validSignature), magicValue);
+
+    const invalidSignature = await user.signTypedData(domain, types, value);
+    assert.equal(await vault.isValidSignature(digest, invalidSignature), invalidValue);
+
+    await vault.connect(owner).setOrderSigner(operator.address, false);
+    assert.equal(await vault.isValidSignature(digest, validSignature), invalidValue);
+  });
+
   it("rejects fee config above the hard cap", async function () {
     const { owner, treasury, vault } = await fixture();
     await expectRevert(vault.connect(owner).setFeeConfig(501n, 0n, treasury.address), "entry fee too high");

@@ -14,6 +14,8 @@ exports.isWhitelistedContract = isWhitelistedContract;
 exports.adminAddTrustedStrategy = adminAddTrustedStrategy;
 exports.adminRemoveTrustedStrategy = adminRemoveTrustedStrategy;
 exports.isTrustedStrategy = isTrustedStrategy;
+exports.adminSetOrderSigner = adminSetOrderSigner;
+exports.isOrderSigner = isOrderSigner;
 exports.getAllOperators = getAllOperators;
 exports.getOperatorInfo = getOperatorInfo;
 exports.getWhitelistedContracts = getWhitelistedContracts;
@@ -121,6 +123,16 @@ async function isTrustedStrategy(env, pool, strategy) {
     if (!("isTrustedStrategy" in vault))
         throw new Error("Vault missing isTrustedStrategy");
     return (await vault.isTrustedStrategy(strategy));
+}
+async function adminSetOrderSigner(env, pool, params) {
+    const vault = await getVaultContract(env, undefined, pool);
+    return vault.setOrderSigner(params.signer, params.allowed);
+}
+async function isOrderSigner(env, pool, signer) {
+    const vault = await getVaultContract(env, undefined, pool);
+    if (!("isOrderSigner" in vault))
+        throw new Error("Vault missing isOrderSigner");
+    return (await vault.isOrderSigner(signer));
 }
 async function getAllOperators(env, pool) {
     const vault = await getVaultContract(env, undefined, pool);

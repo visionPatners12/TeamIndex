@@ -85,7 +85,9 @@
       "WebFetch(domain:docs.limitless.exchange)",
       "Bash(gh api *)",
       "Bash(xargs ls -la)",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(grep -oE \"[A-Z0-9_]+$\")",
+      "WebFetch(domain:docs.cdp.coinbase.com)"
     ]
   }
 }

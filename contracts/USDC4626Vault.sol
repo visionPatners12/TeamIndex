@@ -12,6 +12,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title USDC4626Vault
@@ -24,7 +26,8 @@ contract USDC4626Vault is
     ERC4626Upgradeable,
     OwnableUpgradeable,
     PausableUpgradeable,
-    ReentrancyGuardUpgradeable
+    ReentrancyGuardUpgradeable,
+    IERC1271
 {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -36,6 +39,12 @@ contract USDC4626Vault is
 
     /// @notice Hard cap on entry / exit fees (5%) — owner cannot exceed this.
     uint256 public constant MAX_FEE_BPS = 500;
+
+    /// @notice ERC-1271 success value: bytes4(keccak256("isValidSignature(bytes32,bytes)")).
+    bytes4 public constant ERC1271_MAGICVALUE = 0x1626ba7e;
+
+    /// @notice ERC-1271 failure value.
+    bytes4 public constant ERC1271_INVALID = 0xffffffff;
 
     // ─── Storage ──────────────────────────────────────────────────────────────
 
@@ -71,6 +80,9 @@ contract USDC4626Vault is
 
     mapping(address => bool) private trustedStrategies;
     address[] private trustedStrategyList;
+
+    /// @notice EOAs allowed to sign off-chain orders where this vault is the maker.
+    mapping(address => bool) private orderSigners;
 
     // ─── Events ───────────────────────────────────────────────────────────────
 
@@ -108,6 +120,7 @@ contract USDC4626Vault is
     event FeeConfigUpdated(uint256 entryFeeBps, uint256 exitFeeBps, address feeRecipient);
     event DepositCapUpdated(uint256 newCap);
     event ValuatorUpdated(address indexed oldValuator, address indexed newValuator);
+    event OrderSignerUpdated(address indexed signer, bool allowed);
 
     // ─── Construction / Initialization ────────────────────────────────────────
 
@@ -316,6 +329,29 @@ contract USDC4626Vault is
         returns (uint256)
     {
         return super.redeem(shares, receiver, owner_);
+    }
+
+    // ─── ERC-1271 order signing ───────────────────────────────────────────────
+
+    /// @notice Allows or revokes an EOA signer for ERC-1271 order validation.
+    /// @dev Signers can create off-chain orders where `maker` and `signer` are this vault.
+    function setOrderSigner(address signer, bool allowed) external onlyOwner {
+        require(signer != address(0), "Vault: zero signer");
+        orderSigners[signer] = allowed;
+        emit OrderSignerUpdated(signer, allowed);
+    }
+
+    function isOrderSigner(address signer) external view returns (bool) {
+        return orderSigners[signer];
+    }
+
+    /// @inheritdoc IERC1271
+    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4) {
+        (address recovered, ECDSA.RecoverError error, ) = ECDSA.tryRecover(hash, signature);
+        if (error == ECDSA.RecoverError.NoError && orderSigners[recovered]) {
+            return ERC1271_MAGICVALUE;
+        }
+        return ERC1271_INVALID;
     }
 
     // ─── Operator management ──────────────────────────────────────────────────
@@ -527,5 +563,5 @@ contract USDC4626Vault is
     }
 
     /// @dev Reserved storage slots so future upgrades don't shift storage layout.
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 }

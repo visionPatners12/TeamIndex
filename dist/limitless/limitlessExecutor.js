@@ -125,6 +125,10 @@ async function executeLimitlessTranche(params) {
             throw new Error("Pool not found");
         if (!candidate)
             throw new Error("Candidate not found");
+        if (!pool.vaultAddress) {
+            await finishQueue(queue.id, "SKIPPED", "Pool vaultAddress missing");
+            return { skipped: true, reason: "missing_vaultAddress" };
+        }
         if (!candidate.tokenId) {
             await finishQueue(queue.id, "SKIPPED", "Candidate tokenId missing");
             return { skipped: true, reason: "missing_tokenId" };
@@ -191,6 +195,7 @@ async function executeLimitlessTranche(params) {
                 size: trancheStakeUsd,
                 side: "BUY",
                 orderType: "GTC",
+                makerAddress: pool.vaultAddress,
             });
         }
         catch (err) {

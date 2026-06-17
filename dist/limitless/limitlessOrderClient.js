@@ -74,6 +74,8 @@ const SIDE_BUY = 0;
 const SIDE_SELL = 1;
 /** signatureType: EOA = 0 (standard EOA sig). */
 const SIGNATURE_TYPE_EOA = 0;
+/** signatureType: ERC-1271 = 3 (smart contract wallet / vault sig). */
+const SIGNATURE_TYPE_ERC1271 = 3;
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────
 function limitlessBase(env) {
     return env.LIMITLESS_BASE_URL ?? "https://api.limitless.exchange";
@@ -249,7 +251,7 @@ function buildEip712Order(params) {
         nonce: BigInt(params.nonce),
         feeRateBps: BigInt(params.feeRateBps),
         side: params.side,
-        signatureType: SIGNATURE_TYPE_EOA,
+        signatureType: params.signatureType,
     };
     return { domain, types, order, salt };
 }
@@ -283,14 +285,16 @@ function computeAmounts(price, size, side) {
  *
  * Required env vars:
  *   LIMITLESS_API_KEY          — REST auth
- *   LIMITLESS_TRADER_PRIVATE_KEY — EOA private key for EIP-712 signing
- *   LIMITLESS_TRADER_ADDRESS   — must match the private key's address
+ *   LIMITLESS_ORDER_SIGNER_PRIVATE_KEY — EOA authorized by each vault via setOrderSigner
+ *   LIMITLESS_TRADER_PRIVATE_KEY       — legacy fallback for EIP-712 signing
  *   LIMITLESS_FEE_RATE_BPS     — fee rate in basis points (default 200 = 2%)
  */
 async function postLimitlessOrder(env, params) {
     assertLimitlessTradingConfig(env);
     const { Wallet } = await Promise.resolve().then(() => __importStar(require("ethers")));
-    const privateKey = env.LIMITLESS_TRADER_PRIVATE_KEY;
+    const privateKey = getLimitlessOrderSignerPrivateKey(env);
+    if (!privateKey)
+        throw new Error("Limitless order signer private key missing");
     const wallet = new Wallet(privateKey);
     // ── Resolve market venue + tokenId ───────────────────────────────────────
     const market = await (0, limitlessClient_1.getMarketBySlug)(env, params.marketSlug);
@@ -312,8 +316,10 @@ async function postLimitlessOrder(env, params) {
     const feeRateBps = Number(env.LIMITLESS_FEE_RATE_BPS ?? 200);
     const sideInt = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
     const chainId = Number(env.LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
+    const makerAddress = params.makerAddress ?? wallet.address;
+    const signatureType = params.makerAddress ? SIGNATURE_TYPE_ERC1271 : SIGNATURE_TYPE_EOA;
     const { domain, types, order, salt } = buildEip712Order({
-        maker: wallet.address,
+        maker: makerAddress,
         tokenId,
         makerAmount,
         takerAmount,
@@ -321,6 +327,7 @@ async function postLimitlessOrder(env, params) {
         expiration,
         nonce,
         feeRateBps,
+        signatureType,
         verifyingContract,
         chainId,
     });
@@ -332,8 +339,8 @@ async function postLimitlessOrder(env, params) {
         marketSlug: params.marketSlug,
         order: {
             salt: String(salt),
-            maker: wallet.address,
-            signer: wallet.address,
+            maker: makerAddress,
+            signer: makerAddress,
             taker: "0x0000000000000000000000000000000000000000",
             tokenId: String(tokenId),
             makerAmount: String(makerAmount),
@@ -342,7 +349,7 @@ async function postLimitlessOrder(env, params) {
             nonce: String(nonce),
             feeRateBps: String(feeRateBps),
             side: sideInt,
-            signatureType: SIGNATURE_TYPE_EOA,
+            signatureType,
             signature,
         },
     };
@@ -384,12 +391,16 @@ function getOrderRejectMessage(result) {
     return msg ? `Order rejected (${status}): ${msg}` : `Order rejected (${status})`;
 }
 // ─── Config helpers ───────────────────────────────────────────────────────────
+function getLimitlessOrderSignerPrivateKey(env) {
+    return env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || env.LIMITLESS_TRADER_PRIVATE_KEY;
+}
 function assertLimitlessTradingConfig(env) {
     const missing = [];
     if (!env.LIMITLESS_API_KEY)
         missing.push("LIMITLESS_API_KEY");
-    if (!env.LIMITLESS_TRADER_PRIVATE_KEY)
-        missing.push("LIMITLESS_TRADER_PRIVATE_KEY");
+    if (!getLimitlessOrderSignerPrivateKey(env)) {
+        missing.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY");
+    }
     if (missing.length > 0) {
         throw new Error(`Limitless trading not configured. Missing: ${missing.join(", ")}`);
     }
@@ -398,7 +409,8 @@ function isLimitlessTradingReady(env) {
     const reasons = [];
     if (!env.LIMITLESS_API_KEY)
         reasons.push("LIMITLESS_API_KEY not set");
-    if (!env.LIMITLESS_TRADER_PRIVATE_KEY)
-        reasons.push("LIMITLESS_TRADER_PRIVATE_KEY not set");
+    if (!getLimitlessOrderSignerPrivateKey(env)) {
+        reasons.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY not set");
+    }
     return { ready: reasons.length === 0, reasons };
 }

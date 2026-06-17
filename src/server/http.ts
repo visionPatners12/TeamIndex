@@ -18,12 +18,14 @@ import {
   adminRemoveWhitelistedContract,
   adminAddTrustedStrategy,
   adminRemoveTrustedStrategy,
+  adminSetOrderSigner,
   getAllOperators,
   getOperatorInfo,
   getWhitelistedContracts,
   getTrustedStrategies,
   isWhitelistedContract,
   isTrustedStrategy,
+  isOrderSigner,
   getVaultContract
 } from "../onchain/vaultExecutor";
 import { syncVaultEventsToDb } from "../onchain/poolSync";
@@ -1282,6 +1284,30 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     await adminRemoveTrustedStrategy(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined }, body.strategy);
     res.json({ ok: true });
+  });
+
+  const orderSignerSchema = z.object({
+    signer: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+    allowed: z.boolean().default(true)
+  });
+
+  app.post("/admin/:poolId/order-signer", requireAdmin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const body = orderSignerSchema.parse(req.body);
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+    const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined };
+    const tx = await adminSetOrderSigner(env, vaultRef, body);
+    res.json({ ok: true, txHash: tx.hash ?? undefined });
+  });
+
+  app.get("/admin/:poolId/order-signer/:signer", requireAdmin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const signer = z.string().regex(/^0x[a-fA-F0-9]{40}$/).parse(req.params.signer);
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+    const allowed = await isOrderSigner(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined }, signer);
+    res.json({ ok: true, signer, allowed });
   });
 
   app.get("/admin/operators", requireAdmin, async (_req, res) => {

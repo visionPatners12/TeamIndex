@@ -30,6 +30,11 @@ export const USDC4626VAULT = {
     "function getWhitelistedContracts() external view returns (address[])",
     "function getTrustedStrategies() external view returns (address[])",
 
+    // ERC-1271 order signer controls
+    "function setOrderSigner(address signer, bool allowed) external",
+    "function isOrderSigner(address signer) external view returns (bool)",
+    "function isValidSignature(bytes32 hash, bytes signature) external view returns (bytes4)",
+
     "function pause() external",
     "function unpause() external",
     "function paused() external view returns (bool)",
@@ -75,6 +80,7 @@ export const USDC4626VAULT = {
     "event Withdraw(address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)",
     "event VaultFeeCharged(address indexed payer, address indexed treasury, uint256 grossAssets, uint256 feeAssets, uint256 netAssets)",
     "event PoolValuationUpdated(uint256 openPositionsValue, int256 realizedPnl)",
-    "event ValuatorUpdated(address indexed oldValuator, address indexed newValuator)"
+    "event ValuatorUpdated(address indexed oldValuator, address indexed newValuator)",
+    "event OrderSignerUpdated(address indexed signer, bool allowed)"
   ]
 } as const;

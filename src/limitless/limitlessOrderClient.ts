@@ -39,6 +39,8 @@ const SIDE_SELL = 1;
 
 /** signatureType: EOA = 0 (standard EOA sig). */
 const SIGNATURE_TYPE_EOA = 0;
+/** signatureType: ERC-1271 = 3 (smart contract wallet / vault sig). */
+const SIGNATURE_TYPE_ERC1271 = 3;
 
 export interface PostLimitlessOrderParams {
   /** Market slug (e.g. "will-eth-hit-4000-by-june-30"). */
@@ -53,6 +55,8 @@ export interface PostLimitlessOrderParams {
   orderType: LimitlessOrderType;
   /** Expiration unix timestamp (seconds). Default: now + 5 min. */
   expiration?: number;
+  /** Optional smart-contract maker. When set, orders use ERC-1271 signatureType=3. */
+  makerAddress?: string;
 }
 
 export interface LimitlessOrderResult {
@@ -228,6 +232,7 @@ function buildEip712Order(params: {
   expiration: number;
   nonce: number;
   feeRateBps: number;
+  signatureType: number;
   verifyingContract: string;
   chainId?: number;
 }) {
@@ -270,7 +275,7 @@ function buildEip712Order(params: {
     nonce:         BigInt(params.nonce),
     feeRateBps:    BigInt(params.feeRateBps),
     side:          params.side,
-    signatureType: SIGNATURE_TYPE_EOA,
+    signatureType: params.signatureType,
   };
 
   return { domain, types, order, salt };
@@ -311,8 +316,8 @@ function computeAmounts(
  *
  * Required env vars:
  *   LIMITLESS_API_KEY          — REST auth
- *   LIMITLESS_TRADER_PRIVATE_KEY — EOA private key for EIP-712 signing
- *   LIMITLESS_TRADER_ADDRESS   — must match the private key's address
+ *   LIMITLESS_ORDER_SIGNER_PRIVATE_KEY — EOA authorized by each vault via setOrderSigner
+ *   LIMITLESS_TRADER_PRIVATE_KEY       — legacy fallback for EIP-712 signing
  *   LIMITLESS_FEE_RATE_BPS     — fee rate in basis points (default 200 = 2%)
  */
 export async function postLimitlessOrder(
@@ -322,7 +327,8 @@ export async function postLimitlessOrder(
   assertLimitlessTradingConfig(env);
 
   const { Wallet } = await import("ethers");
-  const privateKey = (env as any).LIMITLESS_TRADER_PRIVATE_KEY as string;
+  const privateKey = getLimitlessOrderSignerPrivateKey(env);
+  if (!privateKey) throw new Error("Limitless order signer private key missing");
   const wallet = new Wallet(privateKey);
 
   // ── Resolve market venue + tokenId ───────────────────────────────────────
@@ -347,8 +353,10 @@ export async function postLimitlessOrder(
   const sideInt: 0 | 1 = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
 
   const chainId = Number((env as any).LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
+  const makerAddress = params.makerAddress ?? wallet.address;
+  const signatureType = params.makerAddress ? SIGNATURE_TYPE_ERC1271 : SIGNATURE_TYPE_EOA;
   const { domain, types, order, salt } = buildEip712Order({
-    maker: wallet.address,
+    maker: makerAddress,
     tokenId,
     makerAmount,
     takerAmount,
@@ -356,6 +364,7 @@ export async function postLimitlessOrder(
     expiration,
     nonce,
     feeRateBps,
+    signatureType,
     verifyingContract,
     chainId,
   });
@@ -369,8 +378,8 @@ export async function postLimitlessOrder(
     marketSlug: params.marketSlug,
     order: {
       salt: String(salt),
-      maker: wallet.address,
-      signer: wallet.address,
+      maker: makerAddress,
+      signer: makerAddress,
       taker: "0x0000000000000000000000000000000000000000",
       tokenId: String(tokenId),
       makerAmount: String(makerAmount),
@@ -379,7 +388,7 @@ export async function postLimitlessOrder(
       nonce: String(nonce),
       feeRateBps: String(feeRateBps),
       side: sideInt,
-      signatureType: SIGNATURE_TYPE_EOA,
+      signatureType,
       signature,
     },
   };
@@ -428,10 +437,16 @@ export function getOrderRejectMessage(result: LimitlessOrderResult | null): stri
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
 
+function getLimitlessOrderSignerPrivateKey(env: Env): string | undefined {
+  return (env as any).LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || (env as any).LIMITLESS_TRADER_PRIVATE_KEY;
+}
+
 export function assertLimitlessTradingConfig(env: Env): void {
   const missing: string[] = [];
   if (!(env as any).LIMITLESS_API_KEY) missing.push("LIMITLESS_API_KEY");
-  if (!(env as any).LIMITLESS_TRADER_PRIVATE_KEY) missing.push("LIMITLESS_TRADER_PRIVATE_KEY");
+  if (!getLimitlessOrderSignerPrivateKey(env)) {
+    missing.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY");
+  }
   if (missing.length > 0) {
     throw new Error(`Limitless trading not configured. Missing: ${missing.join(", ")}`);
   }
@@ -440,6 +455,8 @@ export function assertLimitlessTradingConfig(env: Env): void {
 export function isLimitlessTradingReady(env: Env): { ready: boolean; reasons: string[] } {
   const reasons: string[] = [];
   if (!(env as any).LIMITLESS_API_KEY) reasons.push("LIMITLESS_API_KEY not set");
-  if (!(env as any).LIMITLESS_TRADER_PRIVATE_KEY) reasons.push("LIMITLESS_TRADER_PRIVATE_KEY not set");
+  if (!getLimitlessOrderSignerPrivateKey(env)) {
+    reasons.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY not set");
+  }
   return { ready: reasons.length === 0, reasons };
 }

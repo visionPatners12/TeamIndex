@@ -7,7 +7,7 @@ const EnvSchema = z.object({
 
   // ─── Base chain (primary chain — everything runs here) ───────────────────
   BASE_RPC_URL: z.string().optional(),
-  // EOA executor wallet on Base: signs vault admin txs + Limitless EIP-712 orders
+  // EOA executor wallet on Base: signs vault admin txs / NAV updates.
   BASE_EXECUTOR_PRIVATE_KEY: z.string().optional(),
   // USDC contract address on Base (default: Base mainnet USDC)
   BASE_USDC_ADDRESS: z.string().optional().default("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
@@ -42,6 +42,10 @@ const EnvSchema = z.object({
   LIMITLESS_FEE_RATE_BPS: z.string().optional().default("200"),
   // chainId for EIP-712 signing (8453 = Base mainnet)
   LIMITLESS_CHAIN_ID: z.string().optional().default("8453"),
+  // EOA allowed by each vault's ERC-1271 `setOrderSigner`; signs orders, does not hold funds.
+  LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: z.string().optional(),
+  // Legacy EOA trading key. Used as a fallback signer only while migrating existing envs.
+  LIMITLESS_TRADER_PRIVATE_KEY: z.string().optional(),
   // How many markets to refresh per price-sync tick
   LIMITLESS_PRICE_SYNC_BATCH: z.string().optional().default("200"),
   // How many markets to scan per sport-enrichment tick
@@ -87,6 +91,8 @@ export function loadEnv(): Env {
     LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: process.env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED,
     LIMITLESS_FEE_RATE_BPS: process.env.LIMITLESS_FEE_RATE_BPS,
     LIMITLESS_CHAIN_ID: process.env.LIMITLESS_CHAIN_ID,
+    LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: process.env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY,
+    LIMITLESS_TRADER_PRIVATE_KEY: process.env.LIMITLESS_TRADER_PRIVATE_KEY,
     LIMITLESS_PRICE_SYNC_BATCH: process.env.LIMITLESS_PRICE_SYNC_BATCH,
     LIMITLESS_ENRICH_BATCH: process.env.LIMITLESS_ENRICH_BATCH,
 

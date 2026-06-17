@@ -162,6 +162,21 @@ export async function isTrustedStrategy(env: Env, pool: PoolIdentity | undefined
   return (await (vault as any).isTrustedStrategy(strategy)) as boolean;
 }
 
+export async function adminSetOrderSigner(
+  env: Env,
+  pool: PoolIdentity | undefined,
+  params: { signer: string; allowed: boolean }
+) {
+  const vault = await getVaultContract(env, undefined, pool);
+  return (vault as any).setOrderSigner(params.signer, params.allowed);
+}
+
+export async function isOrderSigner(env: Env, pool: PoolIdentity | undefined, signer: string): Promise<boolean> {
+  const vault = await getVaultContract(env, undefined, pool);
+  if (!("isOrderSigner" in vault)) throw new Error("Vault missing isOrderSigner");
+  return (await (vault as any).isOrderSigner(signer)) as boolean;
+}
+
 export async function getAllOperators(env: Env, pool: PoolIdentity | undefined): Promise<string[]> {
   const vault = await getVaultContract(env, undefined, pool);
   return (await (vault as any).getAllOperators()) as string[];
@@ -186,4 +201,3 @@ export async function getTrustedStrategies(env: Env, pool: PoolIdentity | undefi
   const vault = await getVaultContract(env, undefined, pool);
   return (await (vault as any).getTrustedStrategies()) as string[];
 }
-

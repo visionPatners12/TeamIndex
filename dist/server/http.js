@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startHttpServer = startHttpServer;
 const express_1 = __importDefault(require("express"));
+const crypto_1 = require("crypto");
 const zod_1 = require("zod");
 const prisma_1 = require("../db/prisma");
 const scheduler_1 = require("../services/scheduler");
@@ -23,6 +24,8 @@ const limitlessPositionSync_1 = require("../limitless/limitlessPositionSync");
 const limitlessExecutor_1 = require("../limitless/limitlessExecutor");
 const limitlessMarketData_1 = require("../limitless/limitlessMarketData");
 const limitlessOrderClient_1 = require("../limitless/limitlessOrderClient");
+const partnerAccounts_1 = require("../limitless/partnerAccounts");
+const limitlessPortfolio_1 = require("../limitless/limitlessPortfolio");
 const limitlessTeams_1 = require("../sportsData/limitlessTeams");
 function startHttpServer({ env, logger }) {
     const app = (0, express_1.default)();
@@ -34,7 +37,12 @@ function startHttpServer({ env, logger }) {
             return res.sendStatus(204);
         next();
     });
-    app.use(express_1.default.json({ limit: "1mb" }));
+    app.use(express_1.default.json({
+        limit: "1mb",
+        verify: (req, _res, buf) => {
+            req.rawBody = Buffer.from(buf);
+        },
+    }));
     app.use("/docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpec));
     function requireAdmin(req, res, next) {
         if (!env.ADMIN_API_KEY)
@@ -43,6 +51,19 @@ function startHttpServer({ env, logger }) {
         if (!key || key !== env.ADMIN_API_KEY)
             return res.status(403).json({ error: "Forbidden" });
         return next();
+    }
+    function verifyCdpWebhook(req) {
+        if (!env.CDP_WEBHOOK_SECRET)
+            return true;
+        const raw = req.rawBody;
+        const signature = String(req.headers["x-cdp-signature"] ?? req.headers["x-webhook-signature"] ?? "");
+        if (!raw || !signature)
+            return false;
+        const digest = (0, crypto_1.createHmac)("sha256", env.CDP_WEBHOOK_SECRET).update(raw).digest("hex");
+        const normalized = signature.replace(/^sha256=/i, "");
+        const a = Buffer.from(digest, "hex");
+        const b = Buffer.from(normalized, "hex");
+        return a.length === b.length && (0, crypto_1.timingSafeEqual)(a, b);
     }
     const manualReconciliationStatus = "NEEDS_MANUAL_RECONCILIATION";
     function serializeBaseChainDeposit(deposit) {
@@ -149,6 +170,94 @@ function startHttpServer({ env, logger }) {
             .then(() => true)
             .catch(() => false);
         res.json({ ok: true, db: dbOk });
+    });
+    const cdpWebhookEventSchema = zod_1.z.object({
+        network: zod_1.z.string().optional(),
+        chain: zod_1.z.string().optional(),
+        event: zod_1.z.record(zod_1.z.unknown()).optional(),
+        activity: zod_1.z.record(zod_1.z.unknown()).optional(),
+        transactionHash: zod_1.z.string().optional(),
+        txHash: zod_1.z.string().optional(),
+        logIndex: zod_1.z.union([zod_1.z.number(), zod_1.z.string()]).optional(),
+        blockNumber: zod_1.z.union([zod_1.z.number(), zod_1.z.string()]).optional(),
+        blockHash: zod_1.z.string().optional(),
+        contractAddress: zod_1.z.string().optional(),
+        address: zod_1.z.string().optional(),
+        eventName: zod_1.z.string().optional(),
+        eventSignature: zod_1.z.string().optional(),
+        timestamp: zod_1.z.string().optional(),
+    }).passthrough();
+    function nestedRecord(value) {
+        return value && typeof value === "object" && !Array.isArray(value)
+            ? value
+            : {};
+    }
+    function stringFrom(...values) {
+        for (const value of values) {
+            if (typeof value === "string" && value.trim())
+                return value;
+            if (typeof value === "number" && Number.isFinite(value))
+                return String(value);
+        }
+        return "";
+    }
+    function numberFrom(...values) {
+        for (const value of values) {
+            const n = typeof value === "number" ? value : Number(value);
+            if (Number.isFinite(n))
+                return n;
+        }
+        return null;
+    }
+    app.post("/webhooks/cdp/onchain-activity", async (req, res) => {
+        if (!verifyCdpWebhook(req)) {
+            return res.status(401).json({ ok: false, error: "Invalid webhook signature" });
+        }
+        const body = cdpWebhookEventSchema.parse(req.body ?? {});
+        const event = nestedRecord(body.event);
+        const activity = nestedRecord(body.activity);
+        const parameters = nestedRecord(event.parameters ?? activity.parameters ?? body.parameters);
+        const transactionHash = stringFrom(body.transactionHash, body.txHash, event.transactionHash, event.txHash, activity.transactionHash, activity.txHash).toLowerCase();
+        const logIndex = numberFrom(body.logIndex, event.logIndex, activity.logIndex);
+        if (!transactionHash || logIndex === null) {
+            return res.status(400).json({ ok: false, error: "transactionHash and logIndex are required" });
+        }
+        const network = stringFrom(body.network, body.chain, event.network, activity.network, "base").toLowerCase();
+        const contractAddress = stringFrom(body.contractAddress, body.address, event.contractAddress, event.address, activity.contractAddress, activity.address).toLowerCase();
+        const eventName = stringFrom(body.eventName, event.eventName, activity.eventName, "Transfer");
+        const eventSignature = stringFrom(body.eventSignature, event.eventSignature, activity.eventSignature);
+        const blockNumber = numberFrom(body.blockNumber, event.blockNumber, activity.blockNumber);
+        const blockHash = stringFrom(body.blockHash, event.blockHash, activity.blockHash) || null;
+        const timestampRaw = stringFrom(body.timestamp, event.timestamp, activity.timestamp);
+        const timestamp = timestampRaw ? new Date(timestampRaw) : null;
+        const row = await prisma_1.prisma.onchain_events.upsert({
+            where: {
+                onchain_events_network_transactionHash_logIndex_key: {
+                    network,
+                    transactionHash,
+                    logIndex,
+                },
+            },
+            update: {
+                rawJson: body,
+                parametersJson: parameters,
+            },
+            create: {
+                network,
+                transactionHash,
+                logIndex,
+                blockNumber: blockNumber === null ? undefined : BigInt(Math.trunc(blockNumber)),
+                blockHash,
+                contractAddress,
+                eventName,
+                eventSignature,
+                timestamp: timestamp && Number.isFinite(timestamp.getTime()) ? timestamp : undefined,
+                parametersJson: parameters,
+                rawJson: body,
+                processingStatus: "PENDING",
+            },
+        });
+        return res.json({ ok: true, eventId: row.id });
     });
     // ────────────────────────────────────────────────────────────────────────
     // Public platform settings (Chiliz network on/off is read from here).
@@ -493,11 +602,13 @@ function startHttpServer({ env, logger }) {
     const poolCreateSchema = zod_1.z.object({
         clubName: zod_1.z.string().min(1),
         symbol: zod_1.z.string().min(1),
-        sportsDataTeamId: zod_1.z.string().uuid(),
+        primarySportsDataTeamId: zod_1.z.string().uuid().optional(),
+        sportsDataTeamId: zod_1.z.string().uuid().optional(),
         totalTokenSupply: zod_1.z.number().optional().default(0),
         depositCap: zod_1.z.coerce.bigint().optional().default(0n),
         vaultAddress: zod_1.z.string().optional(),
         deployOnchain: zod_1.z.boolean().optional().default(false),
+        createLimitlessAccount: zod_1.z.boolean().optional(),
         riskParams: zod_1.z
             .object({
             maxPerMatchPct: zod_1.z.number().optional(),
@@ -546,6 +657,10 @@ function startHttpServer({ env, logger }) {
     app.post("/admin/pools", requireAdmin, async (req, res) => {
         try {
             const body = poolCreateSchema.parse(req.body);
+            const primarySportsDataTeamId = body.primarySportsDataTeamId ?? body.sportsDataTeamId;
+            if (!primarySportsDataTeamId) {
+                return res.status(400).json({ ok: false, error: "primarySportsDataTeamId is required" });
+            }
             const riskParams = body.riskParams ?? { maxPerMatchPct: 3, maxTotalExposurePct: 20, liquidityMinUsd: 50_000 };
             let vaultDeployment = null;
             if (body.deployOnchain) {
@@ -577,7 +692,8 @@ function startHttpServer({ env, logger }) {
                 data: {
                     clubName: body.clubName,
                     symbol: body.symbol,
-                    sportsDataTeamId: body.sportsDataTeamId,
+                    primarySportsDataTeamId,
+                    sportsDataTeamId: primarySportsDataTeamId,
                     vaultAddress: resolvedVaultAddress,
                     depositCap: body.depositCap.toString(),
                     cash: "0",
@@ -590,7 +706,45 @@ function startHttpServer({ env, logger }) {
                     status: "ACTIVE"
                 }
             });
-            return res.json({ ok: true, pool, vaultDeployment });
+            await prisma_1.prisma.pool_teams.create({
+                data: {
+                    poolId: pool.id,
+                    sportsDataTeamId: primarySportsDataTeamId,
+                    role: "PRIMARY",
+                    weight: "1",
+                },
+            });
+            const displayName = `pool-${body.symbol.trim().toLowerCase()}-${String(pool.id).slice(-6)}`;
+            let limitlessAccount = null;
+            const shouldCreateLimitless = body.createLimitlessAccount ?? (0, partnerAccounts_1.partnerAccountCreationEnabled)(env);
+            if (shouldCreateLimitless) {
+                const created = await (0, partnerAccounts_1.createPartnerServerAccount)(env, displayName);
+                limitlessAccount = await prisma_1.prisma.pool_limitless_accounts.create({
+                    data: {
+                        poolId: pool.id,
+                        limitlessProfileId: created.limitlessProfileId,
+                        accountAddress: created.accountAddress,
+                        displayName: created.displayName,
+                        serverWallet: true,
+                        allowanceStatus: "PENDING",
+                        status: created.accountAddress ? "ACTIVE" : "PENDING",
+                        rawJson: created.rawJson,
+                    },
+                });
+            }
+            else {
+                limitlessAccount = await prisma_1.prisma.pool_limitless_accounts.create({
+                    data: {
+                        poolId: pool.id,
+                        displayName,
+                        serverWallet: true,
+                        allowanceStatus: "PENDING",
+                        status: "PENDING",
+                        rawJson: { skipped: "LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED is false" },
+                    },
+                });
+            }
+            return res.json({ ok: true, pool, vaultDeployment, limitlessAccount });
         }
         catch (e) {
             logger.error({ err: e }, "admin/pools create failed");
@@ -601,6 +755,7 @@ function startHttpServer({ env, logger }) {
         const { poolId } = req.params;
         const updateSchema = zod_1.z.object({
             vaultAddress: zod_1.z.string().optional(),
+            primarySportsDataTeamId: zod_1.z.string().uuid().nullable().optional(),
             sportsDataTeamId: zod_1.z.string().uuid().nullable().optional(),
             status: zod_1.z.enum(["ACTIVE", "PAUSED"]).optional(),
             officialTokenPrice: zod_1.z.string().optional(),
@@ -609,9 +764,16 @@ function startHttpServer({ env, logger }) {
             depositCap: zod_1.z.string().optional(),
         });
         const body = updateSchema.parse(req.body);
+        const data = { ...body };
+        if (body.primarySportsDataTeamId && body.sportsDataTeamId === undefined) {
+            data.sportsDataTeamId = body.primarySportsDataTeamId;
+        }
+        if (body.sportsDataTeamId && body.primarySportsDataTeamId === undefined) {
+            data.primarySportsDataTeamId = body.sportsDataTeamId;
+        }
         const pool = await prisma_1.prisma.club_pools.update({
             where: { id: poolId },
-            data: body
+            data
         });
         res.json({ ok: true, pool });
     });
@@ -881,7 +1043,10 @@ function startHttpServer({ env, logger }) {
         const clubName = (body.clubName?.trim() || pool.clubName).trim();
         if (!clubName)
             return res.status(400).json({ error: "clubName missing" });
-        const sportsDataTeamId = body.sportsDataTeamId?.trim() || pool.sportsDataTeamId?.trim?.() || undefined;
+        const sportsDataTeamId = body.sportsDataTeamId?.trim() ||
+            pool.primarySportsDataTeamId?.trim?.() ||
+            pool.sportsDataTeamId?.trim?.() ||
+            undefined;
         if (!sportsDataTeamId)
             return res.status(400).json({ error: "sportsDataTeamId missing" });
         const result = await (0, limitlessDiscoveryService_1.discoverLimitlessClubCandidates)({
@@ -996,6 +1161,29 @@ function startHttpServer({ env, logger }) {
             return res.status(404).json({ error: "Pool not found" });
         await (0, vaultExecutor_1.adminRemoveTrustedStrategy)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined }, body.strategy);
         res.json({ ok: true });
+    });
+    const orderSignerSchema = zod_1.z.object({
+        signer: zod_1.z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+        allowed: zod_1.z.boolean().default(true)
+    });
+    app.post("/admin/:poolId/order-signer", requireAdmin, async (req, res) => {
+        const poolId = req.params.poolId;
+        const body = orderSignerSchema.parse(req.body);
+        const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } });
+        if (!pool)
+            return res.status(404).json({ error: "Pool not found" });
+        const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined };
+        const tx = await (0, vaultExecutor_1.adminSetOrderSigner)(env, vaultRef, body);
+        res.json({ ok: true, txHash: tx.hash ?? undefined });
+    });
+    app.get("/admin/:poolId/order-signer/:signer", requireAdmin, async (req, res) => {
+        const poolId = req.params.poolId;
+        const signer = zod_1.z.string().regex(/^0x[a-fA-F0-9]{40}$/).parse(req.params.signer);
+        const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } });
+        if (!pool)
+            return res.status(404).json({ error: "Pool not found" });
+        const allowed = await (0, vaultExecutor_1.isOrderSigner)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined }, signer);
+        res.json({ ok: true, signer, allowed });
     });
     app.get("/admin/operators", requireAdmin, async (_req, res) => {
         const operators = await (0, vaultExecutor_1.getAllOperators)(env, undefined);
@@ -1203,7 +1391,7 @@ function startHttpServer({ env, logger }) {
             return res.status(409).json({
                 ok: false,
                 code: "VAULT_ASSET_MISMATCH",
-                error: "This pool vault was deployed with a different Polygon USDC contract. Polygon native USDC deposits are disabled for this pool; use Base or create a new pool with the native USDC factory.",
+                error: "This pool vault was deployed with a different USDC contract than the configured Base USDC. Deposits are disabled for this pool; create a new pool with the Base native USDC factory.",
                 vaultAddress,
                 assetAddress,
                 expectedAssetAddress: env.BASE_USDC_ADDRESS
@@ -1588,7 +1776,9 @@ function startHttpServer({ env, logger }) {
             if (!pool)
                 return res.status(404).json({ error: "Pool not found" });
             const clubName = String(req.body?.clubName ?? pool.clubName);
-            const sportsDataTeamId = req.body?.sportsDataTeamId ? String(req.body.sportsDataTeamId) : pool.sportsDataTeamId;
+            const sportsDataTeamId = req.body?.sportsDataTeamId
+                ? String(req.body.sportsDataTeamId)
+                : (pool.primarySportsDataTeamId ?? pool.sportsDataTeamId);
             if (!sportsDataTeamId)
                 return res.status(400).json({ error: "sportsDataTeamId missing" });
             const riskPerMatchPct = Number(req.body?.riskPerMatchPct ?? pool.riskParams?.maxPerMatchPct ?? 3);
@@ -1635,6 +1825,16 @@ function startHttpServer({ env, logger }) {
         }
         catch (e) {
             res.status(500).json({ ok: false, error: e?.message ?? "position_sync_error" });
+        }
+    });
+    app.post("/admin/limitless/portfolio-sync/:poolId", requireAdmin, async (req, res) => {
+        try {
+            const result = await (0, limitlessPortfolio_1.syncLimitlessPortfolioForPool)(env, req.params.poolId);
+            res.json({ ok: true, ...result });
+        }
+        catch (e) {
+            logger.error({ err: e, poolId: req.params.poolId }, "limitless portfolio sync failed");
+            res.status(502).json({ ok: false, error: e?.message ?? "portfolio_sync_error" });
         }
     });
     /**
