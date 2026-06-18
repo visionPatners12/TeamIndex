@@ -1,16 +1,16 @@
-# Graph Report - TeamIndex  (2026-06-17)
+# Graph Report - TeamIndex  (2026-06-18)
 
 ## Corpus Check
-- 64 files · ~39,309 words
+- 64 files · ~39,416 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 398 nodes · 760 edges · 31 communities (24 shown, 7 thin omitted)
+- 401 nodes · 765 edges · 31 communities (24 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `db7c219f`
+- Built from commit: `dca16e92`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -52,14 +52,14 @@
 ## Surprising Connections (you probably didn't know these)
 - `recalculateOfficialPrices()` --calls--> `getMidpoint()`  [INFERRED]
   src/services/priceEngine.ts → src/limitless/limitlessOrderClient.ts
-- `executeLimitlessTranche()` --calls--> `decodeLimitlessTokenId()`  [EXTRACTED]
-  src/limitless/limitlessExecutor.ts → src/limitless/limitlessDiscoveryService.ts
-- `syncLimitlessFillsAndSettle()` --calls--> `getMidpoint()`  [EXTRACTED]
-  src/limitless/limitlessPositionSync.ts → src/limitless/limitlessOrderClient.ts
+- `startPriceTicker()` --calls--> `syncLimitlessFillsAndSettle()`  [EXTRACTED]
+  src/workers/priceTicker.ts → src/limitless/limitlessPositionSync.ts
 - `syncVaultEventsToDb()` --calls--> `getVaultContract()`  [EXTRACTED]
   src/onchain/poolSync.ts → src/onchain/vaultExecutor.ts
 - `main()` --calls--> `loadEnv()`  [EXTRACTED]
   src/index.ts → src/config/env.ts
+- `main()` --calls--> `createLogger()`  [EXTRACTED]
+  src/index.ts → src/config/log.ts
 
 ## Import Cycles
 - None detected.
@@ -67,20 +67,20 @@
 ## Communities (31 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.10
-Nodes (40): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue(), getLiquidityMinUsd() (+32 more)
+Cohesion: 0.09
+Nodes (45): getMarketBySlug(), getOrderBook(), decodeLimitlessTokenId(), claimQueue(), decToNumber(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+37 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.20
-Nodes (10): discoverLimitlessClubCandidates(), assertUuid(), ColumnRow, getLimitlessMarketsForTeam(), listLimitlessTeams(), requireColumns(), sportsDataColumns(), SportsDataMarket (+2 more)
+Cohesion: 0.18
+Nodes (11): discoverLimitlessClubCandidates(), DiscoverLimitlessInputs, assertUuid(), ColumnRow, getLimitlessMarketsForTeam(), listLimitlessTeams(), requireColumns(), sportsDataColumns() (+3 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
 Nodes (41): alignedLogitReturnCorr(), blendedCorr(), buildCovariance(), chosenSideSeries(), clamp(), computeEdge(), computeTsFeatures(), Edge (+33 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.11
-Nodes (30): Env, EnvSchema, loadEnv(), createLogger(), initDb(), decodeLimitlessTokenId(), DiscoverLimitlessInputs, getLimitlessOrder() (+22 more)
+Cohesion: 0.12
+Nodes (27): Env, EnvSchema, loadEnv(), createLogger(), baselineMigrations, commandErrorOutput(), initDb(), runPrismaCommand() (+19 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.06
@@ -100,7 +100,7 @@ Nodes (27): globalForPrisma, compactRpcError(), errorText(), getLogsBlockChunkSi
 
 ### Community 8 - "Community 8"
 Cohesion: 0.13
-Nodes (15): devDependencies, chai, hardhat, @nomicfoundation/hardhat-ethers, @openzeppelin/contracts, @openzeppelin/contracts-upgradeable, prisma, ts-node (+7 more)
+Nodes (15): scripts, build, contracts:check-balance, contracts:compile, contracts:deploy:base, contracts:deploy:chiliz, contracts:deploy:polygon, contracts:diagnose:polygon (+7 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
@@ -123,24 +123,24 @@ Cohesion: 0.50
 Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 
 ## Knowledge Gaps
-- **120 isolated node(s):** `allow`, `PreToolUse`, `config`, `name`, `version` (+115 more)
+- **121 isolated node(s):** `allow`, `PreToolUse`, `config`, `name`, `version` (+116 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`?**
+- **Why does `Env` connect `Community 3` to `Community 0`, `Community 1`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`?**
   _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `executeLimitlessTranche()` connect `Community 0` to `Community 3`, `Community 5`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
-  _120 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _121 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.10042283298097252 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08979591836734693 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09191919191919191 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.11033681765389082 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12162162162162163 - nodes in this community are weakly interconnected._
