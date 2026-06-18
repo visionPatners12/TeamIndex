@@ -126,7 +126,7 @@
       "source_file": "package.json",
       "source_location": "L6",
       "id": "package_scripts",
-      "community": 8,
+      "community": 4,
       "norm_label": "scripts"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "package.json",
       "source_location": "L7",
       "id": "package_scripts_dev",
-      "community": 8,
+      "community": 4,
       "norm_label": "dev"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "package.json",
       "source_location": "L8",
       "id": "package_scripts_build",
-      "community": 8,
+      "community": 4,
       "norm_label": "build"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "package.json",
       "source_location": "L9",
       "id": "package_scripts_start",
-      "community": 8,
+      "community": 4,
       "norm_label": "start"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "package.json",
       "source_location": "L10",
       "id": "package_scripts_contracts_compile",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:compile"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "package.json",
       "source_location": "L11",
       "id": "package_scripts_contracts_test",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:test"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "package.json",
       "source_location": "L12",
       "id": "package_scripts_contracts_check_balance",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:check-balance"
     },
     {
@@ -189,7 +189,7 @@
       "source_file": "package.json",
       "source_location": "L13",
       "id": "package_scripts_contracts_diagnose_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:diagnose:polygon"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "package.json",
       "source_location": "L14",
       "id": "package_scripts_contracts_deploy_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:polygon"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "package.json",
       "source_location": "L15",
       "id": "package_scripts_contracts_transfer_ownership_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:transfer-ownership:polygon"
     },
     {
@@ -216,7 +216,7 @@
       "source_file": "package.json",
       "source_location": "L16",
       "id": "package_scripts_contracts_deploy_base",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:base"
     },
     {
@@ -225,7 +225,7 @@
       "source_file": "package.json",
       "source_location": "L17",
       "id": "package_scripts_contracts_deploy_chiliz",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:chiliz"
     },
     {
@@ -234,7 +234,7 @@
       "source_file": "package.json",
       "source_location": "L18",
       "id": "package_scripts_prisma_migrate",
-      "community": 8,
+      "community": 4,
       "norm_label": "prisma:migrate"
     },
     {
@@ -243,7 +243,7 @@
       "source_file": "package.json",
       "source_location": "L19",
       "id": "package_scripts_prisma_generate",
-      "community": 8,
+      "community": 4,
       "norm_label": "prisma:generate"
     },
     {
@@ -252,7 +252,7 @@
       "source_file": "package.json",
       "source_location": "L20",
       "id": "package_scripts_db_seed",
-      "community": 8,
+      "community": 4,
       "norm_label": "db:seed"
     },
     {
@@ -405,7 +405,7 @@
       "source_file": "package.json",
       "source_location": "L40",
       "id": "package_devdependencies",
-      "community": 4,
+      "community": 8,
       "norm_label": "devdependencies"
     },
     {
@@ -414,7 +414,7 @@
       "source_file": "package.json",
       "source_location": "L41",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
-      "community": 4,
+      "community": 8,
       "norm_label": "@nomicfoundation/hardhat-ethers"
     },
     {
@@ -423,7 +423,7 @@
       "source_file": "package.json",
       "source_location": "L42",
       "id": "package_devdependencies_openzeppelin_contracts",
-      "community": 4,
+      "community": 8,
       "norm_label": "@openzeppelin/contracts"
     },
     {
@@ -432,7 +432,7 @@
       "source_file": "package.json",
       "source_location": "L43",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
-      "community": 4,
+      "community": 8,
       "norm_label": "@openzeppelin/contracts-upgradeable"
     },
     {
@@ -441,7 +441,7 @@
       "source_file": "package.json",
       "source_location": "L44",
       "id": "package_devdependencies_types_chai",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/chai"
     },
     {
@@ -450,7 +450,7 @@
       "source_file": "package.json",
       "source_location": "L45",
       "id": "package_devdependencies_types_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/express"
     },
     {
@@ -459,7 +459,7 @@
       "source_file": "package.json",
       "source_location": "L46",
       "id": "package_devdependencies_types_mocha",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/mocha"
     },
     {
@@ -468,7 +468,7 @@
       "source_file": "package.json",
       "source_location": "L47",
       "id": "package_devdependencies_types_node",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/node"
     },
     {
@@ -477,7 +477,7 @@
       "source_file": "package.json",
       "source_location": "L48",
       "id": "package_devdependencies_types_swagger_ui_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/swagger-ui-express"
     },
     {
@@ -486,7 +486,7 @@
       "source_file": "package.json",
       "source_location": "L49",
       "id": "package_devdependencies_chai",
-      "community": 4,
+      "community": 8,
       "norm_label": "chai"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "package.json",
       "source_location": "L50",
       "id": "package_devdependencies_hardhat",
-      "community": 4,
+      "community": 8,
       "norm_label": "hardhat"
     },
     {
@@ -504,7 +504,7 @@
       "source_file": "package.json",
       "source_location": "L51",
       "id": "package_devdependencies_prisma",
-      "community": 4,
+      "community": 8,
       "norm_label": "prisma"
     },
     {
@@ -513,7 +513,7 @@
       "source_file": "package.json",
       "source_location": "L52",
       "id": "package_devdependencies_ts_node",
-      "community": 4,
+      "community": 8,
       "norm_label": "ts-node"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "package.json",
       "source_location": "L53",
       "id": "package_devdependencies_tsc_watch",
-      "community": 4,
+      "community": 8,
       "norm_label": "tsc-watch"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "package.json",
       "source_location": "L54",
       "id": "package_devdependencies_typescript",
-      "community": 4,
+      "community": 8,
       "norm_label": "typescript"
     },
     {
@@ -840,19 +840,10 @@
       "norm_label": "initdb.ts"
     },
     {
-      "label": "baselineMigrations",
-      "file_type": "code",
-      "source_file": "src/db/initDb.ts",
-      "source_location": "L4",
-      "id": "db_initdb_baselinemigrations",
-      "community": 3,
-      "norm_label": "baselinemigrations"
-    },
-    {
       "label": "runPrismaCommand()",
       "file_type": "code",
       "source_file": "src/db/initDb.ts",
-      "source_location": "L15",
+      "source_location": "L4",
       "id": "db_initdb_runprismacommand",
       "community": 3,
       "norm_label": "runprismacommand()"
@@ -861,7 +852,7 @@
       "label": "commandErrorOutput()",
       "file_type": "code",
       "source_file": "src/db/initDb.ts",
-      "source_location": "L21",
+      "source_location": "L10",
       "id": "db_initdb_commanderroroutput",
       "community": 3,
       "norm_label": "commanderroroutput()"
@@ -870,10 +861,19 @@
       "label": "initDb()",
       "file_type": "code",
       "source_file": "src/db/initDb.ts",
-      "source_location": "L30",
+      "source_location": "L19",
       "id": "db_initdb_initdb",
       "community": 3,
       "norm_label": "initdb()"
+    },
+    {
+      "label": "assertRequiredTablesExist()",
+      "file_type": "code",
+      "source_file": "src/db/initDb.ts",
+      "source_location": "L44",
+      "id": "db_initdb_assertrequiredtablesexist",
+      "community": 3,
+      "norm_label": "assertrequiredtablesexist()"
     },
     {
       "label": "prisma.ts",
@@ -1997,7 +1997,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 7,
+      "community": 5,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2006,7 +2006,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L7",
       "id": "onchain_poolsync_syncinputs",
-      "community": 7,
+      "community": 5,
       "norm_label": "syncinputs"
     },
     {
@@ -2015,7 +2015,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L27",
       "id": "onchain_poolsync_dectostr",
-      "community": 7,
+      "community": 5,
       "norm_label": "dectostr()"
     },
     {
@@ -2024,7 +2024,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L36",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 7,
+      "community": 5,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -2780,7 +2780,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L1",
       "id": "services_priceengine",
-      "community": 5,
+      "community": 7,
       "norm_label": "priceengine.ts"
     },
     {
@@ -2789,7 +2789,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L6",
       "id": "services_priceengine_dectonumber",
-      "community": 5,
+      "community": 7,
       "norm_label": "dectonumber()"
     },
     {
@@ -2798,7 +2798,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L14",
       "id": "services_priceengine_dbstr",
-      "community": 5,
+      "community": 7,
       "norm_label": "dbstr()"
     },
     {
@@ -2807,7 +2807,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L23",
       "id": "services_priceengine_vaultcashdbtohuman",
-      "community": 5,
+      "community": 7,
       "norm_label": "vaultcashdbtohuman()"
     },
     {
@@ -2816,7 +2816,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L33",
       "id": "services_priceengine_humanusdtousdcbaseunits",
-      "community": 5,
+      "community": 7,
       "norm_label": "humanusdtousdcbaseunits()"
     },
     {
@@ -2825,7 +2825,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L41",
       "id": "services_priceengine_recalculateofficialprices",
-      "community": 5,
+      "community": 7,
       "norm_label": "recalculateofficialprices()"
     },
     {
@@ -3457,6 +3457,15 @@
       "id": "readme_notes",
       "community": 27,
       "norm_label": "notes"
+    },
+    {
+      "label": "baselineMigrations",
+      "file_type": "code",
+      "source_file": "src/db/initDb.ts",
+      "source_location": "L4",
+      "community": 3,
+      "norm_label": "baselinemigrations",
+      "id": "db_initdb_baselinemigrations"
     },
     {
       "label": "index.ts",
@@ -4950,11 +4959,21 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/db/initDb.ts",
-      "source_location": "L4",
+      "source_location": "L44",
       "weight": 1.0,
       "source": "db_initdb",
-      "target": "db_initdb_baselinemigrations",
+      "target": "db_initdb_assertrequiredtablesexist",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/db/initDb.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "db_initdb",
+      "target": "db_initdb_baselinemigrations"
     },
     {
       "relation": "contains",
@@ -4962,9 +4981,9 @@
       "source_file": "src/db/initDb.ts",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_initdb",
-      "target": "db_initdb_commanderroroutput",
-      "confidence_score": 1.0
+      "target": "db_initdb_commanderroroutput"
     },
     {
       "relation": "contains",
@@ -4982,9 +5001,9 @@
       "source_file": "src/db/initDb.ts",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_initdb",
-      "target": "db_initdb_runprismacommand",
-      "confidence_score": 1.0
+      "target": "db_initdb_runprismacommand"
     },
     {
       "relation": "imports_from",
@@ -5026,9 +5045,9 @@
       "source_file": "src/db/initDb.ts",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_initdb_initdb",
-      "target": "db_initdb_runprismacommand",
-      "confidence_score": 1.0
+      "target": "db_initdb_runprismacommand"
     },
     {
       "relation": "calls",
@@ -5037,8 +5056,19 @@
       "source_file": "src/db/initDb.ts",
       "source_location": "L34",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_initdb_initdb",
-      "target": "db_initdb_commanderroroutput",
+      "target": "db_initdb_commanderroroutput"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/db/initDb.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "db_initdb_initdb",
+      "target": "db_initdb_assertrequiredtablesexist",
       "confidence_score": 1.0
     },
     {
@@ -11692,5 +11722,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "dca16e9284e01144b1cf255781f920387edaed8a"
+  "built_at_commit": "5f490121383b50c487eed87e5e1c57259d53b28b"
 }

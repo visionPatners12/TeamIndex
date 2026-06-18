@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-18)
 
 ## Corpus Check
-- 64 files · ~39,416 words
+- 64 files · ~39,504 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 401 nodes · 765 edges · 31 communities (24 shown, 7 thin omitted)
+- 402 nodes · 767 edges · 31 communities (24 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dca16e92`
+- Built from commit: `5f490121`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -54,12 +54,12 @@
   src/services/priceEngine.ts → src/limitless/limitlessOrderClient.ts
 - `startPriceTicker()` --calls--> `syncLimitlessFillsAndSettle()`  [EXTRACTED]
   src/workers/priceTicker.ts → src/limitless/limitlessPositionSync.ts
-- `syncVaultEventsToDb()` --calls--> `getVaultContract()`  [EXTRACTED]
-  src/onchain/poolSync.ts → src/onchain/vaultExecutor.ts
+- `syncVaultEventsToDb()` --calls--> `queryFilterInBlockChunks()`  [EXTRACTED]
+  src/onchain/poolSync.ts → src/onchain/ethersLogChunks.ts
+- `recalculateOfficialPrices()` --calls--> `getVaultContract()`  [EXTRACTED]
+  src/services/priceEngine.ts → src/onchain/vaultExecutor.ts
 - `main()` --calls--> `loadEnv()`  [EXTRACTED]
   src/index.ts → src/config/env.ts
-- `main()` --calls--> `createLogger()`  [EXTRACTED]
-  src/index.ts → src/config/log.ts
 
 ## Import Cycles
 - None detected.
@@ -80,7 +80,7 @@ Nodes (41): alignedLogitReturnCorr(), blendedCorr(), buildCovariance(), chosenSi
 
 ### Community 3 - "Community 3"
 Cohesion: 0.12
-Nodes (27): Env, EnvSchema, loadEnv(), createLogger(), baselineMigrations, commandErrorOutput(), initDb(), runPrismaCommand() (+19 more)
+Nodes (28): Env, EnvSchema, loadEnv(), createLogger(), assertRequiredTablesExist(), baselineMigrations, commandErrorOutput(), initDb() (+20 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.06
@@ -88,19 +88,19 @@ Nodes (35): dependencies, bullmq, dotenv, ethers, express, ioredis, pino, @polym
 
 ### Community 5 - "Community 5"
 Cohesion: 0.12
-Nodes (33): ERC20, USDC4626VAULT, adminAddAuthorizedOperator(), adminAddTrustedStrategy(), adminAddWhitelistedContract(), adminPause(), adminRemoveAuthorizedOperator(), adminRemoveTrustedStrategy() (+25 more)
+Nodes (31): ERC20, USDC4626VAULT, decToStr(), SyncInputs, syncVaultEventsToDb(), adminAddAuthorizedOperator(), adminAddTrustedStrategy(), adminAddWhitelistedContract() (+23 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.14
 Nodes (22): authHeaders(), detectSportHints(), extractPrices(), getHistoricalPrices(), getJson(), limitlessBase(), LimitlessCategory, LimitlessMarket (+14 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.12
-Nodes (27): globalForPrisma, compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions() (+19 more)
+Cohesion: 0.11
+Nodes (29): globalForPrisma, compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions() (+21 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.13
-Nodes (15): scripts, build, contracts:check-balance, contracts:compile, contracts:deploy:base, contracts:deploy:chiliz, contracts:deploy:polygon, contracts:diagnose:polygon (+7 more)
+Nodes (15): devDependencies, chai, hardhat, @nomicfoundation/hardhat-ethers, @openzeppelin/contracts, @openzeppelin/contracts-upgradeable, prisma, ts-node (+7 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
@@ -131,7 +131,7 @@ Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Env` connect `Community 3` to `Community 0`, `Community 1`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
   _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **Why does `executeLimitlessTranche()` connect `Community 0` to `Community 3`, `Community 5`?**
@@ -143,4 +143,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09191919191919191 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.12162162162162163 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11806543385490754 - nodes in this community are weakly interconnected._

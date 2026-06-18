@@ -135,8 +135,8 @@
     "semantic_hash": ""
   },
   "src/db/initDb.ts": {
-    "mtime": 1781793473.9916513,
-    "ast_hash": "4c9d29103f49397b275aaa8df8a75b75",
+    "mtime": 1781795815.1787047,
+    "ast_hash": "74b873dccc45b72b3a2c04f271144cce",
     "semantic_hash": ""
   },
   "src/db/prisma.ts": {
