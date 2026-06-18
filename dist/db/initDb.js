@@ -43,16 +43,17 @@ async function initDb() {
 async function assertRequiredTablesExist() {
     const requiredTables = ["club_pools", "club_pool_positions"];
     const rows = await prisma_1.prisma.$queryRaw `
-    SELECT table_name
+    SELECT table_schema, table_name
     FROM information_schema.tables
-    WHERE table_schema = 'public'
+    WHERE table_schema = current_schema()
       AND table_name IN ('club_pools', 'club_pool_positions')
   `;
     const existing = new Set(rows.map((row) => row.table_name));
     const missing = requiredTables.filter((table) => !existing.has(table));
+    const schemaName = rows[0]?.table_schema ?? "configured Prisma schema";
     if (missing.length > 0) {
         throw new Error([
-            `Database migration history is present, but required app tables are missing: ${missing.join(", ")}`,
+            `Database migration history is present, but required app tables are missing from ${schemaName}: ${missing.join(", ")}`,
             "Run a one-off schema recovery command against this database: npx prisma db push --skip-generate",
         ].join("\n"));
     }
