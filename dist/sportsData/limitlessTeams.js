@@ -37,6 +37,24 @@ function requireColumns(columns, table, required) {
         throw new Error(`Missing required sports_data.${table} column(s): ${missing.join(", ")}`);
     }
 }
+function teamNameSelect(teamColumns) {
+    if (teamColumns.has("name"))
+        return client_1.Prisma.sql `name::text`;
+    if (teamColumns.has("display_name"))
+        return client_1.Prisma.sql `display_name::text`;
+    if (teamColumns.has("short_name"))
+        return client_1.Prisma.sql `short_name::text`;
+    throw new Error("Missing required sports_data.teams column(s): one of name, display_name, short_name");
+}
+function teamLogoSelect(teamColumns) {
+    if (teamColumns.has("logo_url"))
+        return client_1.Prisma.sql `logo_url::text as "logoUrl"`;
+    if (teamColumns.has("image_url"))
+        return client_1.Prisma.sql `image_url::text as "logoUrl"`;
+    if (teamColumns.has("crest_url"))
+        return client_1.Prisma.sql `crest_url::text as "logoUrl"`;
+    return client_1.Prisma.sql `null::text as "logoUrl"`;
+}
 function assertUuid(value, label) {
     if (!UUID_RE.test(value)) {
         throw new Error(`${label} must be a UUID`);
@@ -44,16 +62,15 @@ function assertUuid(value, label) {
 }
 async function listLimitlessTeams(prisma) {
     const columns = await sportsDataColumns(prisma);
-    requireColumns(columns, "limitless_team", ["team_id", "name"]);
-    const hasLogo = columns.get("limitless_team")?.has("logo_url") ?? false;
-    const logoSelect = hasLogo
-        ? client_1.Prisma.sql `logo_url::text as "logoUrl"`
-        : client_1.Prisma.sql `null::text as "logoUrl"`;
+    requireColumns(columns, "teams", ["id"]);
+    const teamColumns = columns.get("teams") ?? new Set();
+    const nameSelect = teamNameSelect(teamColumns);
+    const logoSelect = teamLogoSelect(teamColumns);
     const rows = await prisma.$queryRaw `
-    select distinct team_id::text as id, name::text as name, ${logoSelect}
-    from sports_data.limitless_team
-    where team_id is not null
-      and nullif(trim(name::text), '') is not null
+    select distinct id::text as id, ${nameSelect} as name, ${logoSelect}
+    from sports_data.teams
+    where id is not null
+      and nullif(trim(${nameSelect}), '') is not null
     order by name asc
   `;
     return zod_1.z.array(TeamRow).parse(rows);

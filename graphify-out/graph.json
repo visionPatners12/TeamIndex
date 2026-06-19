@@ -2973,10 +2973,28 @@
       "norm_label": "requirecolumns()"
     },
     {
-      "label": "assertUuid()",
+      "label": "teamNameSelect()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
       "source_location": "L59",
+      "id": "sportsdata_limitlessteams_teamnameselect",
+      "community": 1,
+      "norm_label": "teamnameselect()"
+    },
+    {
+      "label": "teamLogoSelect()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L66",
+      "id": "sportsdata_limitlessteams_teamlogoselect",
+      "community": 1,
+      "norm_label": "teamlogoselect()"
+    },
+    {
+      "label": "assertUuid()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L73",
       "id": "sportsdata_limitlessteams_assertuuid",
       "community": 1,
       "norm_label": "assertuuid()"
@@ -2985,7 +3003,7 @@
       "label": "listLimitlessTeams()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L65",
+      "source_location": "L79",
       "id": "sportsdata_limitlessteams_listlimitlessteams",
       "community": 1,
       "norm_label": "listlimitlessteams()"
@@ -2994,7 +3012,7 @@
       "label": "textValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L85",
+      "source_location": "L97",
       "id": "sportsdata_limitlessteams_textvalue",
       "community": 1,
       "norm_label": "textvalue()"
@@ -3003,7 +3021,7 @@
       "label": "numberValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L93",
+      "source_location": "L105",
       "id": "sportsdata_limitlessteams_numbervalue",
       "community": 1,
       "norm_label": "numbervalue()"
@@ -3012,7 +3030,7 @@
       "label": "dateValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L103",
+      "source_location": "L115",
       "id": "sportsdata_limitlessteams_datevalue",
       "community": 1,
       "norm_label": "datevalue()"
@@ -3021,7 +3039,7 @@
       "label": "getLimitlessMarketsForTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L113",
+      "source_location": "L125",
       "id": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
       "community": 1,
       "norm_label": "getlimitlessmarketsforteam()"
@@ -4961,9 +4979,9 @@
       "source_file": "src/db/initDb.ts",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_initdb",
-      "target": "db_initdb_assertrequiredtablesexist",
-      "confidence_score": 1.0
+      "target": "db_initdb_assertrequiredtablesexist"
     },
     {
       "relation": "contains",
@@ -5067,9 +5085,9 @@
       "source_file": "src/db/initDb.ts",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "db_initdb_initdb",
-      "target": "db_initdb_assertrequiredtablesexist",
-      "confidence_score": 1.0
+      "target": "db_initdb_assertrequiredtablesexist"
     },
     {
       "relation": "imports",
@@ -10911,6 +10929,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams",
+      "target": "sportsdata_limitlessteams_teamlogoselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams",
+      "target": "sportsdata_limitlessteams_teamnameselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
       "source_location": "L8",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -10970,6 +11008,28 @@
       "confidence_score": 1.0,
       "source": "sportsdata_limitlessteams_listlimitlessteams",
       "target": "sportsdata_limitlessteams_requirecolumns"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams_listlimitlessteams",
+      "target": "sportsdata_limitlessteams_teamnameselect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams_listlimitlessteams",
+      "target": "sportsdata_limitlessteams_teamlogoselect",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -11722,5 +11782,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "5f490121383b50c487eed87e5e1c57259d53b28b"
+  "built_at_commit": "bdacb042b745711bb359dca0a34717fc1500e5c8"
 }

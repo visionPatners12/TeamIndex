@@ -56,6 +56,20 @@ function requireColumns(columns: Map<string, Set<string>>, table: string, requir
   }
 }
 
+function teamNameSelect(teamColumns: Set<string>) {
+  if (teamColumns.has("name")) return Prisma.sql`name::text`;
+  if (teamColumns.has("display_name")) return Prisma.sql`display_name::text`;
+  if (teamColumns.has("short_name")) return Prisma.sql`short_name::text`;
+  throw new Error("Missing required sports_data.teams column(s): one of name, display_name, short_name");
+}
+
+function teamLogoSelect(teamColumns: Set<string>) {
+  if (teamColumns.has("logo_url")) return Prisma.sql`logo_url::text as "logoUrl"`;
+  if (teamColumns.has("image_url")) return Prisma.sql`image_url::text as "logoUrl"`;
+  if (teamColumns.has("crest_url")) return Prisma.sql`crest_url::text as "logoUrl"`;
+  return Prisma.sql`null::text as "logoUrl"`;
+}
+
 export function assertUuid(value: string, label: string) {
   if (!UUID_RE.test(value)) {
     throw new Error(`${label} must be a UUID`);
@@ -64,18 +78,16 @@ export function assertUuid(value: string, label: string) {
 
 export async function listLimitlessTeams(prisma: PrismaClient): Promise<SportsDataTeam[]> {
   const columns = await sportsDataColumns(prisma);
-  requireColumns(columns, "limitless_team", ["team_id", "name"]);
-  const hasLogo = columns.get("limitless_team")?.has("logo_url") ?? false;
-
-  const logoSelect = hasLogo
-    ? Prisma.sql`logo_url::text as "logoUrl"`
-    : Prisma.sql`null::text as "logoUrl"`;
+  requireColumns(columns, "teams", ["id"]);
+  const teamColumns = columns.get("teams") ?? new Set<string>();
+  const nameSelect = teamNameSelect(teamColumns);
+  const logoSelect = teamLogoSelect(teamColumns);
 
   const rows = await prisma.$queryRaw`
-    select distinct team_id::text as id, name::text as name, ${logoSelect}
-    from sports_data.limitless_team
-    where team_id is not null
-      and nullif(trim(name::text), '') is not null
+    select distinct id::text as id, ${nameSelect} as name, ${logoSelect}
+    from sports_data.teams
+    where id is not null
+      and nullif(trim(${nameSelect}), '') is not null
     order by name asc
   `;
 

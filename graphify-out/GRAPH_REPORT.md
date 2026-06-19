@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-18)
 
 ## Corpus Check
-- 64 files · ~39,504 words
+- 64 files · ~39,568 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 402 nodes · 767 edges · 31 communities (24 shown, 7 thin omitted)
+- 404 nodes · 771 edges · 31 communities (24 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5f490121`
+- Built from commit: `bdacb042`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -71,8 +71,8 @@ Cohesion: 0.09
 Nodes (45): getMarketBySlug(), getOrderBook(), decodeLimitlessTokenId(), claimQueue(), decToNumber(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+37 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.18
-Nodes (11): discoverLimitlessClubCandidates(), DiscoverLimitlessInputs, assertUuid(), ColumnRow, getLimitlessMarketsForTeam(), listLimitlessTeams(), requireColumns(), sportsDataColumns() (+3 more)
+Cohesion: 0.17
+Nodes (13): discoverLimitlessClubCandidates(), DiscoverLimitlessInputs, assertUuid(), ColumnRow, getLimitlessMarketsForTeam(), listLimitlessTeams(), requireColumns(), sportsDataColumns() (+5 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
