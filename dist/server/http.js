@@ -1500,6 +1500,45 @@ function startHttpServer({ env, logger }) {
         poolId: zod_1.z.string().min(1),
         amount: zod_1.z.coerce.bigint()
     });
+    function serializeTxRequest(tx) {
+        return {
+            to: tx.to,
+            data: tx.data,
+            value: tx.value == null ? undefined : tx.value.toString(),
+        };
+    }
+    app.post("/base/tx/deposit-usdc", async (req, res) => {
+        const body = baseDepositUsdcSchema.parse(req.body);
+        if (!env.BASE_USDC_ADDRESS) {
+            return res.status(400).json({ error: "BASE_USDC_ADDRESS not set" });
+        }
+        if (!env.BASE_DEPOSIT_RECEIVER_ADDRESS) {
+            return res.status(400).json({ error: "BASE_DEPOSIT_RECEIVER_ADDRESS not set" });
+        }
+        const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: body.poolId } });
+        if (!pool)
+            return res.status(404).json({ error: "Pool not found" });
+        const poolIdHash = ethers_1.ethers.solidityPackedKeccak256(["string"], [pool.clubName]);
+        const usdc = new ethers_1.ethers.Contract(env.BASE_USDC_ADDRESS, erc20_1.ERC20.abi);
+        const receiver = new ethers_1.ethers.Contract(env.BASE_DEPOSIT_RECEIVER_ADDRESS, [
+            "function depositUSDC(uint256 amount, bytes32 poolId) returns (uint256)"
+        ]);
+        const approveTx = await usdc.approve.populateTransaction(env.BASE_DEPOSIT_RECEIVER_ADDRESS, body.amount);
+        const depositTx = await receiver.depositUSDC.populateTransaction(body.amount, poolIdHash);
+        return res.json({
+            ok: true,
+            poolId: pool.id,
+            poolIdHash,
+            amount: body.amount.toString(),
+            sourceToken: env.BASE_USDC_ADDRESS,
+            usdcAddress: env.BASE_USDC_ADDRESS,
+            receiverAddress: env.BASE_DEPOSIT_RECEIVER_ADDRESS,
+            txs: {
+                approveTx: serializeTxRequest(approveTx),
+                depositTx: serializeTxRequest(depositTx),
+            },
+        });
+    });
     app.post("/admin/base/retry-failed", requireAdmin, async (_req, res) => {
         const summary = await retryFailedBaseDeposits();
         res.json({ ok: true, ...summary });

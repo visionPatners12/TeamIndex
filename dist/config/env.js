@@ -12,6 +12,8 @@ const EnvSchema = zod_1.z.object({
     BASE_EXECUTOR_PRIVATE_KEY: zod_1.z.string().optional(),
     // USDC contract address on Base (default: Base mainnet USDC)
     BASE_USDC_ADDRESS: zod_1.z.string().optional().default("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
+    // Receiver contract that accepts Base USDC before the relayer processes it.
+    BASE_DEPOSIT_RECEIVER_ADDRESS: zod_1.z.string().optional(),
     // ─── Vault contracts (deployed on Base) ──────────────────────────────────
     VAULT_CONTRACT_ADDRESS: zod_1.z.string().optional(),
     // Optional: factory resolves per-club vault → vaultFactory.getVaultByClub(keccak256(clubName))
@@ -63,6 +65,7 @@ function loadEnv() {
         BASE_RPC_URL: process.env.BASE_RPC_URL,
         BASE_EXECUTOR_PRIVATE_KEY: process.env.BASE_EXECUTOR_PRIVATE_KEY,
         BASE_USDC_ADDRESS: process.env.BASE_USDC_ADDRESS,
+        BASE_DEPOSIT_RECEIVER_ADDRESS: process.env.BASE_DEPOSIT_RECEIVER_ADDRESS,
         VAULT_CONTRACT_ADDRESS: process.env.VAULT_CONTRACT_ADDRESS,
         CLUB_VAULT_FACTORY_ADDRESS: process.env.CLUB_VAULT_FACTORY_ADDRESS,
         ETH_GETLOGS_BLOCK_CHUNK: process.env.ETH_GETLOGS_BLOCK_CHUNK,

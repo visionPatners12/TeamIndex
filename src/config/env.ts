@@ -11,6 +11,8 @@ const EnvSchema = z.object({
   BASE_EXECUTOR_PRIVATE_KEY: z.string().optional(),
   // USDC contract address on Base (default: Base mainnet USDC)
   BASE_USDC_ADDRESS: z.string().optional().default("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
+  // Receiver contract that accepts Base USDC before the relayer processes it.
+  BASE_DEPOSIT_RECEIVER_ADDRESS: z.string().optional(),
 
   // ─── Vault contracts (deployed on Base) ──────────────────────────────────
   VAULT_CONTRACT_ADDRESS: z.string().optional(),
@@ -71,6 +73,7 @@ export function loadEnv(): Env {
     BASE_RPC_URL: process.env.BASE_RPC_URL,
     BASE_EXECUTOR_PRIVATE_KEY: process.env.BASE_EXECUTOR_PRIVATE_KEY,
     BASE_USDC_ADDRESS: process.env.BASE_USDC_ADDRESS,
+    BASE_DEPOSIT_RECEIVER_ADDRESS: process.env.BASE_DEPOSIT_RECEIVER_ADDRESS,
 
     VAULT_CONTRACT_ADDRESS: process.env.VAULT_CONTRACT_ADDRESS,
     CLUB_VAULT_FACTORY_ADDRESS: process.env.CLUB_VAULT_FACTORY_ADDRESS,
