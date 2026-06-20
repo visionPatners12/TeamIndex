@@ -5,6 +5,7 @@ const prisma_1 = require("../db/prisma");
 const vaultExecutor_1 = require("./vaultExecutor");
 const ethers_1 = require("ethers");
 const ethersLogChunks_1 = require("./ethersLogChunks");
+const rpc_1 = require("./rpc");
 function decToStr(x) {
     if (x === null || x === undefined)
         return "0";
@@ -19,14 +20,12 @@ function decToStr(x) {
     return String(x);
 }
 async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransactionHashes, skipCursorAdvance, logger, logContext, chunkSizeEnv }) {
-    if (!env.BASE_RPC_URL)
-        throw new Error("RPC_URL missing (required for onchain sync)");
     if (fromBlock > toBlock)
         return;
     const onlySet = onlyTransactionHashes && onlyTransactionHashes.length > 0
         ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
         : null;
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
+    const provider = (0, rpc_1.getBaseProvider)(env);
     const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
     const depositEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Deposit(), fromBlock, toBlock, {
         chunkSizeEnv,
@@ -146,7 +145,7 @@ async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransact
     const totalAssets = (await vault.totalCash());
     const totalSupply = (await vault.totalSupply());
     // totalCash is USDC base units (6 decimals); store human USD in DB for pricing + UI.
-    const cashHuman = ethers_1.ethers.formatUnits(totalAssets, 6);
+    const cashHuman = (0, ethers_1.formatUnits)(totalAssets, 6);
     await prisma_1.prisma.club_pools.update({
         where: { id: pool.id },
         data: {

@@ -126,7 +126,7 @@
       "source_file": "package.json",
       "source_location": "L6",
       "id": "package_scripts",
-      "community": 8,
+      "community": 4,
       "norm_label": "scripts"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "package.json",
       "source_location": "L7",
       "id": "package_scripts_dev",
-      "community": 8,
+      "community": 4,
       "norm_label": "dev"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "package.json",
       "source_location": "L8",
       "id": "package_scripts_build",
-      "community": 8,
+      "community": 4,
       "norm_label": "build"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "package.json",
       "source_location": "L9",
       "id": "package_scripts_start",
-      "community": 8,
+      "community": 4,
       "norm_label": "start"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "package.json",
       "source_location": "L10",
       "id": "package_scripts_contracts_compile",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:compile"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "package.json",
       "source_location": "L11",
       "id": "package_scripts_contracts_test",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:test"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "package.json",
       "source_location": "L12",
       "id": "package_scripts_contracts_check_balance",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:check-balance"
     },
     {
@@ -189,7 +189,7 @@
       "source_file": "package.json",
       "source_location": "L13",
       "id": "package_scripts_contracts_diagnose_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:diagnose:polygon"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "package.json",
       "source_location": "L14",
       "id": "package_scripts_contracts_deploy_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:polygon"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "package.json",
       "source_location": "L15",
       "id": "package_scripts_contracts_transfer_ownership_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:transfer-ownership:polygon"
     },
     {
@@ -216,7 +216,7 @@
       "source_file": "package.json",
       "source_location": "L16",
       "id": "package_scripts_contracts_deploy_base",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:base"
     },
     {
@@ -225,7 +225,7 @@
       "source_file": "package.json",
       "source_location": "L17",
       "id": "package_scripts_contracts_deploy_chiliz",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:chiliz"
     },
     {
@@ -234,7 +234,7 @@
       "source_file": "package.json",
       "source_location": "L18",
       "id": "package_scripts_prisma_migrate",
-      "community": 8,
+      "community": 4,
       "norm_label": "prisma:migrate"
     },
     {
@@ -243,7 +243,7 @@
       "source_file": "package.json",
       "source_location": "L19",
       "id": "package_scripts_prisma_generate",
-      "community": 8,
+      "community": 4,
       "norm_label": "prisma:generate"
     },
     {
@@ -252,7 +252,7 @@
       "source_file": "package.json",
       "source_location": "L20",
       "id": "package_scripts_db_seed",
-      "community": 8,
+      "community": 4,
       "norm_label": "db:seed"
     },
     {
@@ -279,7 +279,7 @@
       "source_file": "package.json",
       "source_location": "L25",
       "id": "package_dependencies",
-      "community": 4,
+      "community": 8,
       "norm_label": "dependencies"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "package.json",
       "source_location": "L26",
       "id": "package_dependencies_polymarket_builder_relayer_client",
-      "community": 4,
+      "community": 8,
       "norm_label": "@polymarket/builder-relayer-client"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "package.json",
       "source_location": "L27",
       "id": "package_dependencies_polymarket_builder_signing_sdk",
-      "community": 4,
+      "community": 8,
       "norm_label": "@polymarket/builder-signing-sdk"
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "package.json",
       "source_location": "L28",
       "id": "package_dependencies_polymarket_clob_client_v2",
-      "community": 4,
+      "community": 8,
       "norm_label": "@polymarket/clob-client-v2"
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "package.json",
       "source_location": "L29",
       "id": "package_dependencies_prisma_client",
-      "community": 4,
+      "community": 8,
       "norm_label": "@prisma/client"
     },
     {
@@ -324,7 +324,7 @@
       "source_file": "package.json",
       "source_location": "L30",
       "id": "package_dependencies_bullmq",
-      "community": 4,
+      "community": 8,
       "norm_label": "bullmq"
     },
     {
@@ -333,7 +333,7 @@
       "source_file": "package.json",
       "source_location": "L31",
       "id": "package_dependencies_dotenv",
-      "community": 4,
+      "community": 8,
       "norm_label": "dotenv"
     },
     {
@@ -342,7 +342,7 @@
       "source_file": "package.json",
       "source_location": "L32",
       "id": "package_dependencies_ethers",
-      "community": 4,
+      "community": 8,
       "norm_label": "ethers"
     },
     {
@@ -351,7 +351,7 @@
       "source_file": "package.json",
       "source_location": "L33",
       "id": "package_dependencies_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "express"
     },
     {
@@ -360,7 +360,7 @@
       "source_file": "package.json",
       "source_location": "L34",
       "id": "package_dependencies_ioredis",
-      "community": 4,
+      "community": 8,
       "norm_label": "ioredis"
     },
     {
@@ -369,7 +369,7 @@
       "source_file": "package.json",
       "source_location": "L35",
       "id": "package_dependencies_pino",
-      "community": 4,
+      "community": 8,
       "norm_label": "pino"
     },
     {
@@ -378,7 +378,7 @@
       "source_file": "package.json",
       "source_location": "L36",
       "id": "package_dependencies_swagger_ui_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "swagger-ui-express"
     },
     {
@@ -387,7 +387,7 @@
       "source_file": "package.json",
       "source_location": "L37",
       "id": "package_dependencies_viem",
-      "community": 4,
+      "community": 8,
       "norm_label": "viem"
     },
     {
@@ -396,7 +396,7 @@
       "source_file": "package.json",
       "source_location": "L38",
       "id": "package_dependencies_zod",
-      "community": 4,
+      "community": 8,
       "norm_label": "zod"
     },
     {
@@ -744,7 +744,7 @@
       "label": "Env",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L65",
+      "source_location": "L66",
       "id": "config_env_env",
       "community": 3,
       "norm_label": "env"
@@ -753,7 +753,7 @@
       "label": "loadEnv()",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L67",
+      "source_location": "L68",
       "id": "config_env_loadenv",
       "community": 3,
       "norm_label": "loadenv()"
@@ -1097,7 +1097,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L1",
       "id": "limitless_limitlessdiscoveryservice",
-      "community": 3,
+      "community": 0,
       "norm_label": "limitlessdiscoveryservice.ts"
     },
     {
@@ -1106,7 +1106,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L15",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessinputs",
-      "community": 3,
+      "community": 0,
       "norm_label": "discoverlimitlessinputs"
     },
     {
@@ -1115,7 +1115,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 1,
+      "community": 0,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -1124,7 +1124,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L79",
       "id": "limitless_limitlessdiscoveryservice_decodelimitlesstokenid",
-      "community": 3,
+      "community": 0,
       "norm_label": "decodelimitlesstokenid()"
     },
     {
@@ -1439,7 +1439,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L404",
       "id": "limitless_limitlessorderclient_getlimitlessorder",
-      "community": 3,
+      "community": 0,
       "norm_label": "getlimitlessorder()"
     },
     {
@@ -1619,7 +1619,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L1",
       "id": "limitless_limitlesspositionsync",
-      "community": 3,
+      "community": 0,
       "norm_label": "limitlesspositionsync.ts"
     },
     {
@@ -1628,7 +1628,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L22",
       "id": "limitless_limitlesspositionsync_dectonumber",
-      "community": 3,
+      "community": 0,
       "norm_label": "dectonumber()"
     },
     {
@@ -1637,7 +1637,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L29",
       "id": "limitless_limitlesspositionsync_dectostr",
-      "community": 3,
+      "community": 0,
       "norm_label": "dectostr()"
     },
     {
@@ -1646,7 +1646,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L46",
       "id": "limitless_limitlesspositionsync_synclimitlessfillsandsettle",
-      "community": 3,
+      "community": 0,
       "norm_label": "synclimitlessfillsandsettle()"
     },
     {
@@ -1844,34 +1844,34 @@
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
       "source_location": "L1",
       "id": "onchain_clubvaultfactoryexecutor",
-      "community": 5,
+      "community": 7,
       "norm_label": "clubvaultfactoryexecutor.ts"
     },
     {
       "label": "CLUB_VAULT_FACTORY_ABI",
       "file_type": "code",
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
-      "source_location": "L4",
+      "source_location": "L5",
       "id": "onchain_clubvaultfactoryexecutor_club_vault_factory_abi",
-      "community": 5,
+      "community": 7,
       "norm_label": "club_vault_factory_abi"
     },
     {
       "label": "computeClubId()",
       "file_type": "code",
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
-      "source_location": "L9",
+      "source_location": "L10",
       "id": "onchain_clubvaultfactoryexecutor_computeclubid",
-      "community": 5,
+      "community": 7,
       "norm_label": "computeclubid()"
     },
     {
       "label": "ensureClubVaultExists()",
       "file_type": "code",
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
-      "source_location": "L19",
+      "source_location": "L20",
       "id": "onchain_clubvaultfactoryexecutor_ensureclubvaultexists",
-      "community": 5,
+      "community": 7,
       "norm_label": "ensureclubvaultexists()"
     },
     {
@@ -2004,7 +2004,7 @@
       "label": "SyncInputs",
       "file_type": "code",
       "source_file": "src/onchain/poolSync.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "id": "onchain_poolsync_syncinputs",
       "community": 7,
       "norm_label": "syncinputs"
@@ -2013,7 +2013,7 @@
       "label": "decToStr()",
       "file_type": "code",
       "source_file": "src/onchain/poolSync.ts",
-      "source_location": "L27",
+      "source_location": "L28",
       "id": "onchain_poolsync_dectostr",
       "community": 7,
       "norm_label": "dectostr()"
@@ -2022,10 +2022,154 @@
       "label": "syncVaultEventsToDb()",
       "file_type": "code",
       "source_file": "src/onchain/poolSync.ts",
-      "source_location": "L36",
+      "source_location": "L37",
       "id": "onchain_poolsync_syncvaulteventstodb",
       "community": 7,
       "norm_label": "syncvaulteventstodb()"
+    },
+    {
+      "label": "rpc.ts",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L1",
+      "id": "onchain_rpc",
+      "community": 7,
+      "norm_label": "rpc.ts"
+    },
+    {
+      "label": "providerCache",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L7",
+      "id": "onchain_rpc_providercache",
+      "community": 7,
+      "norm_label": "providercache"
+    },
+    {
+      "label": "BaseRpcErrorCode",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L9",
+      "id": "onchain_rpc_baserpcerrorcode",
+      "community": 7,
+      "norm_label": "baserpcerrorcode"
+    },
+    {
+      "label": "BaseRpcError",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L11",
+      "id": "onchain_rpc_baserpcerror",
+      "community": 7,
+      "norm_label": "baserpcerror"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L15",
+      "id": "onchain_rpc_baserpcerror_constructor",
+      "community": 7,
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": "sleep()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L24",
+      "id": "onchain_rpc_sleep",
+      "community": 7,
+      "norm_label": "sleep()"
+    },
+    {
+      "label": "positiveIntFromEnv()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L29",
+      "id": "onchain_rpc_positiveintfromenv",
+      "community": 7,
+      "norm_label": "positiveintfromenv()"
+    },
+    {
+      "label": "splitRpcUrls()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L36",
+      "id": "onchain_rpc_splitrpcurls",
+      "community": 7,
+      "norm_label": "splitrpcurls()"
+    },
+    {
+      "label": "getBaseRpcUrls()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L43",
+      "id": "onchain_rpc_getbaserpcurls",
+      "community": 7,
+      "norm_label": "getbaserpcurls()"
+    },
+    {
+      "label": "getBaseProvider()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L52",
+      "id": "onchain_rpc_getbaseprovider",
+      "community": 7,
+      "norm_label": "getbaseprovider()"
+    },
+    {
+      "label": "isBaseRpcRateLimitError()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L64",
+      "id": "onchain_rpc_isbaserpcratelimiterror",
+      "community": 7,
+      "norm_label": "isbaserpcratelimiterror()"
+    },
+    {
+      "label": "isBaseRpcUnavailableError()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L70",
+      "id": "onchain_rpc_isbaserpcunavailableerror",
+      "community": 7,
+      "norm_label": "isbaserpcunavailableerror()"
+    },
+    {
+      "label": "BaseRpcRetryOptions",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L74",
+      "id": "onchain_rpc_baserpcretryoptions",
+      "community": 7,
+      "norm_label": "baserpcretryoptions"
+    },
+    {
+      "label": "withBaseRpcRetry()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L79",
+      "id": "onchain_rpc_withbaserpcretry",
+      "community": 7,
+      "norm_label": "withbaserpcretry()"
+    },
+    {
+      "label": "getBaseBlockNumber()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L116",
+      "id": "onchain_rpc_getbaseblocknumber",
+      "community": 7,
+      "norm_label": "getbaseblocknumber()"
+    },
+    {
+      "label": "getBaseTransactionReceipt()",
+      "file_type": "code",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L120",
+      "id": "onchain_rpc_getbasetransactionreceipt",
+      "community": 7,
+      "norm_label": "getbasetransactionreceipt()"
     },
     {
       "label": "vaultExecutor.ts",
@@ -2040,7 +2184,7 @@
       "label": "CLUB_VAULT_FACTORY_ABI",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L5",
+      "source_location": "L6",
       "id": "onchain_vaultexecutor_club_vault_factory_abi",
       "community": 5,
       "norm_label": "club_vault_factory_abi"
@@ -2049,7 +2193,7 @@
       "label": "PoolIdentity",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "id": "onchain_vaultexecutor_poolidentity",
       "community": 5,
       "norm_label": "poolidentity"
@@ -2058,7 +2202,7 @@
       "label": "computeClubId()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "id": "onchain_vaultexecutor_computeclubid",
       "community": 5,
       "norm_label": "computeclubid()"
@@ -2067,7 +2211,7 @@
       "label": "resolveVaultAddressFromFactory()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L19",
+      "source_location": "L20",
       "id": "onchain_vaultexecutor_resolvevaultaddressfromfactory",
       "community": 5,
       "norm_label": "resolvevaultaddressfromfactory()"
@@ -2076,7 +2220,7 @@
       "label": "getVaultContract()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L28",
+      "source_location": "L29",
       "id": "onchain_vaultexecutor_getvaultcontract",
       "community": 5,
       "norm_label": "getvaultcontract()"
@@ -2733,7 +2877,7 @@
       "label": "Request",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L61",
+      "source_location": "L68",
       "id": "server_http_request",
       "community": 5,
       "norm_label": "request"
@@ -2742,7 +2886,7 @@
       "label": "startHttpServer()",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L67",
+      "source_location": "L74",
       "id": "server_http_starthttpserver",
       "community": 3,
       "norm_label": "starthttpserver()"
@@ -2780,52 +2924,52 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L1",
       "id": "services_priceengine",
-      "community": 5,
+      "community": 7,
       "norm_label": "priceengine.ts"
     },
     {
       "label": "decToNumber()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L6",
+      "source_location": "L7",
       "id": "services_priceengine_dectonumber",
-      "community": 5,
+      "community": 7,
       "norm_label": "dectonumber()"
     },
     {
       "label": "dbStr()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "id": "services_priceengine_dbstr",
-      "community": 5,
+      "community": 7,
       "norm_label": "dbstr()"
     },
     {
       "label": "vaultCashDbToHuman()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L23",
+      "source_location": "L24",
       "id": "services_priceengine_vaultcashdbtohuman",
-      "community": 5,
+      "community": 7,
       "norm_label": "vaultcashdbtohuman()"
     },
     {
       "label": "humanUsdToUsdcBaseUnits()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L33",
+      "source_location": "L34",
       "id": "services_priceengine_humanusdtousdcbaseunits",
-      "community": 5,
+      "community": 7,
       "norm_label": "humanusdtousdcbaseunits()"
     },
     {
       "label": "recalculateOfficialPrices()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L41",
+      "source_location": "L42",
       "id": "services_priceengine_recalculateofficialprices",
-      "community": 5,
+      "community": 7,
       "norm_label": "recalculateofficialprices()"
     },
     {
@@ -3257,7 +3401,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L22",
       "id": "workers_vaultsyncticker_positiveintfromenv",
-      "community": 3,
+      "community": 7,
       "norm_label": "positiveintfromenv()"
     },
     {
@@ -4518,6 +4662,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "config_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -4744,6 +4899,17 @@
       "confidence_score": 1.0,
       "source": "onchain_poolsync",
       "target": "config_env_env"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "config_env_env",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -8094,6 +8260,28 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "onchain_clubvaultfactoryexecutor",
+      "target": "onchain_rpc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "onchain_clubvaultfactoryexecutor",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/server/http.ts",
       "source_location": "L31",
       "weight": 1.0,
@@ -8111,6 +8299,17 @@
       "confidence_score": 1.0,
       "source": "onchain_clubvaultfactoryexecutor_ensureclubvaultexists",
       "target": "onchain_clubvaultfactoryexecutor_computeclubid"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "onchain_clubvaultfactoryexecutor_ensureclubvaultexists",
+      "target": "onchain_rpc_getbaseprovider"
     },
     {
       "relation": "imports",
@@ -8258,6 +8457,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_etherslogchunks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L3",
       "weight": 1.0,
@@ -8346,6 +8556,39 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_etherslogchunks_compactrpcerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "generic_arg",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "onchain_rpc_baserpcerror",
+      "target": "onchain_etherslogchunks_compactrpcerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "onchain_rpc_baserpcerror_constructor",
+      "target": "onchain_etherslogchunks_compactrpcerror"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L3",
       "weight": 1.0,
@@ -8362,6 +8605,39 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "onchain_etherslogchunks_queryfilterwithratelimitretry",
+      "target": "onchain_etherslogchunks_isrpcratelimiterror"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_etherslogchunks_isrpcratelimiterror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "onchain_rpc_isbaserpcratelimiterror",
+      "target": "onchain_etherslogchunks_isrpcratelimiterror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "onchain_rpc_withbaserpcretry",
       "target": "onchain_etherslogchunks_isrpcratelimiterror"
     },
     {
@@ -8465,6 +8741,28 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/onchain/poolSync.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "onchain_poolsync",
+      "target": "onchain_rpc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/poolSync.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "onchain_poolsync",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/poolSync.ts",
       "source_location": "L3",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8521,6 +8819,17 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/onchain/poolSync.ts",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "onchain_poolsync_syncvaulteventstodb",
+      "target": "onchain_rpc_getbaseprovider"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/onchain/poolSync.ts",
       "source_location": "L56",
       "weight": 1.0,
       "source": "onchain_poolsync_syncvaulteventstodb",
@@ -8547,6 +8856,442 @@
       "confidence_score": 1.0,
       "source": "workers_vaultsyncticker",
       "target": "onchain_poolsync_syncvaulteventstodb"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_baserpcerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_baserpcerrorcode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_baserpcretryoptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L116",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_getbaseblocknumber",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_getbaserpcurls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_getbasetransactionreceipt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_isbaserpcratelimiterror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_isbaserpcunavailableerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_positiveintfromenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_providercache",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_sleep",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_splitrpcurls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "onchain_rpc",
+      "target": "onchain_rpc_withbaserpcretry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/vaultExecutor.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "onchain_vaultexecutor",
+      "target": "onchain_rpc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "onchain_rpc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_priceengine",
+      "target": "onchain_rpc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/vaultSyncTicker.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "workers_vaultsyncticker",
+      "target": "onchain_rpc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "onchain_rpc_baserpcerror",
+      "target": "onchain_rpc_baserpcerror_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "onchain_rpc_withbaserpcretry",
+      "target": "onchain_rpc_sleep",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "onchain_rpc_withbaserpcretry",
+      "target": "onchain_rpc_positiveintfromenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "onchain_rpc_getbaserpcurls",
+      "target": "onchain_rpc_splitrpcurls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "onchain_rpc_getbaseprovider",
+      "target": "onchain_rpc_getbaserpcurls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "onchain_rpc_withbaserpcretry",
+      "target": "onchain_rpc_getbaserpcurls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/vaultSyncTicker.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "workers_vaultsyncticker",
+      "target": "onchain_rpc_getbaserpcurls",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/workers/vaultSyncTicker.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "workers_vaultsyncticker_startvaultsyncticker",
+      "target": "onchain_rpc_getbaserpcurls"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L95",
+      "weight": 1.0,
+      "source": "onchain_rpc_withbaserpcretry",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/vaultExecutor.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "onchain_vaultexecutor",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/onchain/vaultExecutor.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "onchain_vaultexecutor_getvaultcontract",
+      "target": "onchain_rpc_getbaseprovider"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_priceengine",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "services_priceengine_recalculateofficialprices",
+      "target": "onchain_rpc_getbaseprovider"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/vaultSyncTicker.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "workers_vaultsyncticker",
+      "target": "onchain_rpc_getbaseprovider",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/workers/vaultSyncTicker.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "workers_vaultsyncticker_startvaultsyncticker",
+      "target": "onchain_rpc_getbaseprovider"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "onchain_rpc_isbaserpcratelimiterror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "onchain_rpc_isbaserpcunavailableerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "onchain_rpc_getbaseblocknumber",
+      "target": "onchain_rpc_withbaserpcretry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/onchain/rpc.ts",
+      "source_location": "L121",
+      "weight": 1.0,
+      "source": "onchain_rpc_getbasetransactionreceipt",
+      "target": "onchain_rpc_withbaserpcretry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "onchain_rpc_getbaseblocknumber",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/vaultSyncTicker.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "workers_vaultsyncticker",
+      "target": "onchain_rpc_getbaseblocknumber",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "onchain_rpc_getbasetransactionreceipt",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -11995,5 +12740,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "3a8d6ca50a8ce1275334db6499b41119fbc3020f"
+  "built_at_commit": "3a0fd423c498385119efcd89dc34300d5c5f6976"
 }

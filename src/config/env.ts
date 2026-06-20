@@ -7,6 +7,7 @@ const EnvSchema = z.object({
 
   // ─── Base chain (primary chain — everything runs here) ───────────────────
   BASE_RPC_URL: z.string().optional(),
+  BASE_RPC_FALLBACK_URLS: z.string().optional(),
   // EOA executor wallet on Base: signs vault admin txs / NAV updates.
   BASE_EXECUTOR_PRIVATE_KEY: z.string().optional(),
   // USDC contract address on Base (default: Base mainnet USDC)
@@ -71,6 +72,7 @@ export function loadEnv(): Env {
     ADMIN_API_KEY: process.env.ADMIN_API_KEY,
 
     BASE_RPC_URL: process.env.BASE_RPC_URL,
+    BASE_RPC_FALLBACK_URLS: process.env.BASE_RPC_FALLBACK_URLS,
     BASE_EXECUTOR_PRIVATE_KEY: process.env.BASE_EXECUTOR_PRIVATE_KEY,
     BASE_USDC_ADDRESS: process.env.BASE_USDC_ADDRESS,
     BASE_DEPOSIT_RECEIVER_ADDRESS: process.env.BASE_DEPOSIT_RECEIVER_ADDRESS,

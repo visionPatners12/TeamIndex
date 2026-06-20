@@ -1,7 +1,8 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
+import { getBaseProvider } from "../onchain/rpc";
 import { getVaultContract } from "../onchain/vaultExecutor";
-import { JsonRpcProvider, parseUnits } from "ethers";
+import { parseUnits } from "ethers";
 
 function decToNumber(d: any): number {
   // Prisma Decimal -> string
@@ -90,14 +91,14 @@ export async function recalculateOfficialPrices(env: Env) {
     // and `getVaultContract` returns a contract already bound to the Base executor
     // signer. Pools are processed sequentially in this loop, so nonces from the shared
     // executor wallet don't collide (each `tx.wait()` mines before the next pool).
-    if (env.BASE_RPC_URL && env.BASE_EXECUTOR_PRIVATE_KEY) {
+    if (env.BASE_EXECUTOR_PRIVATE_KEY) {
       try {
         const posBase = humanUsdToUsdcBaseUnits(positionsValue);
         // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
         const rPnLBase = realizedPnl >= 0
           ? humanUsdToUsdcBaseUnits(realizedPnl)
           : -humanUsdToUsdcBaseUnits(-realizedPnl);
-        const provider = new JsonRpcProvider(env.BASE_RPC_URL);
+        const provider = getBaseProvider(env);
         const vault = await getVaultContract(env, provider, {
           clubName: pool.clubName,
           vaultAddress: pool.vaultAddress ?? undefined
@@ -110,4 +111,3 @@ export async function recalculateOfficialPrices(env: Env) {
     }
   }
 }
-

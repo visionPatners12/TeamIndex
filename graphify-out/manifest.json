@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1781904826.2162952,
-    "ast_hash": "4f02c8deb1302a62900b5a5c1ccabfd0",
+    "mtime": 1781917564.5414827,
+    "ast_hash": "8b5b3be3cd499063b10a9a9894aa7110",
     "semantic_hash": ""
   },
   "src/config/log.ts": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "src/onchain/clubVaultFactoryExecutor.ts": {
-    "mtime": 1780784871.3338084,
-    "ast_hash": "9b3064197db1cf1f1f8bc55c6236cdeb",
+    "mtime": 1781917696.102836,
+    "ast_hash": "5dff84517c492157f537c383f71f8901",
     "semantic_hash": ""
   },
   "src/onchain/ethersLogChunks.ts": {
@@ -195,13 +195,13 @@
     "semantic_hash": ""
   },
   "src/onchain/poolSync.ts": {
-    "mtime": 1780784871.33313,
-    "ast_hash": "8ee859dfccebbc8fe757a038fe60081a",
+    "mtime": 1781917803.6090353,
+    "ast_hash": "99ae76786b859fca9c4101266985a75c",
     "semantic_hash": ""
   },
   "src/onchain/vaultExecutor.ts": {
-    "mtime": 1781722510.1594138,
-    "ast_hash": "035bbf6dbd0d9cd9d73b40d9f1df64da",
+    "mtime": 1781917691.2409317,
+    "ast_hash": "f229f05ad2cf7ab39a402d4672636488",
     "semantic_hash": ""
   },
   "src/polymarket/allocationEngine.ts": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/server/http.ts": {
-    "mtime": 1781910633.536703,
-    "ast_hash": "12aaccacac7aabe21c935da62d96df4f",
+    "mtime": 1781917659.8757358,
+    "ast_hash": "c52856d6dd2abcfcc5ba803f666598c2",
     "semantic_hash": ""
   },
   "src/server/swagger.ts": {
@@ -230,8 +230,8 @@
     "semantic_hash": ""
   },
   "src/services/priceEngine.ts": {
-    "mtime": 1780784907.4680073,
-    "ast_hash": "61509ebb2e995b43bb3471826d228c98",
+    "mtime": 1781917703.7799153,
+    "ast_hash": "3c661ee9266d6bce5c5aab1bf13352ee",
     "semantic_hash": ""
   },
   "src/services/riskEngine.ts": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/workers/vaultSyncTicker.ts": {
-    "mtime": 1780784871.3345551,
-    "ast_hash": "65721960055e293a1ccc0cd2e68771f8",
+    "mtime": 1781917685.8455162,
+    "ast_hash": "66f91ba939483b06cf50804cc367dbcd",
     "semantic_hash": ""
   },
   "test/contracts/baseDepositReceiver.test.ts": {
@@ -322,6 +322,11 @@
   "prisma/migrations/20260619000000_repair_club_pool_enums/migration.sql": {
     "mtime": 1781859167.3406312,
     "ast_hash": "fcb584d47964102a449076639a29d9ae",
+    "semantic_hash": ""
+  },
+  "src/onchain/rpc.ts": {
+    "mtime": 1781917558.1787872,
+    "ast_hash": "5ba0bba263afac83b799d579575df04b",
     "semantic_hash": ""
   }
 }

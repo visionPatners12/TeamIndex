@@ -22,6 +22,7 @@ exports.getWhitelistedContracts = getWhitelistedContracts;
 exports.getTrustedStrategies = getTrustedStrategies;
 const ethers_1 = require("ethers");
 const usdc4626vault_1 = require("../contracts/usdc4626vault");
+const rpc_1 = require("./rpc");
 const CLUB_VAULT_FACTORY_ABI = ["function getVaultByClub(bytes32 clubId) view returns (address)"];
 function computeClubId(clubName) {
     // Vault factory uses `bytes32 clubId` -> vault mapping.
@@ -40,9 +41,7 @@ async function resolveVaultAddressFromFactory(env, provider, pool) {
 }
 async function getVaultContract(env, provider, pool) {
     if (!provider) {
-        if (!env.BASE_RPC_URL)
-            throw new Error("RPC_URL missing");
-        provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL);
+        provider = (0, rpc_1.getBaseProvider)(env);
     }
     const placeholderAddress = "0x0000000000000000000000000000000000000001";
     // Priority:

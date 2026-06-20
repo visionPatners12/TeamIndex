@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recalculateOfficialPrices = recalculateOfficialPrices;
 const prisma_1 = require("../db/prisma");
+const rpc_1 = require("../onchain/rpc");
 const vaultExecutor_1 = require("../onchain/vaultExecutor");
 const ethers_1 = require("ethers");
 function decToNumber(d) {
@@ -91,14 +92,14 @@ async function recalculateOfficialPrices(env) {
         // and `getVaultContract` returns a contract already bound to the Base executor
         // signer. Pools are processed sequentially in this loop, so nonces from the shared
         // executor wallet don't collide (each `tx.wait()` mines before the next pool).
-        if (env.BASE_RPC_URL && env.BASE_EXECUTOR_PRIVATE_KEY) {
+        if (env.BASE_EXECUTOR_PRIVATE_KEY) {
             try {
                 const posBase = humanUsdToUsdcBaseUnits(positionsValue);
                 // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
                 const rPnLBase = realizedPnl >= 0
                     ? humanUsdToUsdcBaseUnits(realizedPnl)
                     : -humanUsdToUsdcBaseUnits(-realizedPnl);
-                const provider = new ethers_1.JsonRpcProvider(env.BASE_RPC_URL);
+                const provider = (0, rpc_1.getBaseProvider)(env);
                 const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
                     clubName: pool.clubName,
                     vaultAddress: pool.vaultAddress ?? undefined

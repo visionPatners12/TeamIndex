@@ -4,9 +4,9 @@ exports.startVaultSyncTicker = startVaultSyncTicker;
 const prisma_1 = require("../db/prisma");
 const ethersLogChunks_1 = require("../onchain/ethersLogChunks");
 const poolSync_1 = require("../onchain/poolSync");
+const rpc_1 = require("../onchain/rpc");
 const vaultExecutor_1 = require("../onchain/vaultExecutor");
 const priceEngine_1 = require("../services/priceEngine");
-const ethers_1 = require("ethers");
 const chainEventCursor_1 = require("./chainEventCursor");
 function getLastSyncedBlock(riskParams) {
     const v = riskParams?.lastSyncedBlock;
@@ -24,12 +24,12 @@ function startVaultSyncTicker({ env, logger }) {
     const intervalMs = Number(process.env.VAULT_SYNC_INTERVAL_MS || 60_000);
     const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
     const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
-    if (!env.BASE_RPC_URL) {
+    if ((0, rpc_1.getBaseRpcUrls)(env).length === 0) {
         logger.warn("VAULT_SYNC skipped: RPC_URL missing");
         return;
     }
     logger.info({ intervalMs }, "Vault sync ticker started");
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
+    const provider = (0, rpc_1.getBaseProvider)(env);
     let isTicking = false;
     async function tick() {
         if (isTicking) {
@@ -41,7 +41,7 @@ function startVaultSyncTicker({ env, logger }) {
             const pools = await prisma_1.prisma.club_pools.findMany({ where: { status: "ACTIVE" }, orderBy: { updatedAt: "asc" } });
             if (pools.length === 0)
                 return;
-            const latest = await provider.getBlockNumber();
+            const latest = await (0, rpc_1.getBaseBlockNumber)(env);
             let didAnySync = false;
             let claimedPools = 0;
             for (const pool of pools) {

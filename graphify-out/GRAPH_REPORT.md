@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-20)
 
 ## Corpus Check
-- 65 files · ~40,874 words
+- 66 files · ~41,297 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 410 nodes · 786 edges · 31 communities (24 shown, 7 thin omitted)
+- 426 nodes · 842 edges · 31 communities (24 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3a8d6ca5`
+- Built from commit: `3a0fd423`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -38,28 +38,28 @@
 - [[_COMMUNITY_Community 43|Community 43]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `getVaultContract()` - 27 edges
-2. `Env` - 20 edges
+1. `getVaultContract()` - 28 edges
+2. `Env` - 21 edges
 3. `runAllocationEngine()` - 17 edges
 4. `executeLimitlessTranche()` - 16 edges
 5. `scripts` - 15 edges
-6. `fetchLimitlessMarketData()` - 12 edges
-7. `compilerOptions` - 11 edges
-8. `postLimitlessOrder()` - 10 edges
-9. `clamp()` - 10 edges
-10. `main()` - 9 edges
+6. `getBaseProvider()` - 14 edges
+7. `fetchLimitlessMarketData()` - 12 edges
+8. `compilerOptions` - 11 edges
+9. `postLimitlessOrder()` - 10 edges
+10. `clamp()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `recalculateOfficialPrices()` --calls--> `getMidpoint()`  [INFERRED]
   src/services/priceEngine.ts → src/limitless/limitlessOrderClient.ts
-- `executeLimitlessTranche()` --calls--> `decodeLimitlessTokenId()`  [EXTRACTED]
-  src/limitless/limitlessExecutor.ts → src/limitless/limitlessDiscoveryService.ts
-- `syncLimitlessFillsAndSettle()` --calls--> `getMidpoint()`  [EXTRACTED]
-  src/limitless/limitlessPositionSync.ts → src/limitless/limitlessOrderClient.ts
+- `discoverLimitlessClubCandidates()` --calls--> `getLimitlessMarketsForTeam()`  [EXTRACTED]
+  src/limitless/limitlessDiscoveryService.ts → src/sportsData/limitlessTeams.ts
+- `startPriceTicker()` --calls--> `syncLimitlessFillsAndSettle()`  [EXTRACTED]
+  src/workers/priceTicker.ts → src/limitless/limitlessPositionSync.ts
 - `syncVaultEventsToDb()` --calls--> `getVaultContract()`  [EXTRACTED]
   src/onchain/poolSync.ts → src/onchain/vaultExecutor.ts
-- `main()` --calls--> `loadEnv()`  [EXTRACTED]
-  src/index.ts → src/config/env.ts
+- `startVaultSyncTicker()` --calls--> `getBaseRpcUrls()`  [EXTRACTED]
+  src/workers/vaultSyncTicker.ts → src/onchain/rpc.ts
 
 ## Import Cycles
 - None detected.
@@ -67,40 +67,40 @@
 ## Communities (31 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.10
-Nodes (40): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue(), getLiquidityMinUsd() (+32 more)
+Cohesion: 0.08
+Nodes (47): getMarketBySlug(), getOrderBook(), decodeLimitlessTokenId(), discoverLimitlessClubCandidates(), DiscoverLimitlessInputs, claimQueue(), decToNumber(), ExecuteLimitlessParams (+39 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.16
-Nodes (18): discoverLimitlessClubCandidates(), assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getLimitlessMarketsForTeam(), getSportsDataTeamName(), listLimitlessTeams(), mapRowsToMarkets() (+10 more)
+Cohesion: 0.17
+Nodes (17): assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getLimitlessMarketsForTeam(), getSportsDataTeamName(), listLimitlessTeams(), mapRowsToMarkets(), normalizeTeamName() (+9 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
 Nodes (41): alignedLogitReturnCorr(), blendedCorr(), buildCovariance(), chosenSideSeries(), clamp(), computeEdge(), computeTsFeatures(), Edge (+33 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.11
-Nodes (32): Env, EnvSchema, loadEnv(), createLogger(), assertRequiredTablesExist(), baselineMigrations, commandErrorOutput(), initDb() (+24 more)
+Cohesion: 0.14
+Nodes (25): Env, EnvSchema, loadEnv(), createLogger(), assertRequiredTablesExist(), baselineMigrations, commandErrorOutput(), initDb() (+17 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.06
-Nodes (35): dependencies, bullmq, dotenv, ethers, express, ioredis, pino, @polymarket/builder-relayer-client (+27 more)
+Cohesion: 0.05
+Nodes (36): devDependencies, chai, hardhat, @nomicfoundation/hardhat-ethers, @openzeppelin/contracts, @openzeppelin/contracts-upgradeable, prisma, ts-node (+28 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.10
-Nodes (36): ERC20, USDC4626VAULT, CLUB_VAULT_FACTORY_ABI, computeClubId(), ensureClubVaultExists(), adminAddAuthorizedOperator(), adminAddTrustedStrategy(), adminAddWhitelistedContract() (+28 more)
+Cohesion: 0.14
+Nodes (28): ERC20, USDC4626VAULT, adminAddAuthorizedOperator(), adminAddTrustedStrategy(), adminAddWhitelistedContract(), adminPause(), adminRemoveAuthorizedOperator(), adminRemoveTrustedStrategy() (+20 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.14
 Nodes (22): authHeaders(), detectSportHints(), extractPrices(), getHistoricalPrices(), getJson(), limitlessBase(), LimitlessCategory, LimitlessMarket (+14 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.12
-Nodes (26): globalForPrisma, compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions() (+18 more)
+Cohesion: 0.07
+Nodes (49): globalForPrisma, CLUB_VAULT_FACTORY_ABI, computeClubId(), ensureClubVaultExists(), compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil() (+41 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.13
-Nodes (15): scripts, build, contracts:check-balance, contracts:compile, contracts:deploy:base, contracts:deploy:chiliz, contracts:deploy:polygon, contracts:diagnose:polygon (+7 more)
+Cohesion: 0.14
+Nodes (14): dependencies, bullmq, dotenv, ethers, express, ioredis, pino, @polymarket/builder-relayer-client (+6 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
@@ -123,7 +123,7 @@ Cohesion: 0.50
 Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 
 ## Knowledge Gaps
-- **121 isolated node(s):** `allow`, `PreToolUse`, `config`, `name`, `version` (+116 more)
+- **124 isolated node(s):** `allow`, `PreToolUse`, `config`, `name`, `version` (+119 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -131,16 +131,16 @@ Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
-  _High betweenness centrality (0.022) - this node is a cross-community bridge._
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **Why does `executeLimitlessTranche()` connect `Community 0` to `Community 3`, `Community 5`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
-  _121 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _124 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.10042283298097252 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08490566037735849 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09191919191919191 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.10741971207087486 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13725490196078433 - nodes in this community are weakly interconnected._

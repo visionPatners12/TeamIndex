@@ -2,9 +2,9 @@ import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { compactRpcError, getRpcRateLimitCooldownUntil, isRpcRateLimitError } from "../onchain/ethersLogChunks";
 import { syncVaultEventsToDb } from "../onchain/poolSync";
+import { getBaseBlockNumber, getBaseProvider, getBaseRpcUrls } from "../onchain/rpc";
 import { getVaultContract } from "../onchain/vaultExecutor";
 import { recalculateOfficialPrices } from "../services/priceEngine";
-import { ethers } from "ethers";
 import {
   claimChainEventCursor,
   completeChainEventCursor,
@@ -30,14 +30,14 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
   const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
   const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
 
-  if (!env.BASE_RPC_URL) {
+  if (getBaseRpcUrls(env).length === 0) {
     logger.warn("VAULT_SYNC skipped: RPC_URL missing");
     return;
   }
 
   logger.info({ intervalMs }, "Vault sync ticker started");
 
-  const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL, undefined, { batchMaxCount: 1 });
+  const provider = getBaseProvider(env);
   let isTicking = false;
 
   async function tick() {
@@ -50,7 +50,7 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
       const pools = await prisma.club_pools.findMany({ where: { status: "ACTIVE" }, orderBy: { updatedAt: "asc" } });
       if (pools.length === 0) return;
 
-      const latest = await provider.getBlockNumber();
+      const latest = await getBaseBlockNumber(env);
 
       let didAnySync = false;
       let claimedPools = 0;

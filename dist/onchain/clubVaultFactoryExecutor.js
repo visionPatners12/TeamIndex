@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ensureClubVaultExists = ensureClubVaultExists;
 const ethers_1 = require("ethers");
+const rpc_1 = require("./rpc");
 const CLUB_VAULT_FACTORY_ABI = [
     "function getVaultByClub(bytes32 clubId) view returns (address)",
     "function createClubVault(bytes32 clubId, string name_, string symbol_, uint256 depositCap) returns (address)"
@@ -20,10 +21,7 @@ async function ensureClubVaultExists(params) {
     if (!env.CLUB_VAULT_FACTORY_ADDRESS) {
         throw new Error("CLUB_VAULT_FACTORY_ADDRESS missing (factory auto-deploy disabled)");
     }
-    if (!env.BASE_RPC_URL) {
-        throw new Error("RPC_URL missing (needed for factory reads/writes)");
-    }
-    const provider = new ethers_1.ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    const provider = (0, rpc_1.getBaseProvider)(env);
     const signer = env.BASE_EXECUTOR_PRIVATE_KEY ? new ethers_1.ethers.Wallet(env.BASE_EXECUTOR_PRIVATE_KEY, provider) : undefined;
     const factory = new ethers_1.ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, CLUB_VAULT_FACTORY_ABI, signer ?? provider);
     const clubId = computeClubId(clubName);

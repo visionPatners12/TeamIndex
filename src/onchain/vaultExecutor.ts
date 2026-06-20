@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import type { Env } from "../config/env";
 import { USDC4626VAULT } from "../contracts/usdc4626vault";
+import { getBaseProvider } from "./rpc";
 
 const CLUB_VAULT_FACTORY_ABI = ["function getVaultByClub(bytes32 clubId) view returns (address)"];
 
@@ -31,8 +32,7 @@ export async function getVaultContract(
   pool?: PoolIdentity
 ) {
   if (!provider) {
-    if (!env.BASE_RPC_URL) throw new Error("RPC_URL missing");
-    provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    provider = getBaseProvider(env);
   }
 
   const placeholderAddress = "0x0000000000000000000000000000000000000001";

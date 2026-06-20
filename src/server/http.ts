@@ -55,6 +55,13 @@ import {
 } from "../limitless/partnerAccounts";
 import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
 import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
+import {
+  getBaseBlockNumber,
+  getBaseProvider,
+  getBaseTransactionReceipt,
+  isBaseRpcRateLimitError,
+  isBaseRpcUnavailableError,
+} from "../onchain/rpc";
 
 declare global {
   namespace Express {
@@ -123,6 +130,17 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   function noStore(res: express.Response) {
     res.setHeader("Cache-Control", "no-store, max-age=0");
+  }
+
+  function respondRpcError(res: express.Response, err: unknown, fallbackMessage: string) {
+    if (isBaseRpcRateLimitError(err)) {
+      return res.status(429).json({ ok: false, code: "RPC_RATE_LIMITED", error: "Base RPC is rate limited. Please retry shortly." });
+    }
+    if (isBaseRpcUnavailableError(err)) {
+      return res.status(503).json({ ok: false, code: "RPC_UNAVAILABLE", error: "Base RPC is unavailable. Please retry shortly." });
+    }
+    const message = err instanceof Error ? err.message : fallbackMessage;
+    return res.status(400).json({ ok: false, error: message });
   }
 
   function inferBaseRetryStatus(deposit: any) {
@@ -254,11 +272,9 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   }
 
   async function ingestBaseDepositTx(txHash: string) {
-    if (!env.BASE_RPC_URL) throw new Error("BASE_RPC_URL is required");
     if (!env.BASE_DEPOSIT_RECEIVER_ADDRESS) throw new Error("BASE_DEPOSIT_RECEIVER_ADDRESS is required");
 
-    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
-    const receipt = await provider.getTransactionReceipt(txHash);
+    const receipt = await getBaseTransactionReceipt(env, txHash);
     if (!receipt) throw new Error("Transaction not found on Base");
     if (receipt.status !== 1) throw new Error("Transaction was not successful");
 
@@ -786,11 +802,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     if (!env.CLUB_VAULT_FACTORY_ADDRESS) {
       return res.status(400).json({ error: "CLUB_VAULT_FACTORY_ADDRESS not set in backend .env" });
     }
-    if (!env.BASE_RPC_URL) {
-      return res.status(400).json({ error: "RPC_URL not set in backend .env" });
-    }
-
-    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    const provider = getBaseProvider(env);
     const FACTORY_ABI = [
       "function getVaultByClub(bytes32) view returns (address)",
       "function createClubVault(bytes32, string, string, uint256) returns (address)"
@@ -845,9 +857,9 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
       // If vaultAddress not provided, try to resolve from factory (read-only, no signing)
       let resolvedVaultAddress = vaultDeployment?.vaultAddress ?? body.vaultAddress ?? null;
-      if (!resolvedVaultAddress && env.CLUB_VAULT_FACTORY_ADDRESS && env.BASE_RPC_URL) {
+      if (!resolvedVaultAddress && env.CLUB_VAULT_FACTORY_ADDRESS) {
         try {
-          const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+          const provider = getBaseProvider(env);
           const FACTORY_ABI = ["function getVaultByClub(bytes32) view returns (address)"];
           const factory = new ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, FACTORY_ABI, provider);
           const clubId = ethers.solidityPackedKeccak256(["string"], [body.clubName]);
@@ -1505,10 +1517,12 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
 
-    if (!env.BASE_RPC_URL) return res.status(400).json({ error: "RPC_URL missing" });
-    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
-
-    const latest = await provider.getBlockNumber();
+    let latest: number;
+    try {
+      latest = await getBaseBlockNumber(env);
+    } catch (err) {
+      return respondRpcError(res, err, "Failed to read latest Base block");
+    }
     const lastSynced = typeof (pool.riskParams as any)?.lastSyncedBlock === "number" ? (pool.riskParams as any).lastSyncedBlock : undefined;
 
     const fromBlock = body.fromBlock ?? (lastSynced !== undefined ? lastSynced + 1 : Math.max(0, latest - 50_000));
@@ -1563,18 +1577,18 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       .parse(req.body);
     const txLc = body.txHash.toLowerCase();
 
-    if (!env.BASE_RPC_URL) {
-      return res.status(400).json({ error: "RPC_URL missing" });
-    }
-
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     if (!pool.vaultAddress) {
       return res.status(400).json({ error: "Pool vaultAddress not configured" });
     }
 
-    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
-    const receipt = await provider.getTransactionReceipt(body.txHash);
+    let receipt;
+    try {
+      receipt = await getBaseTransactionReceipt(env, body.txHash);
+    } catch (err) {
+      return respondRpcError(res, err, "Failed to confirm deposit transaction");
+    }
     if (!receipt || receipt.status !== 1) {
       return res.status(400).json({ error: "Transaction not found or not successful" });
     }
@@ -1615,8 +1629,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/deposit", async (req, res) => {
     const body = prepareDepositSchema.parse(req.body);
     const poolId = req.params.poolId;
-    if (!env.BASE_RPC_URL) return res.status(500).json({ error: "RPC_URL is required." });
-    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    const provider = getBaseProvider(env);
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1659,7 +1672,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/mint", async (req, res) => {
     const body = prepareMintSchema.parse(req.body);
     const poolId = req.params.poolId;
-    const provider = env.BASE_RPC_URL ? new ethers.JsonRpcProvider(env.BASE_RPC_URL) : undefined;
+    const provider = getBaseProvider(env);
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1679,7 +1692,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/withdraw", async (req, res) => {
     const body = prepareWithdrawSchema.parse(req.body);
     const poolId = req.params.poolId;
-    const provider = env.BASE_RPC_URL ? new ethers.JsonRpcProvider(env.BASE_RPC_URL) : undefined;
+    const provider = getBaseProvider(env);
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1699,7 +1712,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.post("/pools/:poolId/tx/redeem", async (req, res) => {
     const body = prepareRedeemSchema.parse(req.body);
     const poolId = req.params.poolId;
-    const provider = env.BASE_RPC_URL ? new ethers.JsonRpcProvider(env.BASE_RPC_URL) : undefined;
+    const provider = getBaseProvider(env);
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
     const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
@@ -1812,7 +1825,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       const deposits = await ingestBaseDepositTx(body.txHash);
       res.json({ ok: true, deposits: deposits.map(serializeBaseChainDeposit) });
     } catch (err: any) {
-      res.status(400).json({ ok: false, error: err?.message ?? "Failed to confirm Base deposit" });
+      return respondRpcError(res, err, "Failed to confirm Base deposit");
     }
   });
 
