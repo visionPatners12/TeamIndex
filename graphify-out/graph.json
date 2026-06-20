@@ -2769,7 +2769,7 @@
       "label": "registerSwagger()",
       "file_type": "code",
       "source_file": "src/server/swagger.ts",
-      "source_location": "L539",
+      "source_location": "L560",
       "id": "server_swagger_registerswagger",
       "community": 5,
       "norm_label": "registerswagger()"
@@ -11995,5 +11995,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8cb730be4532bfed38347c8d7811d3666c684b68"
+  "built_at_commit": "3a8d6ca50a8ce1275334db6499b41119fbc3020f"
 }

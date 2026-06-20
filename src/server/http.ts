@@ -121,6 +121,10 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     };
   }
 
+  function noStore(res: express.Response) {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+  }
+
   function inferBaseRetryStatus(deposit: any) {
     if (deposit.processingStep === "BASE_RELEASE" && !deposit.releaseTxHash) return manualReconciliationStatus;
     if (deposit.processingStep === "LIFI_BRIDGE" && !deposit.lifiBridgeTxHash) return manualReconciliationStatus;
@@ -237,6 +241,77 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     return null;
   }
 
+  const baseDepositReceiverEvents = new ethers.Interface([
+    "event DepositReceived(uint256 indexed depositId, address indexed user, address token, uint256 amount, bytes32 poolId)"
+  ]);
+
+  async function resolveClubPoolIdByHash(poolIdHash: string) {
+    const pools = await prisma.club_pools.findMany({ select: { id: true, clubName: true } });
+    const normalized = poolIdHash.toLowerCase();
+    return pools.find((pool) =>
+      ethers.solidityPackedKeccak256(["string"], [pool.clubName]).toLowerCase() === normalized
+    )?.id ?? null;
+  }
+
+  async function ingestBaseDepositTx(txHash: string) {
+    if (!env.BASE_RPC_URL) throw new Error("BASE_RPC_URL is required");
+    if (!env.BASE_DEPOSIT_RECEIVER_ADDRESS) throw new Error("BASE_DEPOSIT_RECEIVER_ADDRESS is required");
+
+    const provider = new ethers.JsonRpcProvider(env.BASE_RPC_URL);
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (!receipt) throw new Error("Transaction not found on Base");
+    if (receipt.status !== 1) throw new Error("Transaction was not successful");
+
+    const receiverAddress = env.BASE_DEPOSIT_RECEIVER_ADDRESS.toLowerCase();
+    const rows = [];
+
+    for (const log of receipt.logs) {
+      if ((log.address || "").toLowerCase() !== receiverAddress) continue;
+
+      let parsed: ethers.LogDescription | null = null;
+      try {
+        parsed = baseDepositReceiverEvents.parseLog({ topics: [...log.topics], data: log.data });
+      } catch {
+        parsed = null;
+      }
+      if (!parsed || parsed.name !== "DepositReceived") continue;
+
+      const depositId = BigInt(parsed.args.depositId.toString());
+      const userAddress = String(parsed.args.user).toLowerCase();
+      const sourceToken = String(parsed.args.token).toLowerCase();
+      const sourceAmount = parsed.args.amount.toString();
+      const poolIdHash = String(parsed.args.poolId).toLowerCase();
+      const clubPoolId = await resolveClubPoolIdByHash(poolIdHash);
+
+      const row = await (prisma as any).base_chain_deposits.upsert({
+        where: { baseDepositId: depositId },
+        update: {
+          poolIdHash,
+          clubPoolId,
+          userAddress,
+          sourceToken,
+          sourceAmount,
+          baseTxHash: receipt.hash.toLowerCase(),
+          lastError: null,
+        },
+        create: {
+          poolIdHash,
+          clubPoolId,
+          userAddress,
+          sourceToken,
+          sourceAmount,
+          baseDepositId: depositId,
+          baseTxHash: receipt.hash.toLowerCase(),
+          status: "RECEIVED",
+        },
+      });
+      rows.push(row);
+    }
+
+    if (rows.length === 0) throw new Error("No Base DepositReceived event found in transaction");
+    return rows;
+  }
+
   app.post("/webhooks/cdp/onchain-activity", async (req, res) => {
     if (!verifyCdpWebhook(req)) {
       return res.status(401).json({ ok: false, error: "Invalid webhook signature" });
@@ -304,6 +379,15 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         processingStatus: "PENDING",
       },
     });
+
+    if (eventName === "DepositReceived" && contractAddress === String(env.BASE_DEPOSIT_RECEIVER_ADDRESS ?? "").toLowerCase()) {
+      try {
+        const deposits = await ingestBaseDepositTx(transactionHash);
+        return res.json({ ok: true, eventId: row.id, deposits: deposits.map(serializeBaseChainDeposit) });
+      } catch (err: any) {
+        logger.warn({ err, transactionHash }, "failed to ingest Base deposit webhook");
+      }
+    }
 
     return res.json({ ok: true, eventId: row.id });
   });
@@ -620,6 +704,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   // were received on the BaseDepositReceiver but haven't been fully processed
   // into wrapped shares yet. Lets the Dashboard surface a "Bridging…" banner.
   app.get("/users/:address/pending-base-deposits", async (req, res) => {
+    noStore(res);
     const address = String(req.params.address || "").trim();
     if (!address) return res.status(400).json({ error: "Missing address" });
 
@@ -1718,7 +1803,21 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     res.json({ ok: true, deprecated: true, ...summary });
   });
 
+  app.post("/base/deposits/confirm", async (req, res) => {
+    const body = z.object({
+      txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/)
+    }).parse(req.body);
+
+    try {
+      const deposits = await ingestBaseDepositTx(body.txHash);
+      res.json({ ok: true, deposits: deposits.map(serializeBaseChainDeposit) });
+    } catch (err: any) {
+      res.status(400).json({ ok: false, error: err?.message ?? "Failed to confirm Base deposit" });
+    }
+  });
+
   app.get("/base/deposits/:depositId", async (req, res) => {
+    noStore(res);
     const deposit = await (prisma as any).base_chain_deposits.findUnique({
       where: { id: req.params.depositId }
     });
@@ -1727,6 +1826,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.get("/base/deposits/user/:userAddress", async (req, res) => {
+    noStore(res);
     const deposits = await (prisma as any).base_chain_deposits.findMany({
       where: { userAddress: req.params.userAddress },
       orderBy: { createdAt: "desc" }

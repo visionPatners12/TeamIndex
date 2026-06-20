@@ -329,6 +329,27 @@ export const swaggerSpec = {
         responses: { 200: { description: "Deposit status" } }
       }
     },
+    "/base/deposits/confirm": {
+      post: {
+        tags: ["base"],
+        summary: "Confirm and ingest a successful Base deposit transaction",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  txHash: { type: "string", example: "0xd33d703c9592e377c02c9c7b2ccfc30c3ae4579c7570cb30a1f638f88a49f878" }
+                },
+                required: ["txHash"]
+              }
+            }
+          }
+        },
+        responses: { 200: { description: "Ingested Base deposit rows" } }
+      }
+    },
     "/base/deposits/user/{userAddress}": {
       get: {
         tags: ["base"],
