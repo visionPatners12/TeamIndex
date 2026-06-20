@@ -1754,11 +1754,12 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     amount: z.coerce.bigint()
   });
 
-  function serializeTxRequest(tx: TransactionRequest) {
+  function serializeTxRequest(tx: TransactionRequest, gasLimit?: bigint) {
     return {
       to: tx.to,
       data: tx.data,
       value: tx.value == null ? undefined : tx.value.toString(),
+      gas: gasLimit == null ? undefined : ethers.toQuantity(gasLimit),
     };
   }
 
@@ -1799,8 +1800,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       usdcAddress: env.BASE_USDC_ADDRESS,
       receiverAddress: env.BASE_DEPOSIT_RECEIVER_ADDRESS,
       txs: {
-        approveTx: serializeTxRequest(approveTx),
-        depositTx: serializeTxRequest(depositTx),
+        approveTx: serializeTxRequest(approveTx, 100_000n),
+        depositTx: serializeTxRequest(depositTx, 250_000n),
       },
     });
   });

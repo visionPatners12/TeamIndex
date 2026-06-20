@@ -1588,11 +1588,12 @@ function startHttpServer({ env, logger }) {
         poolId: zod_1.z.string().min(1),
         amount: zod_1.z.coerce.bigint()
     });
-    function serializeTxRequest(tx) {
+    function serializeTxRequest(tx, gasLimit) {
         return {
             to: tx.to,
             data: tx.data,
             value: tx.value == null ? undefined : tx.value.toString(),
+            gas: gasLimit == null ? undefined : ethers_1.ethers.toQuantity(gasLimit),
         };
     }
     app.post("/base/tx/deposit-usdc", async (req, res) => {
@@ -1622,8 +1623,8 @@ function startHttpServer({ env, logger }) {
             usdcAddress: env.BASE_USDC_ADDRESS,
             receiverAddress: env.BASE_DEPOSIT_RECEIVER_ADDRESS,
             txs: {
-                approveTx: serializeTxRequest(approveTx),
-                depositTx: serializeTxRequest(depositTx),
+                approveTx: serializeTxRequest(approveTx, 100000n),
+                depositTx: serializeTxRequest(depositTx, 250000n),
             },
         });
     });
