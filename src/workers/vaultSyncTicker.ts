@@ -2,7 +2,7 @@ import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { compactRpcError, getRpcRateLimitCooldownUntil, isRpcRateLimitError } from "../onchain/ethersLogChunks";
 import { syncVaultEventsToDb } from "../onchain/poolSync";
-import { getBaseBlockNumber, getBaseProvider, getBaseRpcUrls } from "../onchain/rpc";
+import { getBaseBlockNumber, getBaseRpcUrls, withBaseRpcRetry } from "../onchain/rpc";
 import { getVaultContract } from "../onchain/vaultExecutor";
 import { recalculateOfficialPrices } from "../services/priceEngine";
 import {
@@ -37,7 +37,6 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
 
   logger.info({ intervalMs }, "Vault sync ticker started");
 
-  const provider = getBaseProvider(env);
   let isTicking = false;
 
   async function tick() {
@@ -60,10 +59,12 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
         let vaultAddress = pool.vaultAddress ?? undefined;
         if (!vaultAddress) {
           try {
-            const vault = await getVaultContract(env, provider as any, {
-              clubName: pool.clubName,
-              vaultAddress: undefined
-            });
+            const vault = await withBaseRpcRetry(env, (provider) =>
+              getVaultContract(env, provider as any, {
+                clubName: pool.clubName,
+                vaultAddress: undefined
+              })
+            );
             vaultAddress = ((vault as any).target ?? (vault as any).address) as string;
           } catch (err: any) {
             logger.warn({ err: compactRpcError(err), poolId: pool.id }, "Vault sync skipped: vault address could not be resolved");
@@ -123,18 +124,20 @@ export function startVaultSyncTicker({ env, logger }: { env: Env; logger: Return
         } catch (err: any) {
           const cooldownUntil = isRpcRateLimitError(err) ? getRpcRateLimitCooldownUntil() : null;
           await failChainEventCursor({ key: cursorKey, workerId, err, cooldownUntil });
-          logger.error(
-            {
-              err: compactRpcError(err),
-              poolId: pool.id,
-              chain: "polygon",
-              cursorKey,
-              fromBlock,
-              toBlock,
-              cooldownUntil: cooldownUntil?.toISOString()
-            },
-            "Vault sync tick failed for pool"
-          );
+          const logPayload = {
+            err: compactRpcError(err),
+            poolId: pool.id,
+            chain: "polygon",
+            cursorKey,
+            fromBlock,
+            toBlock,
+            cooldownUntil: cooldownUntil?.toISOString()
+          };
+          if (cooldownUntil) {
+            logger.warn(logPayload, "Vault sync rate limited; cursor cooling down");
+          } else {
+            logger.error(logPayload, "Vault sync tick failed for pool");
+          }
           if (cooldownUntil) break;
         }
       }

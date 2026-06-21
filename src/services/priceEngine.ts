@@ -1,6 +1,7 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
-import { getBaseProvider } from "../onchain/rpc";
+import { withBaseRpcRetry } from "../onchain/rpc";
+import { isRpcRateLimitError } from "../onchain/ethersLogChunks";
 import { getVaultContract } from "../onchain/vaultExecutor";
 import { parseUnits } from "ethers";
 
@@ -98,13 +99,18 @@ export async function recalculateOfficialPrices(env: Env) {
         const rPnLBase = realizedPnl >= 0
           ? humanUsdToUsdcBaseUnits(realizedPnl)
           : -humanUsdToUsdcBaseUnits(-realizedPnl);
-        const provider = getBaseProvider(env);
-        const vault = await getVaultContract(env, provider, {
-          clubName: pool.clubName,
-          vaultAddress: pool.vaultAddress ?? undefined
-        });
-        const tx = await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
-        await tx.wait(); // serialize: don't return until this NAV update has mined
+        await withBaseRpcRetry(env, async (provider) => {
+          const vault = await getVaultContract(env, provider, {
+            clubName: pool.clubName,
+            vaultAddress: pool.vaultAddress ?? undefined
+          });
+          const tx = await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
+          try {
+            await tx.wait(); // serialize when the RPC can confirm the tx
+          } catch (err) {
+            if (!isRpcRateLimitError(err)) throw err;
+          }
+        }, { maxRetriesPerUrl: 1 });
       } catch {
         // Onchain valuation update failure shouldn't block price recalculation.
       }

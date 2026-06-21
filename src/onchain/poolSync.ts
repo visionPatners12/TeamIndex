@@ -1,9 +1,9 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { getVaultContract } from "./vaultExecutor";
-import { formatUnits } from "ethers";
+import { formatUnits, type EventLog, type JsonRpcProvider } from "ethers";
 import { queryFilterInBlockChunks } from "./ethersLogChunks";
-import { getBaseProvider } from "./rpc";
+import { withBaseRpcRetry } from "./rpc";
 
 type SyncInputs = {
   env: Env;
@@ -25,6 +25,14 @@ type SyncInputs = {
   chunkSizeEnv?: string;
 };
 
+type VaultSyncSnapshot = {
+  depositEvents: EventLog[];
+  withdrawEvents: EventLog[];
+  feeEvents: EventLog[];
+  totalAssets: bigint;
+  totalSupply: bigint;
+};
+
 function decToStr(x: any) {
   if (x === null || x === undefined) return "0";
   if (typeof x === "string") return x;
@@ -32,6 +40,44 @@ function decToStr(x: any) {
   if (typeof x === "number") return String(x);
   if (x && typeof x.toString === "function") return x.toString();
   return String(x);
+}
+
+async function readVaultSyncSnapshot(
+  {
+    env,
+    pool,
+    fromBlock,
+    toBlock,
+    logger,
+    logContext,
+    chunkSizeEnv
+  }: Pick<SyncInputs, "env" | "pool" | "fromBlock" | "toBlock" | "logger" | "logContext" | "chunkSizeEnv">,
+  provider: JsonRpcProvider
+): Promise<VaultSyncSnapshot> {
+  const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
+  const logOptions = {
+    chunkSizeEnv,
+    maxRetriesEnv: "BASE_RPC_GETLOGS_MAX_RETRIES_PER_URL",
+    logger,
+    context: logContext
+  };
+
+  const depositEvents = await queryFilterInBlockChunks(vault, vault.filters.Deposit(), fromBlock, toBlock, {
+    ...logOptions,
+    context: { ...(logContext ?? {}), eventName: "Deposit" }
+  });
+  const withdrawEvents = await queryFilterInBlockChunks(vault, vault.filters.Withdraw(), fromBlock, toBlock, {
+    ...logOptions,
+    context: { ...(logContext ?? {}), eventName: "Withdraw" }
+  });
+  const feeEvents = await queryFilterInBlockChunks(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock, {
+    ...logOptions,
+    context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
+  });
+  const totalAssets = (await (vault as any).totalCash()) as bigint;
+  const totalSupply = (await vault.totalSupply()) as bigint;
+
+  return { depositEvents, withdrawEvents, feeEvents, totalAssets, totalSupply };
 }
 
 export async function syncVaultEventsToDb({
@@ -52,24 +98,29 @@ export async function syncVaultEventsToDb({
       ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
       : null;
 
-  const provider = getBaseProvider(env);
-  const vault = await getVaultContract(env, provider as any, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
-
-  const depositEvents = await queryFilterInBlockChunks(vault, vault.filters.Deposit(), fromBlock, toBlock, {
-    chunkSizeEnv,
-    logger,
-    context: { ...(logContext ?? {}), eventName: "Deposit" }
-  });
-  const withdrawEvents = await queryFilterInBlockChunks(vault, vault.filters.Withdraw(), fromBlock, toBlock, {
-    chunkSizeEnv,
-    logger,
-    context: { ...(logContext ?? {}), eventName: "Withdraw" }
-  });
-  const feeEvents = await queryFilterInBlockChunks(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock, {
-    chunkSizeEnv,
-    logger,
-    context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
-  });
+  const {
+    depositEvents,
+    withdrawEvents,
+    feeEvents,
+    totalAssets,
+    totalSupply
+  } = await withBaseRpcRetry(
+    env,
+    (provider) =>
+      readVaultSyncSnapshot(
+        {
+          env,
+          pool,
+          fromBlock,
+          toBlock,
+          logger,
+          logContext,
+          chunkSizeEnv
+        },
+        provider
+      ),
+    { maxRetriesPerUrl: 1 }
+  );
 
   // Map txHash -> fee info for deposit/mint transactions.
   const feeByTx = new Map<
@@ -177,9 +228,6 @@ export async function syncVaultEventsToDb({
       data: { tokenBalance: { decrement: shares.toString() } as any }
     });
   }
-
-  const totalAssets = (await (vault as any).totalCash()) as bigint;
-  const totalSupply = (await vault.totalSupply()) as bigint;
 
   // totalCash is USDC base units (6 decimals); store human USD in DB for pricing + UI.
   const cashHuman = formatUnits(totalAssets, 6);

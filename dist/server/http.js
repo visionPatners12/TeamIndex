@@ -527,6 +527,7 @@ function startHttpServer({ env, logger }) {
                 tokenBalance: { gt: 0 },
             },
         });
+        const nativeSharePoolIds = new Set(userRows.map((row) => row.poolId));
         // Base bridge holders — only COMPLETED deposits map to onchain wrapped balances.
         const baseDepositRows = await prisma_1.prisma.base_chain_deposits.findMany({
             where: {
@@ -540,6 +541,8 @@ function startHttpServer({ env, logger }) {
         const baseSharesRawByPool = new Map();
         for (const dep of baseDepositRows) {
             if (!dep.clubPoolId || !dep.sharesMinted)
+                continue;
+            if (nativeSharePoolIds.has(dep.clubPoolId))
                 continue;
             const prev = baseSharesRawByPool.get(dep.clubPoolId) ?? 0n;
             // `sharesMinted` is stored as a Decimal (6-decimal raw integer) — coerce via string.
@@ -1497,14 +1500,15 @@ function startHttpServer({ env, logger }) {
             });
         }
         const tx = await depositFn.populateTransaction(body.assets, body.receiver);
+        const serializedDepositTx = serializeTxRequest(tx, 400000n);
         res.json({
             ok: true,
-            tx,
+            tx: serializedDepositTx,
             vaultAddress,
             assetAddress,
             txs: {
-                approveTx,
-                depositTx: tx
+                approveTx: serializeTxRequest(approveTx, 100000n),
+                depositTx: serializedDepositTx
             }
         });
     });

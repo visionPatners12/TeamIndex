@@ -603,6 +603,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         tokenBalance: { gt: 0 },
       },
     });
+    const nativeSharePoolIds = new Set(userRows.map((row) => row.poolId));
 
     // Base bridge holders — only COMPLETED deposits map to onchain wrapped balances.
     const baseDepositRows = await (prisma as any).base_chain_deposits.findMany({
@@ -618,6 +619,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const baseSharesRawByPool = new Map<string, bigint>();
     for (const dep of baseDepositRows as Array<{ clubPoolId: string | null; sharesMinted: { toString(): string } | null }>) {
       if (!dep.clubPoolId || !dep.sharesMinted) continue;
+      if (nativeSharePoolIds.has(dep.clubPoolId)) continue;
       const prev = baseSharesRawByPool.get(dep.clubPoolId) ?? 0n;
       // `sharesMinted` is stored as a Decimal (6-decimal raw integer) — coerce via string.
       baseSharesRawByPool.set(dep.clubPoolId, prev + BigInt(dep.sharesMinted.toString().split(".")[0]));
@@ -1657,14 +1659,15 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       });
     }
     const tx: TransactionRequest = await depositFn.populateTransaction(body.assets, body.receiver);
+    const serializedDepositTx = serializeTxRequest(tx, 400_000n);
     res.json({
       ok: true,
-      tx,
+      tx: serializedDepositTx,
       vaultAddress,
       assetAddress,
       txs: {
-        approveTx,
-        depositTx: tx
+        approveTx: serializeTxRequest(approveTx, 100_000n),
+        depositTx: serializedDepositTx
       }
     });
   });

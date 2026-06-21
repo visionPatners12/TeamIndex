@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.recalculateOfficialPrices = recalculateOfficialPrices;
 const prisma_1 = require("../db/prisma");
 const rpc_1 = require("../onchain/rpc");
+const ethersLogChunks_1 = require("../onchain/ethersLogChunks");
 const vaultExecutor_1 = require("../onchain/vaultExecutor");
 const ethers_1 = require("ethers");
 function decToNumber(d) {
@@ -99,13 +100,20 @@ async function recalculateOfficialPrices(env) {
                 const rPnLBase = realizedPnl >= 0
                     ? humanUsdToUsdcBaseUnits(realizedPnl)
                     : -humanUsdToUsdcBaseUnits(-realizedPnl);
-                const provider = (0, rpc_1.getBaseProvider)(env);
-                const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
-                    clubName: pool.clubName,
-                    vaultAddress: pool.vaultAddress ?? undefined
-                });
-                const tx = await vault.setPoolValuation(posBase.toString(), rPnLBase.toString());
-                await tx.wait(); // serialize: don't return until this NAV update has mined
+                await (0, rpc_1.withBaseRpcRetry)(env, async (provider) => {
+                    const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
+                        clubName: pool.clubName,
+                        vaultAddress: pool.vaultAddress ?? undefined
+                    });
+                    const tx = await vault.setPoolValuation(posBase.toString(), rPnLBase.toString());
+                    try {
+                        await tx.wait(); // serialize when the RPC can confirm the tx
+                    }
+                    catch (err) {
+                        if (!(0, ethersLogChunks_1.isRpcRateLimitError)(err))
+                            throw err;
+                    }
+                }, { maxRetriesPerUrl: 1 });
             }
             catch {
                 // Onchain valuation update failure shouldn't block price recalculation.

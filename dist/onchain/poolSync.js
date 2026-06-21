@@ -19,29 +19,45 @@ function decToStr(x) {
         return x.toString();
     return String(x);
 }
+async function readVaultSyncSnapshot({ env, pool, fromBlock, toBlock, logger, logContext, chunkSizeEnv }, provider) {
+    const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
+    const logOptions = {
+        chunkSizeEnv,
+        maxRetriesEnv: "BASE_RPC_GETLOGS_MAX_RETRIES_PER_URL",
+        logger,
+        context: logContext
+    };
+    const depositEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Deposit(), fromBlock, toBlock, {
+        ...logOptions,
+        context: { ...(logContext ?? {}), eventName: "Deposit" }
+    });
+    const withdrawEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Withdraw(), fromBlock, toBlock, {
+        ...logOptions,
+        context: { ...(logContext ?? {}), eventName: "Withdraw" }
+    });
+    const feeEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock, {
+        ...logOptions,
+        context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
+    });
+    const totalAssets = (await vault.totalCash());
+    const totalSupply = (await vault.totalSupply());
+    return { depositEvents, withdrawEvents, feeEvents, totalAssets, totalSupply };
+}
 async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransactionHashes, skipCursorAdvance, logger, logContext, chunkSizeEnv }) {
     if (fromBlock > toBlock)
         return;
     const onlySet = onlyTransactionHashes && onlyTransactionHashes.length > 0
         ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
         : null;
-    const provider = (0, rpc_1.getBaseProvider)(env);
-    const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, { clubName: pool.clubName, vaultAddress: pool.vaultAddress });
-    const depositEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Deposit(), fromBlock, toBlock, {
-        chunkSizeEnv,
+    const { depositEvents, withdrawEvents, feeEvents, totalAssets, totalSupply } = await (0, rpc_1.withBaseRpcRetry)(env, (provider) => readVaultSyncSnapshot({
+        env,
+        pool,
+        fromBlock,
+        toBlock,
         logger,
-        context: { ...(logContext ?? {}), eventName: "Deposit" }
-    });
-    const withdrawEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.Withdraw(), fromBlock, toBlock, {
-        chunkSizeEnv,
-        logger,
-        context: { ...(logContext ?? {}), eventName: "Withdraw" }
-    });
-    const feeEvents = await (0, ethersLogChunks_1.queryFilterInBlockChunks)(vault, vault.filters.VaultFeeCharged(), fromBlock, toBlock, {
-        chunkSizeEnv,
-        logger,
-        context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
-    });
+        logContext,
+        chunkSizeEnv
+    }, provider), { maxRetriesPerUrl: 1 });
     // Map txHash -> fee info for deposit/mint transactions.
     const feeByTx = new Map();
     for (const ev of feeEvents) {
@@ -142,8 +158,6 @@ async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransact
             data: { tokenBalance: { decrement: shares.toString() } }
         });
     }
-    const totalAssets = (await vault.totalCash());
-    const totalSupply = (await vault.totalSupply());
     // totalCash is USDC base units (6 decimals); store human USD in DB for pricing + UI.
     const cashHuman = (0, ethers_1.formatUnits)(totalAssets, 6);
     await prisma_1.prisma.club_pools.update({

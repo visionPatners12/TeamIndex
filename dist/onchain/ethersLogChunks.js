@@ -48,7 +48,12 @@ function errorText(value, depth = 0) {
             errorText(obj.error, depth + 1),
             errorText(obj.value, depth + 1),
             errorText(obj.info, depth + 1),
-            errorText(obj.payload, depth + 1)
+            errorText(obj.payload, depth + 1),
+            errorText(obj.responseBody, depth + 1),
+            errorText(obj.responseStatus, depth + 1),
+            errorText(obj.requestUrl, depth + 1),
+            errorText(obj.status, depth + 1),
+            errorText(obj.statusCode, depth + 1)
         ].join(" ");
     }
     return "";
@@ -80,15 +85,19 @@ function normalizeOptions(options) {
             chunkSizeEnv: "",
             minDelayMs: positiveIntFromEnv("ETH_GETLOGS_MIN_DELAY_MS", 300),
             maxRetries: positiveIntFromEnv("ETH_GETLOGS_MAX_RETRIES", 6),
+            maxRetriesEnv: "",
             retryBaseMs: positiveIntFromEnv("ETH_GETLOGS_RETRY_BASE_MS", 1000)
         };
     }
     const chunkSize = options?.chunkSize ?? getLogsBlockChunkSize(options?.chunkSizeEnv);
+    const maxRetries = options?.maxRetries ??
+        (options?.maxRetriesEnv ? positiveIntFromEnv(options.maxRetriesEnv, 1) : positiveIntFromEnv("ETH_GETLOGS_MAX_RETRIES", 6));
     return {
         chunkSize: Math.max(1, Math.floor(chunkSize)),
         chunkSizeEnv: options?.chunkSizeEnv ?? "",
         minDelayMs: options?.minDelayMs ?? positiveIntFromEnv("ETH_GETLOGS_MIN_DELAY_MS", 300),
-        maxRetries: options?.maxRetries ?? positiveIntFromEnv("ETH_GETLOGS_MAX_RETRIES", 6),
+        maxRetries,
+        maxRetriesEnv: options?.maxRetriesEnv ?? "",
         retryBaseMs: options?.retryBaseMs ?? positiveIntFromEnv("ETH_GETLOGS_RETRY_BASE_MS", 1000),
         logger: options?.logger,
         context: options?.context

@@ -29,7 +29,6 @@ function startVaultSyncTicker({ env, logger }) {
         return;
     }
     logger.info({ intervalMs }, "Vault sync ticker started");
-    const provider = (0, rpc_1.getBaseProvider)(env);
     let isTicking = false;
     async function tick() {
         if (isTicking) {
@@ -50,10 +49,10 @@ function startVaultSyncTicker({ env, logger }) {
                 let vaultAddress = pool.vaultAddress ?? undefined;
                 if (!vaultAddress) {
                     try {
-                        const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
+                        const vault = await (0, rpc_1.withBaseRpcRetry)(env, (provider) => (0, vaultExecutor_1.getVaultContract)(env, provider, {
                             clubName: pool.clubName,
                             vaultAddress: undefined
-                        });
+                        }));
                         vaultAddress = (vault.target ?? vault.address);
                     }
                     catch (err) {
@@ -109,7 +108,7 @@ function startVaultSyncTicker({ env, logger }) {
                 catch (err) {
                     const cooldownUntil = (0, ethersLogChunks_1.isRpcRateLimitError)(err) ? (0, ethersLogChunks_1.getRpcRateLimitCooldownUntil)() : null;
                     await (0, chainEventCursor_1.failChainEventCursor)({ key: cursorKey, workerId, err, cooldownUntil });
-                    logger.error({
+                    const logPayload = {
                         err: (0, ethersLogChunks_1.compactRpcError)(err),
                         poolId: pool.id,
                         chain: "polygon",
@@ -117,7 +116,13 @@ function startVaultSyncTicker({ env, logger }) {
                         fromBlock,
                         toBlock,
                         cooldownUntil: cooldownUntil?.toISOString()
-                    }, "Vault sync tick failed for pool");
+                    };
+                    if (cooldownUntil) {
+                        logger.warn(logPayload, "Vault sync rate limited; cursor cooling down");
+                    }
+                    else {
+                        logger.error(logPayload, "Vault sync tick failed for pool");
+                    }
                     if (cooldownUntil)
                         break;
                 }
