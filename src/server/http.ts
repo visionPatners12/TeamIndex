@@ -505,7 +505,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   app.get("/teams", async (_req, res) => {
     try {
-      const teams = await listLimitlessTeams(prisma);
+      const limitlessOnly = ["1", "true", "yes"].includes(String(_req.query.limitlessOnly ?? "").toLowerCase());
+      const teams = await listLimitlessTeams(prisma, { onlyWithLimitlessMarkets: limitlessOnly });
       res.json({ ok: true, teams });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e?.message ?? "teams_error" });

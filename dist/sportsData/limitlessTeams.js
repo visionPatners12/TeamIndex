@@ -13,6 +13,7 @@ const TeamRow = zod_1.z.object({
     sport: zod_1.z.string().nullable(),
     country: zod_1.z.string().nullable(),
     logoUrl: zod_1.z.string().nullable(),
+    limitlessMarketsCount: zod_1.z.number().int().nonnegative().optional(),
 });
 async function sportsDataColumns(prisma) {
     const rows = zod_1.z.array(ColumnRow).parse(await prisma.$queryRaw `
@@ -102,7 +103,7 @@ function assertUuid(value, label) {
         throw new Error(`${label} must be a UUID`);
     }
 }
-async function listLimitlessTeams(prisma) {
+async function listLimitlessTeams(prisma, options) {
     const columns = await sportsDataColumns(prisma);
     requireColumns(columns, "teams", ["id"]);
     const teamColumns = columns.get("teams") ?? new Set();
@@ -117,7 +118,34 @@ async function listLimitlessTeams(prisma) {
       and nullif(trim(${nameSelect}), '') is not null
     order by name asc
   `;
-    return zod_1.z.array(TeamRow).parse(rows);
+    const teams = zod_1.z.array(TeamRow).parse(rows);
+    if (!options?.onlyWithLimitlessMarkets)
+        return teams;
+    const linkedRows = (await prisma.$queryRaw `
+    select team_id::text as id, count(*)::int as "limitlessMarketsCount"
+    from (
+      select lg."homeSportsDataTeamId" as team_id, lg."marketId" as market_id
+      from "lim_games" lg
+      join "limitless_markets" lm on lm.id = lg."marketId"
+      where lg."homeSportsDataTeamId" is not null
+        and upper(coalesce(lm.status, 'ACTIVE')) = 'ACTIVE'
+      union all
+      select lg."awaySportsDataTeamId" as team_id, lg."marketId" as market_id
+      from "lim_games" lg
+      join "limitless_markets" lm on lm.id = lg."marketId"
+      where lg."awaySportsDataTeamId" is not null
+        and upper(coalesce(lm.status, 'ACTIVE')) = 'ACTIVE'
+    ) linked
+    where team_id is not null
+    group by team_id
+  `);
+    const countByTeamId = new Map(linkedRows.map((row) => [row.id, row.limitlessMarketsCount]));
+    return teams
+        .filter((team) => countByTeamId.has(team.id))
+        .map((team) => ({
+        ...team,
+        limitlessMarketsCount: countByTeamId.get(team.id) ?? 0,
+    }));
 }
 function textValue(row, keys, fallback = "") {
     for (const key of keys) {

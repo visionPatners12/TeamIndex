@@ -439,7 +439,8 @@ function startHttpServer({ env, logger }) {
     });
     app.get("/teams", async (_req, res) => {
         try {
-            const teams = await (0, limitlessTeams_1.listLimitlessTeams)(prisma_1.prisma);
+            const limitlessOnly = ["1", "true", "yes"].includes(String(_req.query.limitlessOnly ?? "").toLowerCase());
+            const teams = await (0, limitlessTeams_1.listLimitlessTeams)(prisma_1.prisma, { onlyWithLimitlessMarkets: limitlessOnly });
             res.json({ ok: true, teams });
         }
         catch (e) {
