@@ -30,6 +30,7 @@ const limitlessTeams_1 = require("../sportsData/limitlessTeams");
 const rpc_1 = require("../onchain/rpc");
 function startHttpServer({ env, logger }) {
     const app = (0, express_1.default)();
+    app.set("etag", false);
     app.use((_req, res, next) => {
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
@@ -45,6 +46,10 @@ function startHttpServer({ env, logger }) {
         },
     }));
     app.use("/docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpec));
+    app.use((_req, res, next) => {
+        noStore(res);
+        next();
+    });
     function requireAdmin(req, res, next) {
         if (!env.ADMIN_API_KEY)
             return next();
@@ -82,7 +87,10 @@ function startHttpServer({ env, logger }) {
         };
     }
     function noStore(res) {
-        res.setHeader("Cache-Control", "no-store, max-age=0");
+        res.setHeader("Cache-Control", "no-store, no-cache, max-age=0, must-revalidate, proxy-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        res.setHeader("Surrogate-Control", "no-store");
     }
     function respondRpcError(res, err, fallbackMessage) {
         if ((0, rpc_1.isBaseRpcRateLimitError)(err)) {

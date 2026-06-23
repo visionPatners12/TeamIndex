@@ -161,7 +161,12 @@ function normalizedContainsTeam(value, normalizedTeamName) {
     if (!value || !normalizedTeamName)
         return false;
     const normalized = normalizeTeamName(typeof value === "string" ? value : JSON.stringify(value));
-    return normalized.split(" ").includes(normalizedTeamName) || normalized.includes(` ${normalizedTeamName} `);
+    if (!normalized)
+        return false;
+    return normalized === normalizedTeamName ||
+        normalized.startsWith(`${normalizedTeamName} `) ||
+        normalized.endsWith(` ${normalizedTeamName}`) ||
+        normalized.includes(` ${normalizedTeamName} `);
 }
 function sideHintFromText(value, normalizedTeamName) {
     if (!value || !normalizedTeamName)

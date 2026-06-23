@@ -73,6 +73,7 @@ declare global {
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
+  app.set("etag", false);
 
   app.use((_req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -90,6 +91,11 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   }));
 
   app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+  app.use((_req, res, next) => {
+    noStore(res);
+    next();
+  });
 
   function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
     if (!env.ADMIN_API_KEY) return next();
@@ -129,7 +135,10 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   }
 
   function noStore(res: express.Response) {
-    res.setHeader("Cache-Control", "no-store, max-age=0");
+    res.setHeader("Cache-Control", "no-store, no-cache, max-age=0, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
   }
 
   function respondRpcError(res: express.Response, err: unknown, fallbackMessage: string) {
