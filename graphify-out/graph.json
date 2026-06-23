@@ -279,7 +279,7 @@
       "source_file": "package.json",
       "source_location": "L25",
       "id": "package_dependencies",
-      "community": 14,
+      "community": 4,
       "norm_label": "dependencies"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "package.json",
       "source_location": "L26",
       "id": "package_dependencies_polymarket_builder_relayer_client",
-      "community": 14,
+      "community": 4,
       "norm_label": "@polymarket/builder-relayer-client"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "package.json",
       "source_location": "L27",
       "id": "package_dependencies_polymarket_builder_signing_sdk",
-      "community": 14,
+      "community": 4,
       "norm_label": "@polymarket/builder-signing-sdk"
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "package.json",
       "source_location": "L28",
       "id": "package_dependencies_polymarket_clob_client_v2",
-      "community": 14,
+      "community": 4,
       "norm_label": "@polymarket/clob-client-v2"
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "package.json",
       "source_location": "L29",
       "id": "package_dependencies_prisma_client",
-      "community": 14,
+      "community": 4,
       "norm_label": "@prisma/client"
     },
     {
@@ -324,7 +324,7 @@
       "source_file": "package.json",
       "source_location": "L30",
       "id": "package_dependencies_bullmq",
-      "community": 14,
+      "community": 4,
       "norm_label": "bullmq"
     },
     {
@@ -333,7 +333,7 @@
       "source_file": "package.json",
       "source_location": "L31",
       "id": "package_dependencies_dotenv",
-      "community": 14,
+      "community": 4,
       "norm_label": "dotenv"
     },
     {
@@ -342,7 +342,7 @@
       "source_file": "package.json",
       "source_location": "L32",
       "id": "package_dependencies_ethers",
-      "community": 14,
+      "community": 4,
       "norm_label": "ethers"
     },
     {
@@ -351,7 +351,7 @@
       "source_file": "package.json",
       "source_location": "L33",
       "id": "package_dependencies_express",
-      "community": 14,
+      "community": 4,
       "norm_label": "express"
     },
     {
@@ -360,7 +360,7 @@
       "source_file": "package.json",
       "source_location": "L34",
       "id": "package_dependencies_ioredis",
-      "community": 14,
+      "community": 4,
       "norm_label": "ioredis"
     },
     {
@@ -369,7 +369,7 @@
       "source_file": "package.json",
       "source_location": "L35",
       "id": "package_dependencies_pino",
-      "community": 14,
+      "community": 4,
       "norm_label": "pino"
     },
     {
@@ -378,7 +378,7 @@
       "source_file": "package.json",
       "source_location": "L36",
       "id": "package_dependencies_swagger_ui_express",
-      "community": 14,
+      "community": 4,
       "norm_label": "swagger-ui-express"
     },
     {
@@ -387,7 +387,7 @@
       "source_file": "package.json",
       "source_location": "L37",
       "id": "package_dependencies_viem",
-      "community": 14,
+      "community": 4,
       "norm_label": "viem"
     },
     {
@@ -396,7 +396,7 @@
       "source_file": "package.json",
       "source_location": "L38",
       "id": "package_dependencies_zod",
-      "community": 14,
+      "community": 4,
       "norm_label": "zod"
     },
     {
@@ -405,7 +405,7 @@
       "source_file": "package.json",
       "source_location": "L40",
       "id": "package_devdependencies",
-      "community": 4,
+      "community": 8,
       "norm_label": "devdependencies"
     },
     {
@@ -414,7 +414,7 @@
       "source_file": "package.json",
       "source_location": "L41",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
-      "community": 4,
+      "community": 8,
       "norm_label": "@nomicfoundation/hardhat-ethers"
     },
     {
@@ -423,7 +423,7 @@
       "source_file": "package.json",
       "source_location": "L42",
       "id": "package_devdependencies_openzeppelin_contracts",
-      "community": 4,
+      "community": 8,
       "norm_label": "@openzeppelin/contracts"
     },
     {
@@ -432,7 +432,7 @@
       "source_file": "package.json",
       "source_location": "L43",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
-      "community": 4,
+      "community": 8,
       "norm_label": "@openzeppelin/contracts-upgradeable"
     },
     {
@@ -441,7 +441,7 @@
       "source_file": "package.json",
       "source_location": "L44",
       "id": "package_devdependencies_types_chai",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/chai"
     },
     {
@@ -450,7 +450,7 @@
       "source_file": "package.json",
       "source_location": "L45",
       "id": "package_devdependencies_types_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/express"
     },
     {
@@ -459,7 +459,7 @@
       "source_file": "package.json",
       "source_location": "L46",
       "id": "package_devdependencies_types_mocha",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/mocha"
     },
     {
@@ -468,7 +468,7 @@
       "source_file": "package.json",
       "source_location": "L47",
       "id": "package_devdependencies_types_node",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/node"
     },
     {
@@ -477,7 +477,7 @@
       "source_file": "package.json",
       "source_location": "L48",
       "id": "package_devdependencies_types_swagger_ui_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/swagger-ui-express"
     },
     {
@@ -486,7 +486,7 @@
       "source_file": "package.json",
       "source_location": "L49",
       "id": "package_devdependencies_chai",
-      "community": 4,
+      "community": 8,
       "norm_label": "chai"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "package.json",
       "source_location": "L50",
       "id": "package_devdependencies_hardhat",
-      "community": 4,
+      "community": 8,
       "norm_label": "hardhat"
     },
     {
@@ -504,7 +504,7 @@
       "source_file": "package.json",
       "source_location": "L51",
       "id": "package_devdependencies_prisma",
-      "community": 4,
+      "community": 8,
       "norm_label": "prisma"
     },
     {
@@ -513,7 +513,7 @@
       "source_file": "package.json",
       "source_location": "L52",
       "id": "package_devdependencies_ts_node",
-      "community": 4,
+      "community": 8,
       "norm_label": "ts-node"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "package.json",
       "source_location": "L53",
       "id": "package_devdependencies_tsc_watch",
-      "community": 4,
+      "community": 8,
       "norm_label": "tsc-watch"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "package.json",
       "source_location": "L54",
       "id": "package_devdependencies_typescript",
-      "community": 4,
+      "community": 8,
       "norm_label": "typescript"
     },
     {
@@ -881,7 +881,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L1",
       "id": "db_prisma",
-      "community": 3,
+      "community": 0,
       "norm_label": "prisma.ts"
     },
     {
@@ -890,7 +890,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L4",
       "id": "db_prisma_globalforprisma",
-      "community": 3,
+      "community": 0,
       "norm_label": "globalforprisma"
     },
     {
@@ -1097,7 +1097,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L1",
       "id": "limitless_limitlessdiscoveryservice",
-      "community": 3,
+      "community": 0,
       "norm_label": "limitlessdiscoveryservice.ts"
     },
     {
@@ -1106,7 +1106,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L15",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessinputs",
-      "community": 3,
+      "community": 0,
       "norm_label": "discoverlimitlessinputs"
     },
     {
@@ -1124,7 +1124,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L79",
       "id": "limitless_limitlessdiscoveryservice_decodelimitlesstokenid",
-      "community": 3,
+      "community": 0,
       "norm_label": "decodelimitlesstokenid()"
     },
     {
@@ -1439,7 +1439,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L404",
       "id": "limitless_limitlessorderclient_getlimitlessorder",
-      "community": 3,
+      "community": 0,
       "norm_label": "getlimitlessorder()"
     },
     {
@@ -1619,7 +1619,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L1",
       "id": "limitless_limitlesspositionsync",
-      "community": 3,
+      "community": 0,
       "norm_label": "limitlesspositionsync.ts"
     },
     {
@@ -1628,7 +1628,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L22",
       "id": "limitless_limitlesspositionsync_dectonumber",
-      "community": 3,
+      "community": 0,
       "norm_label": "dectonumber()"
     },
     {
@@ -1637,7 +1637,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L29",
       "id": "limitless_limitlesspositionsync_dectostr",
-      "community": 3,
+      "community": 0,
       "norm_label": "dectostr()"
     },
     {
@@ -1646,7 +1646,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L46",
       "id": "limitless_limitlesspositionsync_synclimitlessfillsandsettle",
-      "community": 3,
+      "community": 0,
       "norm_label": "synclimitlessfillsandsettle()"
     },
     {
@@ -1880,7 +1880,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 8,
+      "community": 7,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -1889,7 +1889,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 8,
+      "community": 7,
       "norm_label": "cdptransferevent"
     },
     {
@@ -1898,7 +1898,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 8,
+      "community": 7,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -1907,7 +1907,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 8,
+      "community": 7,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -1916,7 +1916,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 8,
+      "community": 7,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -1925,7 +1925,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 8,
+      "community": 7,
       "norm_label": "assertaddress()"
     },
     {
@@ -1934,7 +1934,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 8,
+      "community": 7,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -1943,7 +1943,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 8,
+      "community": 7,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -1952,7 +1952,7 @@
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
       "source_location": "L1",
       "id": "onchain_clubvaultfactoryexecutor",
-      "community": 7,
+      "community": 5,
       "norm_label": "clubvaultfactoryexecutor.ts"
     },
     {
@@ -1961,7 +1961,7 @@
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
       "source_location": "L5",
       "id": "onchain_clubvaultfactoryexecutor_club_vault_factory_abi",
-      "community": 7,
+      "community": 5,
       "norm_label": "club_vault_factory_abi"
     },
     {
@@ -1970,7 +1970,7 @@
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
       "source_location": "L10",
       "id": "onchain_clubvaultfactoryexecutor_computeclubid",
-      "community": 7,
+      "community": 5,
       "norm_label": "computeclubid()"
     },
     {
@@ -1979,7 +1979,7 @@
       "source_file": "src/onchain/clubVaultFactoryExecutor.ts",
       "source_location": "L20",
       "id": "onchain_clubvaultfactoryexecutor_ensureclubvaultexists",
-      "community": 7,
+      "community": 5,
       "norm_label": "ensureclubvaultexists()"
     },
     {
@@ -2105,7 +2105,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 8,
+      "community": 7,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2114,7 +2114,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 8,
+      "community": 7,
       "norm_label": "syncinputs"
     },
     {
@@ -2123,7 +2123,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 8,
+      "community": 7,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2132,7 +2132,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 8,
+      "community": 7,
       "norm_label": "dectostr()"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 8,
+      "community": 7,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 8,
+      "community": 7,
       "norm_label": "transferposition()"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 8,
+      "community": 7,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2168,7 +2168,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 8,
+      "community": 7,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2177,7 +2177,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 8,
+      "community": 7,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2186,7 +2186,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 8,
+      "community": 7,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -2276,7 +2276,7 @@
       "source_file": "src/onchain/rpc.ts",
       "source_location": "L52",
       "id": "onchain_rpc_getbaseprovider",
-      "community": 7,
+      "community": 5,
       "norm_label": "getbaseprovider()"
     },
     {
@@ -3086,7 +3086,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L1",
       "id": "services_priceengine",
-      "community": 7,
+      "community": 5,
       "norm_label": "priceengine.ts"
     },
     {
@@ -3095,7 +3095,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L8",
       "id": "services_priceengine_dectonumber",
-      "community": 7,
+      "community": 5,
       "norm_label": "dectonumber()"
     },
     {
@@ -3104,7 +3104,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L16",
       "id": "services_priceengine_dbstr",
-      "community": 7,
+      "community": 5,
       "norm_label": "dbstr()"
     },
     {
@@ -3113,7 +3113,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L25",
       "id": "services_priceengine_vaultcashdbtohuman",
-      "community": 7,
+      "community": 5,
       "norm_label": "vaultcashdbtohuman()"
     },
     {
@@ -3122,7 +3122,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L35",
       "id": "services_priceengine_humanusdtousdcbaseunits",
-      "community": 7,
+      "community": 5,
       "norm_label": "humanusdtousdcbaseunits()"
     },
     {
@@ -3131,7 +3131,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L43",
       "id": "services_priceengine_recalculateofficialprices",
-      "community": 7,
+      "community": 5,
       "norm_label": "recalculateofficialprices()"
     },
     {
@@ -3237,7 +3237,7 @@
       "label": "TeamRow",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L8",
+      "source_location": "L12",
       "id": "sportsdata_limitlessteams_teamrow",
       "community": 1,
       "norm_label": "teamrow"
@@ -3246,7 +3246,7 @@
       "label": "SportsDataTeam",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L17",
+      "source_location": "L21",
       "id": "sportsdata_limitlessteams_sportsdatateam",
       "community": 1,
       "norm_label": "sportsdatateam"
@@ -3255,7 +3255,7 @@
       "label": "SportsDataMarket",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L19",
+      "source_location": "L23",
       "id": "sportsdata_limitlessteams_sportsdatamarket",
       "community": 1,
       "norm_label": "sportsdatamarket"
@@ -3264,7 +3264,7 @@
       "label": "sportsDataColumns()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L34",
+      "source_location": "L38",
       "id": "sportsdata_limitlessteams_sportsdatacolumns",
       "community": 1,
       "norm_label": "sportsdatacolumns()"
@@ -3273,25 +3273,16 @@
       "label": "requireColumns()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L51",
+      "source_location": "L67",
       "id": "sportsdata_limitlessteams_requirecolumns",
       "community": 1,
       "norm_label": "requirecolumns()"
     },
     {
-      "label": "hasColumns()",
-      "file_type": "code",
-      "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L62",
-      "id": "sportsdata_limitlessteams_hascolumns",
-      "community": 1,
-      "norm_label": "hascolumns()"
-    },
-    {
       "label": "isMissingRelationError()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L67",
+      "source_location": "L78",
       "id": "sportsdata_limitlessteams_ismissingrelationerror",
       "community": 1,
       "norm_label": "ismissingrelationerror()"
@@ -3300,7 +3291,7 @@
       "label": "teamNameSelect()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L78",
+      "source_location": "L93",
       "id": "sportsdata_limitlessteams_teamnameselect",
       "community": 1,
       "norm_label": "teamnameselect()"
@@ -3309,7 +3300,7 @@
       "label": "teamLogoSelect()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L85",
+      "source_location": "L100",
       "id": "sportsdata_limitlessteams_teamlogoselect",
       "community": 1,
       "norm_label": "teamlogoselect()"
@@ -3318,7 +3309,7 @@
       "label": "teamSportSelect()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L93",
+      "source_location": "L108",
       "id": "sportsdata_limitlessteams_teamsportselect",
       "community": 1,
       "norm_label": "teamsportselect()"
@@ -3327,7 +3318,7 @@
       "label": "teamCountrySelect()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L101",
+      "source_location": "L116",
       "id": "sportsdata_limitlessteams_teamcountryselect",
       "community": 1,
       "norm_label": "teamcountryselect()"
@@ -3336,16 +3327,34 @@
       "label": "assertUuid()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L110",
+      "source_location": "L125",
       "id": "sportsdata_limitlessteams_assertuuid",
       "community": 1,
       "norm_label": "assertuuid()"
     },
     {
+      "label": "getLegacyLimitlessTeamCounts()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L131",
+      "id": "sportsdata_limitlessteams_getlegacylimitlessteamcounts",
+      "community": 1,
+      "norm_label": "getlegacylimitlessteamcounts()"
+    },
+    {
+      "label": "getLimitlessTeamCountsFromEntityLinks()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L152",
+      "id": "sportsdata_limitlessteams_getlimitlessteamcountsfromentitylinks",
+      "community": 1,
+      "norm_label": "getlimitlessteamcountsfromentitylinks()"
+    },
+    {
       "label": "listLimitlessTeams()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L116",
+      "source_location": "L185",
       "id": "sportsdata_limitlessteams_listlimitlessteams",
       "community": 1,
       "norm_label": "listlimitlessteams()"
@@ -3354,7 +3363,7 @@
       "label": "textValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L167",
+      "source_location": "L225",
       "id": "sportsdata_limitlessteams_textvalue",
       "community": 1,
       "norm_label": "textvalue()"
@@ -3363,7 +3372,7 @@
       "label": "numberValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L175",
+      "source_location": "L233",
       "id": "sportsdata_limitlessteams_numbervalue",
       "community": 1,
       "norm_label": "numbervalue()"
@@ -3372,7 +3381,7 @@
       "label": "dateValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L185",
+      "source_location": "L243",
       "id": "sportsdata_limitlessteams_datevalue",
       "community": 1,
       "norm_label": "datevalue()"
@@ -3381,7 +3390,7 @@
       "label": "normalizeTeamName()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L195",
+      "source_location": "L253",
       "id": "sportsdata_limitlessteams_normalizeteamname",
       "community": 1,
       "norm_label": "normalizeteamname()"
@@ -3390,7 +3399,7 @@
       "label": "normalizedContainsTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L204",
+      "source_location": "L262",
       "id": "sportsdata_limitlessteams_normalizedcontainsteam",
       "community": 1,
       "norm_label": "normalizedcontainsteam()"
@@ -3399,7 +3408,7 @@
       "label": "sideHintFromText()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L214",
+      "source_location": "L272",
       "id": "sportsdata_limitlessteams_sidehintfromtext",
       "community": 1,
       "norm_label": "sidehintfromtext()"
@@ -3408,7 +3417,7 @@
       "label": "getSportsDataTeamName()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L226",
+      "source_location": "L284",
       "id": "sportsdata_limitlessteams_getsportsdatateamname",
       "community": 1,
       "norm_label": "getsportsdatateamname()"
@@ -3417,7 +3426,7 @@
       "label": "mapRowsToMarkets()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L246",
+      "source_location": "L304",
       "id": "sportsdata_limitlessteams_maprowstomarkets",
       "community": 1,
       "norm_label": "maprowstomarkets()"
@@ -3426,16 +3435,25 @@
       "label": "getCachedLimitlessMarketsForTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L281",
+      "source_location": "L339",
       "id": "sportsdata_limitlessteams_getcachedlimitlessmarketsforteam",
       "community": 1,
       "norm_label": "getcachedlimitlessmarketsforteam()"
     },
     {
+      "label": "getEntityLinkedLimitlessMarketsForTeam()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L440",
+      "id": "sportsdata_limitlessteams_getentitylinkedlimitlessmarketsforteam",
+      "community": 1,
+      "norm_label": "getentitylinkedlimitlessmarketsforteam()"
+    },
+    {
       "label": "getLimitlessMarketsForTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L382",
+      "source_location": "L506",
       "id": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
       "community": 1,
       "norm_label": "getlimitlessmarketsforteam()"
@@ -3446,7 +3464,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L1",
       "id": "workers_chaineventcursor",
-      "community": 7,
+      "community": 3,
       "norm_label": "chaineventcursor.ts"
     },
     {
@@ -3455,7 +3473,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L3",
       "id": "workers_chaineventcursor_cursoridentity",
-      "community": 7,
+      "community": 3,
       "norm_label": "cursoridentity"
     },
     {
@@ -3464,7 +3482,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L11",
       "id": "workers_chaineventcursor_cursorrow",
-      "community": 7,
+      "community": 3,
       "norm_label": "cursorrow"
     },
     {
@@ -3473,7 +3491,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L16",
       "id": "workers_chaineventcursor_chaineventcursorsmodel",
-      "community": 7,
+      "community": 3,
       "norm_label": "chaineventcursorsmodel()"
     },
     {
@@ -3482,7 +3500,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L20",
       "id": "workers_chaineventcursor_lockstalebefore",
-      "community": 7,
+      "community": 3,
       "norm_label": "lockstalebefore()"
     },
     {
@@ -3491,7 +3509,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L27",
       "id": "workers_chaineventcursor_truncateerror",
-      "community": 7,
+      "community": 3,
       "norm_label": "truncateerror()"
     },
     {
@@ -3500,7 +3518,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L33",
       "id": "workers_chaineventcursor_makecursorworkerid",
-      "community": 7,
+      "community": 3,
       "norm_label": "makecursorworkerid()"
     },
     {
@@ -3509,7 +3527,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L37",
       "id": "workers_chaineventcursor_cursorblocknumber",
-      "community": 7,
+      "community": 3,
       "norm_label": "cursorblocknumber()"
     },
     {
@@ -3518,7 +3536,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L43",
       "id": "workers_chaineventcursor_claimchaineventcursor",
-      "community": 7,
+      "community": 3,
       "norm_label": "claimchaineventcursor()"
     },
     {
@@ -3527,7 +3545,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L89",
       "id": "workers_chaineventcursor_completechaineventcursor",
-      "community": 7,
+      "community": 3,
       "norm_label": "completechaineventcursor()"
     },
     {
@@ -3536,7 +3554,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L106",
       "id": "workers_chaineventcursor_failchaineventcursor",
-      "community": 7,
+      "community": 3,
       "norm_label": "failchaineventcursor()"
     },
     {
@@ -3581,7 +3599,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L1",
       "id": "workers_vaultsyncticker",
-      "community": 7,
+      "community": 3,
       "norm_label": "vaultsyncticker.ts"
     },
     {
@@ -3590,7 +3608,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L16",
       "id": "workers_vaultsyncticker_getlastsyncedblock",
-      "community": 7,
+      "community": 3,
       "norm_label": "getlastsyncedblock()"
     },
     {
@@ -3599,7 +3617,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L22",
       "id": "workers_vaultsyncticker_positiveintfromenv",
-      "community": 7,
+      "community": 3,
       "norm_label": "positiveintfromenv()"
     },
     {
@@ -3608,7 +3626,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L28",
       "id": "workers_vaultsyncticker_nonnegativeintfromenv",
-      "community": 7,
+      "community": 3,
       "norm_label": "nonnegativeintfromenv()"
     },
     {
@@ -3617,7 +3635,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L36",
       "id": "workers_vaultsyncticker_startvaultsyncticker",
-      "community": 7,
+      "community": 3,
       "norm_label": "startvaultsyncticker()"
     },
     {
@@ -3880,6 +3898,15 @@
       "id": "readme_notes",
       "community": 27,
       "norm_label": "notes"
+    },
+    {
+      "label": "hasColumns()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L62",
+      "community": 1,
+      "norm_label": "hascolumns()",
+      "id": "sportsdata_limitlessteams_hascolumns"
     },
     {
       "label": "baselineMigrations",
@@ -12331,11 +12358,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L440",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams",
+      "target": "sportsdata_limitlessteams_getentitylinkedlimitlessmarketsforteam",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams",
+      "target": "sportsdata_limitlessteams_getlegacylimitlessteamcounts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
       "source_location": "L113",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "sportsdata_limitlessteams",
       "target": "sportsdata_limitlessteams_getlimitlessmarketsforteam"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams",
+      "target": "sportsdata_limitlessteams_getlimitlessteamcountsfromentitylinks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -12587,22 +12644,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L281",
+      "source_location": "L304",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
-      "target": "sportsdata_limitlessteams_hascolumns"
+      "target": "sportsdata_limitlessteams_ismissingrelationerror"
     },
     {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L304",
+      "source_location": "L212",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
-      "target": "sportsdata_limitlessteams_ismissingrelationerror"
+      "source": "sportsdata_limitlessteams_listlimitlessteams",
+      "target": "sportsdata_limitlessteams_ismissingrelationerror",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -12669,6 +12726,28 @@
       "confidence_score": 1.0,
       "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
       "target": "sportsdata_limitlessteams_assertuuid"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L213",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams_listlimitlessteams",
+      "target": "sportsdata_limitlessteams_getlegacylimitlessteamcounts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L210",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams_listlimitlessteams",
+      "target": "sportsdata_limitlessteams_getlimitlessteamcountsfromentitylinks",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -12752,6 +12831,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L503",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams_getentitylinkedlimitlessmarketsforteam",
+      "target": "sportsdata_limitlessteams_maprowstomarkets",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
       "source_location": "L290",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12768,6 +12858,28 @@
       "confidence_score": 1.0,
       "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
       "target": "sportsdata_limitlessteams_getcachedlimitlessmarketsforteam"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L514",
+      "weight": 1.0,
+      "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
+      "target": "sportsdata_limitlessteams_getentitylinkedlimitlessmarketsforteam",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
+      "target": "sportsdata_limitlessteams_hascolumns"
     },
     {
       "relation": "contains",
@@ -13530,5 +13642,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "431e5bd4695238b09b733fa4aa636a0afb1510a9"
+  "built_at_commit": "53200df624c4f186a3ac88e7e1d0962116d332a7"
 }

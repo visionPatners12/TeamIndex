@@ -6,7 +6,11 @@ exports.getLimitlessMarketsForTeam = getLimitlessMarketsForTeam;
 const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ColumnRow = zod_1.z.object({ table_name: zod_1.z.string(), column_name: zod_1.z.string() });
+const ColumnRow = zod_1.z.object({
+    table_schema: zod_1.z.string(),
+    table_name: zod_1.z.string(),
+    column_name: zod_1.z.string(),
+});
 const TeamRow = zod_1.z.object({
     id: zod_1.z.string().uuid(),
     name: zod_1.z.string().min(1),
@@ -17,16 +21,28 @@ const TeamRow = zod_1.z.object({
 });
 async function sportsDataColumns(prisma) {
     const rows = zod_1.z.array(ColumnRow).parse(await prisma.$queryRaw `
-    select table_name, column_name
+    select table_schema, table_name, column_name
     from information_schema.columns
-    where table_schema = 'sports_data'
-      and table_name in ('limitless_team', 'limitless_markets', 'teams', 'games')
+    where (
+        table_schema = 'sports_data'
+        and table_name in ('teams', 'games')
+      )
+      or (
+        table_schema = 'limitless'
+        and table_name in ('market_entity_links', 'market_groups', 'markets')
+      )
   `);
     const byTable = new Map();
     for (const row of rows) {
-        const set = byTable.get(row.table_name) ?? new Set();
-        set.add(row.column_name);
-        byTable.set(row.table_name, set);
+        const qualifiedName = `${row.table_schema}.${row.table_name}`;
+        const names = row.table_schema === "sports_data"
+            ? [row.table_name, qualifiedName]
+            : [qualifiedName];
+        for (const name of names) {
+            const set = byTable.get(name) ?? new Set();
+            set.add(row.column_name);
+            byTable.set(name, set);
+        }
     }
     return byTable;
 }
@@ -40,10 +56,6 @@ function requireColumns(columns, table, required) {
         throw new Error(`Missing required sports_data.${table} column(s): ${missing.join(", ")}`);
     }
 }
-function hasColumns(columns, table, required) {
-    const available = columns.get(table);
-    return !!available && required.every((column) => available.has(column));
-}
 function isMissingRelationError(err) {
     const e = err;
     const text = [
@@ -52,7 +64,11 @@ function isMissingRelationError(err) {
         e?.message,
         e?.meta?.message,
     ].filter(Boolean).join(" ").toLowerCase();
-    return text.includes("42p01") || text.includes("does not exist") || text.includes("undefined_table");
+    return text.includes("42p01") ||
+        text.includes("42703") ||
+        text.includes("does not exist") ||
+        text.includes("undefined_table") ||
+        text.includes("undefined_column");
 }
 function teamNameSelect(teamColumns) {
     if (teamColumns.has("name"))
@@ -103,6 +119,58 @@ function assertUuid(value, label) {
         throw new Error(`${label} must be a UUID`);
     }
 }
+async function getLegacyLimitlessTeamCounts(prisma) {
+    return (await prisma.$queryRaw `
+    select team_id::text as id, count(*)::int as "limitlessMarketsCount"
+    from (
+      select lg."homeSportsDataTeamId" as team_id, lg."marketId" as market_id
+      from "lim_games" lg
+      join "limitless_markets" lm on lm.id = lg."marketId"
+      where lg."homeSportsDataTeamId" is not null
+        and upper(coalesce(lm.status, 'ACTIVE')) = 'ACTIVE'
+      union all
+      select lg."awaySportsDataTeamId" as team_id, lg."marketId" as market_id
+      from "lim_games" lg
+      join "limitless_markets" lm on lm.id = lg."marketId"
+      where lg."awaySportsDataTeamId" is not null
+        and upper(coalesce(lm.status, 'ACTIVE')) = 'ACTIVE'
+    ) linked
+    where team_id is not null
+    group by team_id
+  `);
+}
+async function getLimitlessTeamCountsFromEntityLinks(prisma) {
+    return (await prisma.$queryRaw `
+    with linked as (
+      select
+        mel.home_team_id as team_id,
+        coalesce(mk.id::text, mg.group_id::text) as market_key
+      from limitless.market_entity_links mel
+      left join limitless.market_groups mg on mg.group_id = mel.market_group_id
+      left join limitless.markets mk on mk.group_id = mg.group_id
+      where mel.entity_type = 'team'
+        and mel.role = 'fixture_teams'
+        and mel.home_team_id is not null
+        and upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+      union all
+      select
+        mel.away_team_id as team_id,
+        coalesce(mk.id::text, mg.group_id::text) as market_key
+      from limitless.market_entity_links mel
+      left join limitless.market_groups mg on mg.group_id = mel.market_group_id
+      left join limitless.markets mk on mk.group_id = mg.group_id
+      where mel.entity_type = 'team'
+        and mel.role = 'fixture_teams'
+        and mel.away_team_id is not null
+        and upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+    )
+    select team_id::text as id, count(distinct market_key)::int as "limitlessMarketsCount"
+    from linked
+    where team_id is not null
+      and market_key is not null
+    group by team_id
+  `);
+}
 async function listLimitlessTeams(prisma, options) {
     const columns = await sportsDataColumns(prisma);
     requireColumns(columns, "teams", ["id"]);
@@ -121,24 +189,15 @@ async function listLimitlessTeams(prisma, options) {
     const teams = zod_1.z.array(TeamRow).parse(rows);
     if (!options?.onlyWithLimitlessMarkets)
         return teams;
-    const linkedRows = (await prisma.$queryRaw `
-    select team_id::text as id, count(*)::int as "limitlessMarketsCount"
-    from (
-      select lg."homeSportsDataTeamId" as team_id, lg."marketId" as market_id
-      from "lim_games" lg
-      join "limitless_markets" lm on lm.id = lg."marketId"
-      where lg."homeSportsDataTeamId" is not null
-        and upper(coalesce(lm.status, 'ACTIVE')) = 'ACTIVE'
-      union all
-      select lg."awaySportsDataTeamId" as team_id, lg."marketId" as market_id
-      from "lim_games" lg
-      join "limitless_markets" lm on lm.id = lg."marketId"
-      where lg."awaySportsDataTeamId" is not null
-        and upper(coalesce(lm.status, 'ACTIVE')) = 'ACTIVE'
-    ) linked
-    where team_id is not null
-    group by team_id
-  `);
+    let linkedRows;
+    try {
+        linkedRows = await getLimitlessTeamCountsFromEntityLinks(prisma);
+    }
+    catch (err) {
+        if (!isMissingRelationError(err))
+            throw err;
+        linkedRows = await getLegacyLimitlessTeamCounts(prisma);
+    }
     const countByTeamId = new Map(linkedRows.map((row) => [row.id, row.limitlessMarketsCount]));
     return teams
         .filter((team) => countByTeamId.has(team.id))
@@ -347,35 +406,72 @@ async function getCachedLimitlessMarketsForTeam(prisma, teamId, columns) {
     }
     return mapRowsToMarkets(rows, teamId);
 }
+async function getEntityLinkedLimitlessMarketsForTeam(prisma, teamId) {
+    const rows = (await prisma.$queryRaw `
+    with linked_groups as (
+      select distinct
+        mel.market_group_id as group_id,
+        mel.home_team_id,
+        mel.away_team_id,
+        case
+          when mel.home_team_id::text = ${teamId} then 'HOME'
+          else 'AWAY'
+        end as side_hint
+      from limitless.market_entity_links mel
+      where mel.entity_type = 'team'
+        and mel.role = 'fixture_teams'
+        and mel.market_group_id is not null
+        and (
+          mel.home_team_id::text = ${teamId}
+          or mel.away_team_id::text = ${teamId}
+        )
+    )
+    select
+      mk.id::text as id,
+      coalesce(mk.title, mg.title, mk.slug, mg.slug, mk.id::text, mg.group_id::text) as title,
+      coalesce(mk.status, mg.status, 'ACTIVE') as status,
+      coalesce(mk.prices[1], 0.5)::float8 as yes_price,
+      coalesce(mk.prices[2], case when mk.prices[1] is null then 0.5 else 1 - mk.prices[1] end)::float8 as no_price,
+      0::float8 as liquidity,
+      coalesce(mk.volume, mg.volume, 0)::float8 as volume,
+      coalesce(g.starts_at, mg.start_match_at)::timestamptz as end_date,
+      lg.home_team_id::text as home_id,
+      lg.away_team_id::text as away_id,
+      lg.side_hint,
+      mg.group_id::text as market_group_id,
+      mg.slug as market_group_slug,
+      mg.title as market_group_title,
+      mg.sport_slug,
+      mg.league_name,
+      mg.lim_market_type,
+      mg.game_id::text as game_id,
+      g.starts_at,
+      g.state::text as game_state,
+      g.home_score,
+      g.away_score,
+      mk.slug as market_slug,
+      mk.outcome_index,
+      mk.prices,
+      mk.yes_token,
+      mk.no_token,
+      mk.raw
+    from linked_groups lg
+    join limitless.market_groups mg on mg.group_id = lg.group_id
+    join limitless.markets mk on mk.group_id = mg.group_id
+    left join sports_data.games g on g.id = mg.game_id
+    where upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+    order by coalesce(g.starts_at, mg.start_match_at) asc nulls last,
+             coalesce(mk.volume, mg.volume, 0) desc,
+             mk.outcome_index asc nulls last,
+             mk.id asc
+  `);
+    return mapRowsToMarkets(rows, teamId);
+}
 async function getLimitlessMarketsForTeam(prisma, teamId) {
     assertUuid(teamId, "teamId");
     const columns = await sportsDataColumns(prisma);
-    const marketColumns = columns.get("limitless_markets");
-    const gameColumns = columns.get("games");
-    let rows;
-    const canJoinGames = hasColumns(columns, "limitless_markets", ["game_id"]) &&
-        hasColumns(columns, "games", ["id", "home_id", "away_id"]);
     try {
-        if (canJoinGames) {
-            rows = (await prisma.$queryRaw `
-        select lm.*, g.home_id, g.away_id
-        from sports_data.limitless_markets lm
-        join sports_data.games g on g.id::text = lm.game_id::text
-        where g.home_id::text = ${teamId}
-           or g.away_id::text = ${teamId}
-      `);
-        }
-        else if (marketColumns && marketColumns.has("home_id") && marketColumns.has("away_id")) {
-            rows = (await prisma.$queryRaw `
-        select lm.*
-        from sports_data.limitless_markets lm
-        where lm.home_id::text = ${teamId}
-           or lm.away_id::text = ${teamId}
-      `);
-        }
-        else {
-            return getCachedLimitlessMarketsForTeam(prisma, teamId, columns);
-        }
+        return await getEntityLinkedLimitlessMarketsForTeam(prisma, teamId);
     }
     catch (err) {
         if (isMissingRelationError(err)) {
@@ -383,17 +479,4 @@ async function getLimitlessMarketsForTeam(prisma, teamId) {
         }
         throw err;
     }
-    const linkedMarkets = mapRowsToMarkets(rows, teamId);
-    const cachedMarkets = await getCachedLimitlessMarketsForTeam(prisma, teamId, columns);
-    const byId = new Map();
-    for (const market of [...linkedMarkets, ...cachedMarkets]) {
-        byId.set(market.id, market);
-    }
-    return Array.from(byId.values()).sort((a, b) => {
-        const ad = a.endDate ? new Date(a.endDate).getTime() : Number.POSITIVE_INFINITY;
-        const bd = b.endDate ? new Date(b.endDate).getTime() : Number.POSITIVE_INFINITY;
-        if (ad !== bd)
-            return ad - bd;
-        return b.liquidity - a.liquidity;
-    });
 }
