@@ -87,7 +87,10 @@
       "Bash(xargs ls -la)",
       "Bash(awk '{print $NF}')",
       "Bash(grep -oE \"[A-Z0-9_]+$\")",
-      "WebFetch(domain:docs.cdp.coinbase.com)"
+      "WebFetch(domain:docs.cdp.coinbase.com)",
+      "mcp__0b254d6f-6795-4095-9537-3ae0d3816c15__list_projects",
+      "mcp__0b254d6f-6795-4095-9537-3ae0d3816c15__execute_sql",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

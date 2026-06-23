@@ -161,7 +161,8 @@ async function getLimitlessTeamCountsFromEntityLinks(prisma: PrismaClient) {
       where mel.entity_type = 'team'
         and mel.role = 'fixture_teams'
         and mel.home_team_id is not null
-        and upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+        and upper(coalesce(mk.status, mg.status, '')) <> 'RESOLVED'
+        and coalesce(mk.hidden, false) = false
       union all
       select
         mel.away_team_id as team_id,
@@ -172,7 +173,8 @@ async function getLimitlessTeamCountsFromEntityLinks(prisma: PrismaClient) {
       where mel.entity_type = 'team'
         and mel.role = 'fixture_teams'
         and mel.away_team_id is not null
-        and upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+        and upper(coalesce(mk.status, mg.status, '')) <> 'RESOLVED'
+        and coalesce(mk.hidden, false) = false
     )
     select team_id::text as id, count(distinct market_key)::int as "limitlessMarketsCount"
     from linked
@@ -493,7 +495,8 @@ async function getEntityLinkedLimitlessMarketsForTeam(
     join limitless.market_groups mg on mg.group_id = lg.group_id
     join limitless.markets mk on mk.group_id = mg.group_id
     left join sports_data.games g on g.id = mg.game_id
-    where upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+    where upper(coalesce(mk.status, mg.status, '')) <> 'RESOLVED'
+      and coalesce(mk.hidden, false) = false
     order by coalesce(g.starts_at, mg.start_match_at) asc nulls last,
              coalesce(mk.volume, mg.volume, 0) desc,
              mk.outcome_index asc nulls last,
