@@ -22,6 +22,7 @@ export type SportsDataTeam = z.infer<typeof TeamRow>;
 
 export type SportsDataMarket = {
   id: string;
+  conditionId: string | null;
   title: string;
   status: string | null;
   yesPrice: number;
@@ -32,6 +33,16 @@ export type SportsDataMarket = {
   homeId: string | null;
   awayId: string | null;
   sideHint: "HOME" | "AWAY";
+  // ─ Grouping: match (game) → market (market group) → outcome ─
+  gameId: string | null;
+  gameLabel: string | null;
+  gameStartsAt: string | null;
+  gameState: string | null;
+  leagueName: string | null;
+  marketGroupId: string | null;
+  marketGroupTitle: string | null;
+  marketKind: string | null;
+  outcomeIndex: number | null;
   raw: Record<string, unknown>;
 };
 
@@ -304,6 +315,17 @@ async function getSportsDataTeamName(
 }
 
 function mapRowsToMarkets(rows: Array<Record<string, unknown>>, teamId: string): SportsDataMarket[] {
+  // Derive a match label per game: player-prop groups have null team names but
+  // share the same game_id with a fixture group that does carry the names.
+  const gameLabelById = new Map<string, string>();
+  for (const row of rows) {
+    const gameId = textValue(row, ["game_id", "gameId"]);
+    if (!gameId || gameLabelById.has(gameId)) continue;
+    const home = textValue(row, ["home_team_name", "homeTeam"]);
+    const away = textValue(row, ["away_team_name", "awayTeam"]);
+    if (home && away) gameLabelById.set(gameId, `${home} vs ${away}`);
+  }
+
   return rows
     .map((row) => {
       const homeId = row.home_id == null ? null : String(row.home_id);
@@ -314,8 +336,17 @@ function mapRowsToMarkets(rows: Array<Record<string, unknown>>, teamId: string):
       const id = textValue(row, ["id", "slug", "market_id", "marketId"]);
       const title = textValue(row, ["title", "question", "name"], id ? `Market ${id}` : "Untitled market");
 
+      const gameId = textValue(row, ["game_id", "gameId"]) || null;
+      const marketGroupTitle = textValue(row, ["market_group_title", "marketGroupTitle"]) || null;
+      const gameLabel = (gameId && gameLabelById.get(gameId)) || marketGroupTitle || null;
+      const outcomeIndexRaw = row.outcome_index ?? row.outcomeIndex;
+      const outcomeIndex = outcomeIndexRaw == null || outcomeIndexRaw === ""
+        ? null
+        : Number(outcomeIndexRaw);
+
       return {
         id,
+        conditionId: textValue(row, ["condition_id", "conditionId"]) || null,
         title,
         status: textValue(row, ["status"], "ACTIVE"),
         yesPrice: numberValue(row, ["yes_price", "yesPrice", "yes", "price"], 0.5),
@@ -326,6 +357,15 @@ function mapRowsToMarkets(rows: Array<Record<string, unknown>>, teamId: string):
         homeId,
         awayId,
         sideHint,
+        gameId,
+        gameLabel,
+        gameStartsAt: dateValue(row, ["starts_at", "startsAt", "game_time", "gameTime", "end_date"]),
+        gameState: textValue(row, ["game_state", "gameState", "state"]) || null,
+        leagueName: textValue(row, ["league_name", "leagueName", "league"]) || null,
+        marketGroupId: textValue(row, ["market_group_id", "marketGroupId"]) || null,
+        marketGroupTitle,
+        marketKind: textValue(row, ["lim_market_type", "limMarketType", "market_type"]) || null,
+        outcomeIndex: Number.isFinite(outcomeIndex as number) ? (outcomeIndex as number) : null,
         raw: row,
       } satisfies SportsDataMarket;
     })
@@ -334,6 +374,14 @@ function mapRowsToMarkets(rows: Array<Record<string, unknown>>, teamId: string):
       const ad = a.endDate ? new Date(a.endDate).getTime() : Number.POSITIVE_INFINITY;
       const bd = b.endDate ? new Date(b.endDate).getTime() : Number.POSITIVE_INFINITY;
       if (ad !== bd) return ad - bd;
+      // Keep markets of the same match/group together, outcomes in index order.
+      const ag = a.gameId ?? "", bg = b.gameId ?? "";
+      if (ag !== bg) return ag < bg ? -1 : 1;
+      const amg = a.marketGroupId ?? "", bmg = b.marketGroupId ?? "";
+      if (amg !== bmg) return amg < bmg ? -1 : 1;
+      const ao = a.outcomeIndex ?? Number.POSITIVE_INFINITY;
+      const bo = b.outcomeIndex ?? Number.POSITIVE_INFINITY;
+      if (ao !== bo) return ao - bo;
       return b.liquidity - a.liquidity;
     });
 }
@@ -464,6 +512,7 @@ async function getEntityLinkedLimitlessMarketsForTeam(
     )
     select
       mk.id::text as id,
+      mk.condition_id::text as condition_id,
       coalesce(mk.title, mg.title, mk.slug, mg.slug, mk.id::text, mg.group_id::text) as title,
       coalesce(mk.status, mg.status, 'ACTIVE') as status,
       coalesce(mk.prices[1], 0.5)::float8 as yes_price,
@@ -477,6 +526,8 @@ async function getEntityLinkedLimitlessMarketsForTeam(
       mg.group_id::text as market_group_id,
       mg.slug as market_group_slug,
       mg.title as market_group_title,
+      mg.home_team_name,
+      mg.away_team_name,
       mg.sport_slug,
       mg.league_name,
       mg.lim_market_type,
