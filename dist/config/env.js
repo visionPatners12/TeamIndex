@@ -27,6 +27,7 @@ const EnvSchema = zod_1.z.object({
     ETH_GETLOGS_COOLDOWN_MS: zod_1.z.string().optional().default("60000"),
     CHAIN_EVENT_CURSOR_LOCK_STALE_MS: zod_1.z.string().optional().default("120000"),
     BASE_GETLOGS_BLOCK_CHUNK: zod_1.z.string().optional().default("10"),
+    VAULT_SYNC_START_BLOCK: zod_1.z.string().optional(),
     VAULT_SYNC_MAX_BLOCKS_PER_TICK: zod_1.z.string().optional().default("100"),
     VAULT_SYNC_POOLS_PER_TICK: zod_1.z.string().optional().default("1"),
     // ─── Limitless Exchange (market data + trading, Base chain) ──────────────
@@ -53,6 +54,8 @@ const EnvSchema = zod_1.z.object({
     LIMITLESS_ENRICH_BATCH: zod_1.z.string().optional().default("500"),
     // ─── Coinbase CDP webhooks ───────────────────────────────────────────────
     CDP_WEBHOOK_SECRET: zod_1.z.string().optional(),
+    // Bearer token/JWT for Coinbase CDP SQL API (`/platform/v2/data/query/run`).
+    CDP_SQL_API_TOKEN: zod_1.z.string().optional(),
     // ─── Scheduling / BullMQ ─────────────────────────────────────────────────
     REDIS_URL: zod_1.z.string().optional(),
     QUEUE_CONCURRENCY: zod_1.z.string().optional().default("1"),
@@ -77,6 +80,7 @@ function loadEnv() {
         ETH_GETLOGS_COOLDOWN_MS: process.env.ETH_GETLOGS_COOLDOWN_MS,
         CHAIN_EVENT_CURSOR_LOCK_STALE_MS: process.env.CHAIN_EVENT_CURSOR_LOCK_STALE_MS,
         BASE_GETLOGS_BLOCK_CHUNK: process.env.BASE_GETLOGS_BLOCK_CHUNK,
+        VAULT_SYNC_START_BLOCK: process.env.VAULT_SYNC_START_BLOCK,
         VAULT_SYNC_MAX_BLOCKS_PER_TICK: process.env.VAULT_SYNC_MAX_BLOCKS_PER_TICK,
         VAULT_SYNC_POOLS_PER_TICK: process.env.VAULT_SYNC_POOLS_PER_TICK,
         LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
@@ -90,6 +94,7 @@ function loadEnv() {
         LIMITLESS_PRICE_SYNC_BATCH: process.env.LIMITLESS_PRICE_SYNC_BATCH,
         LIMITLESS_ENRICH_BATCH: process.env.LIMITLESS_ENRICH_BATCH,
         CDP_WEBHOOK_SECRET: process.env.CDP_WEBHOOK_SECRET,
+        CDP_SQL_API_TOKEN: process.env.CDP_SQL_API_TOKEN,
         REDIS_URL: process.env.REDIS_URL,
         QUEUE_CONCURRENCY: process.env.QUEUE_CONCURRENCY,
         MISSED_EXECUTION_GRACE_MINUTES: process.env.MISSED_EXECUTION_GRACE_MINUTES,

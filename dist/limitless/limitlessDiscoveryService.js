@@ -5,8 +5,8 @@
  * Market discovery for the allocation pipeline using canonical sports_data ids.
  *
  * The selected pool stores sportsDataTeamId (sports_data.teams.id). Discovery
- * finds Limitless markets by sports_data.limitless_markets.home_id/away_id,
- * avoiding text searches over names or titles.
+ * uses sports_data market links when available, then falls back to the cached
+ * Limitless pipeline tables.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.discoverLimitlessClubCandidates = discoverLimitlessClubCandidates;

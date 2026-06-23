@@ -23,6 +23,53 @@ exports.enrichSportsGames = enrichSportsGames;
 exports.runFullLimitlessSync = runFullLimitlessSync;
 const prisma_1 = require("../db/prisma");
 const limitlessClient_1 = require("./limitlessClient");
+function stringValuesDeep(value, maxDepth = 4) {
+    if (value == null || maxDepth < 0)
+        return [];
+    if (typeof value === "string" || typeof value === "number" || typeof value === "bigint")
+        return [String(value)];
+    if (typeof value === "boolean")
+        return [];
+    if (Array.isArray(value))
+        return value.flatMap((item) => stringValuesDeep(item, maxDepth - 1));
+    if (typeof value === "object") {
+        return Object.values(value).flatMap((item) => stringValuesDeep(item, maxDepth - 1));
+    }
+    return [];
+}
+function extractSportsDataGameId(market) {
+    const candidates = [market.id, market.title, ...stringValuesDeep(market.rawJson)];
+    for (const value of candidates) {
+        const direct = String(value).match(/(?:game[_-]?id|gameId|match[_-]?id|matchId)["':=\s]+(\d{5,})/i);
+        if (direct)
+            return direct[1];
+        const pathId = String(value).match(/(?:^|[/?#\s-])(\d{5,})(?:$|[/?#\s-])/);
+        if (pathId)
+            return pathId[1];
+    }
+    return null;
+}
+async function getSportsDataGameLink(gameId) {
+    try {
+        const rows = await prisma_1.prisma.$queryRaw `
+      select id::text as id, home_id::text as home_id, away_id::text as away_id
+      from sports_data.games
+      where id::text = ${gameId}
+      limit 1
+    `;
+        const row = rows[0];
+        if (!row)
+            return { sportsDataGameId: gameId, homeSportsDataTeamId: null, awaySportsDataTeamId: null };
+        return {
+            sportsDataGameId: row.id,
+            homeSportsDataTeamId: row.home_id,
+            awaySportsDataTeamId: row.away_id,
+        };
+    }
+    catch {
+        return { sportsDataGameId: gameId, homeSportsDataTeamId: null, awaySportsDataTeamId: null };
+    }
+}
 // ─── Sync state helpers ───────────────────────────────────────────────────────
 async function setSyncStatus(status, patch = {}) {
     await prisma_1.prisma.limitless_sync_state.upsert({
@@ -230,6 +277,8 @@ async function enrichSportsGames(env, limit = 500) {
             const d = new Date(t);
             return isNaN(d.getTime()) ? null : d;
         })();
+        const sportsDataGameId = extractSportsDataGameId(m);
+        const sportsDataLink = sportsDataGameId ? await getSportsDataGameLink(sportsDataGameId) : null;
         await prisma_1.prisma.lim_games.upsert({
             where: { marketId: m.id },
             update: {
@@ -238,6 +287,9 @@ async function enrichSportsGames(env, limit = 500) {
                 homeTeam: hints.homeTeam,
                 awayTeam: hints.awayTeam,
                 gameTime,
+                sportsDataGameId: sportsDataLink?.sportsDataGameId ?? null,
+                homeSportsDataTeamId: sportsDataLink?.homeSportsDataTeamId ?? null,
+                awaySportsDataTeamId: sportsDataLink?.awaySportsDataTeamId ?? null,
                 rawJson: raw,
                 updatedAt: now,
             },
@@ -248,6 +300,9 @@ async function enrichSportsGames(env, limit = 500) {
                 homeTeam: hints.homeTeam,
                 awayTeam: hints.awayTeam,
                 gameTime,
+                sportsDataGameId: sportsDataLink?.sportsDataGameId ?? null,
+                homeSportsDataTeamId: sportsDataLink?.homeSportsDataTeamId ?? null,
+                awaySportsDataTeamId: sportsDataLink?.awaySportsDataTeamId ?? null,
                 rawJson: raw,
             },
         });

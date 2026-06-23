@@ -27,6 +27,55 @@ import {
   type LimitlessCategory,
 } from "./limitlessClient";
 
+type SportsDataGameLink = {
+  sportsDataGameId: string;
+  homeSportsDataTeamId: string | null;
+  awaySportsDataTeamId: string | null;
+};
+
+function stringValuesDeep(value: unknown, maxDepth = 4): string[] {
+  if (value == null || maxDepth < 0) return [];
+  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") return [String(value)];
+  if (typeof value === "boolean") return [];
+  if (Array.isArray(value)) return value.flatMap((item) => stringValuesDeep(item, maxDepth - 1));
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap((item) => stringValuesDeep(item, maxDepth - 1));
+  }
+  return [];
+}
+
+function extractSportsDataGameId(market: { id: string; title: string; rawJson: unknown }) {
+  const candidates = [market.id, market.title, ...stringValuesDeep(market.rawJson)];
+  for (const value of candidates) {
+    const direct = String(value).match(/(?:game[_-]?id|gameId|match[_-]?id|matchId)["':=\s]+(\d{5,})/i);
+    if (direct) return direct[1];
+
+    const pathId = String(value).match(/(?:^|[/?#\s-])(\d{5,})(?:$|[/?#\s-])/);
+    if (pathId) return pathId[1];
+  }
+  return null;
+}
+
+async function getSportsDataGameLink(gameId: string): Promise<SportsDataGameLink | null> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ id: string; home_id: string | null; away_id: string | null }>>`
+      select id::text as id, home_id::text as home_id, away_id::text as away_id
+      from sports_data.games
+      where id::text = ${gameId}
+      limit 1
+    `;
+    const row = rows[0];
+    if (!row) return { sportsDataGameId: gameId, homeSportsDataTeamId: null, awaySportsDataTeamId: null };
+    return {
+      sportsDataGameId: row.id,
+      homeSportsDataTeamId: row.home_id,
+      awaySportsDataTeamId: row.away_id,
+    };
+  } catch {
+    return { sportsDataGameId: gameId, homeSportsDataTeamId: null, awaySportsDataTeamId: null };
+  }
+}
+
 // ─── Sync state helpers ───────────────────────────────────────────────────────
 
 async function setSyncStatus(
@@ -267,6 +316,8 @@ export async function enrichSportsGames(env: Env, limit = 500): Promise<number> 
       const d = new Date(t);
       return isNaN(d.getTime()) ? null : d;
     })();
+    const sportsDataGameId = extractSportsDataGameId(m);
+    const sportsDataLink = sportsDataGameId ? await getSportsDataGameLink(sportsDataGameId) : null;
 
     await (prisma as any).lim_games.upsert({
       where: { marketId: m.id },
@@ -276,6 +327,9 @@ export async function enrichSportsGames(env: Env, limit = 500): Promise<number> 
         homeTeam: hints.homeTeam,
         awayTeam: hints.awayTeam,
         gameTime,
+        sportsDataGameId: sportsDataLink?.sportsDataGameId ?? null,
+        homeSportsDataTeamId: sportsDataLink?.homeSportsDataTeamId ?? null,
+        awaySportsDataTeamId: sportsDataLink?.awaySportsDataTeamId ?? null,
         rawJson: raw as object,
         updatedAt: now,
       },
@@ -286,6 +340,9 @@ export async function enrichSportsGames(env: Env, limit = 500): Promise<number> 
         homeTeam: hints.homeTeam,
         awayTeam: hints.awayTeam,
         gameTime,
+        sportsDataGameId: sportsDataLink?.sportsDataGameId ?? null,
+        homeSportsDataTeamId: sportsDataLink?.homeSportsDataTeamId ?? null,
+        awaySportsDataTeamId: sportsDataLink?.awaySportsDataTeamId ?? null,
         rawJson: raw as object,
       },
     });

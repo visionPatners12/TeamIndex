@@ -58,6 +58,22 @@ function requireColumns(columns: Map<string, Set<string>>, table: string, requir
   }
 }
 
+function hasColumns(columns: Map<string, Set<string>>, table: string, required: string[]) {
+  const available = columns.get(table);
+  return !!available && required.every((column) => available.has(column));
+}
+
+function isMissingRelationError(err: unknown) {
+  const e = err as any;
+  const text = [
+    e?.code,
+    e?.meta?.code,
+    e?.message,
+    e?.meta?.message,
+  ].filter(Boolean).join(" ").toLowerCase();
+  return text.includes("42p01") || text.includes("does not exist") || text.includes("undefined_table");
+}
+
 function teamNameSelect(teamColumns: Set<string>) {
   if (teamColumns.has("name")) return Prisma.sql`name::text`;
   if (teamColumns.has("display_name")) return Prisma.sql`display_name::text`;
@@ -153,6 +169,24 @@ function normalizeTeamName(name: string) {
     .trim();
 }
 
+function normalizedContainsTeam(value: unknown, normalizedTeamName: string) {
+  if (!value || !normalizedTeamName) return false;
+  const normalized = normalizeTeamName(typeof value === "string" ? value : JSON.stringify(value));
+  return normalized.split(" ").includes(normalizedTeamName) || normalized.includes(` ${normalizedTeamName} `);
+}
+
+function sideHintFromText(value: unknown, normalizedTeamName: string): "HOME" | "AWAY" | null {
+  if (!value || !normalizedTeamName) return null;
+  const normalized = normalizeTeamName(String(value));
+  if (normalized.startsWith(`${normalizedTeamName} vs `) || normalized.startsWith(`${normalizedTeamName} v `)) {
+    return "HOME";
+  }
+  if (normalized.includes(` vs ${normalizedTeamName}`) || normalized.includes(` v ${normalizedTeamName}`)) {
+    return "AWAY";
+  }
+  return null;
+}
+
 async function getSportsDataTeamName(
   prisma: PrismaClient,
   teamId: string,
@@ -178,7 +212,9 @@ function mapRowsToMarkets(rows: Array<Record<string, unknown>>, teamId: string):
     .map((row) => {
       const homeId = row.home_id == null ? null : String(row.home_id);
       const awayId = row.away_id == null ? null : String(row.away_id);
-      const sideHint = homeId === teamId ? "HOME" : "AWAY";
+      const sideHint = row.side_hint === "HOME" || row.side_hint === "AWAY"
+        ? row.side_hint
+        : homeId === teamId ? "HOME" : "AWAY";
       const id = textValue(row, ["id", "slug", "market_id", "marketId"]);
       const title = textValue(row, ["title", "question", "name"], id ? `Market ${id}` : "Untitled market");
 
@@ -220,14 +256,30 @@ async function getCachedLimitlessMarketsForTeam(
   });
 
   const rows: Array<Record<string, unknown>> = [];
+  const seenMarketIds = new Set<string>();
   for (const game of games as any[]) {
     const homeName = game.homeTeam == null ? "" : String(game.homeTeam);
     const awayName = game.awayTeam == null ? "" : String(game.awayTeam);
-    const homeMatches = normalizeTeamName(homeName) === normalizedTeamName;
-    const awayMatches = normalizeTeamName(awayName) === normalizedTeamName;
-    if (!homeMatches && !awayMatches) continue;
-
     const market = game.market ?? {};
+    const linkedHomeMatches = game.homeSportsDataTeamId && String(game.homeSportsDataTeamId) === teamId;
+    const linkedAwayMatches = game.awaySportsDataTeamId && String(game.awaySportsDataTeamId) === teamId;
+    const homeMatches = linkedHomeMatches || normalizedContainsTeam(homeName, normalizedTeamName);
+    const awayMatches = linkedAwayMatches || normalizedContainsTeam(awayName, normalizedTeamName);
+    const textSideHint =
+      sideHintFromText(game.marketId, normalizedTeamName) ??
+      sideHintFromText(market.id, normalizedTeamName) ??
+      sideHintFromText(market.title, normalizedTeamName);
+    const textMatches =
+      normalizedContainsTeam(game.marketId, normalizedTeamName) ||
+      normalizedContainsTeam(market.id, normalizedTeamName) ||
+      normalizedContainsTeam(market.title, normalizedTeamName) ||
+      normalizedContainsTeam(market.rawJson, normalizedTeamName) ||
+      normalizedContainsTeam(game.rawJson, normalizedTeamName);
+    if (!homeMatches && !awayMatches && !textMatches) continue;
+
+    const marketId = String(market.id ?? game.marketId ?? "");
+    if (marketId && seenMarketIds.has(marketId)) continue;
+    if (marketId) seenMarketIds.add(marketId);
     rows.push({
       id: market.id,
       title: market.title,
@@ -237,14 +289,54 @@ async function getCachedLimitlessMarketsForTeam(
       liquidity: market.liquidity,
       volume: market.volume,
       endDate: market.endDate,
-      home_id: homeMatches ? teamId : null,
-      away_id: awayMatches ? teamId : null,
+      home_id: homeMatches || textSideHint === "HOME" ? teamId : null,
+      away_id: awayMatches || textSideHint === "AWAY" ? teamId : null,
+      side_hint: homeMatches || textSideHint === "HOME" ? "HOME" : "AWAY",
+      sports_data_game_id: game.sportsDataGameId,
       homeTeam: game.homeTeam,
       awayTeam: game.awayTeam,
       sport: game.sport,
       league: game.league,
       gameTime: game.gameTime,
       rawJson: market.rawJson ?? game.rawJson,
+    });
+  }
+
+  const search = `%${normalizedTeamName.replace(/\s+/g, "%")}%`;
+  const directMarkets = (await prisma.$queryRaw`
+    select
+      lm."id",
+      lm."title",
+      lm."status",
+      lm."yesPrice",
+      lm."noPrice",
+      lm."liquidity",
+      lm."volume",
+      lm."endDate",
+      lm."rawJson"
+    from "limitless_markets" lm
+    where lower(lm."id") like ${search}
+       or lower(lm."title") like ${search}
+       or lower(coalesce(lm."rawJson"::text, '')) like ${search}
+    order by lm."endDate" asc nulls last, lm."liquidity" desc
+    limit 1000
+  `) as Array<Record<string, unknown>>;
+
+  for (const market of directMarkets) {
+    const marketId = String(market.id ?? "");
+    if (!marketId || seenMarketIds.has(marketId)) continue;
+
+    const textSideHint =
+      sideHintFromText(market.id, normalizedTeamName) ??
+      sideHintFromText(market.title, normalizedTeamName) ??
+      sideHintFromText(market.rawJson, normalizedTeamName);
+
+    seenMarketIds.add(marketId);
+    rows.push({
+      ...market,
+      home_id: textSideHint === "HOME" ? teamId : null,
+      away_id: textSideHint === "AWAY" ? teamId : null,
+      side_hint: textSideHint ?? "HOME",
     });
   }
 
@@ -257,35 +349,50 @@ export async function getLimitlessMarketsForTeam(
 ): Promise<SportsDataMarket[]> {
   assertUuid(teamId, "teamId");
   const columns = await sportsDataColumns(prisma);
-  const marketColumns = columns.get("limitless_markets") ?? new Set<string>();
-  const gameColumns = columns.get("games") ?? new Set<string>();
+  const marketColumns = columns.get("limitless_markets");
+  const gameColumns = columns.get("games");
 
   let rows: Array<Record<string, unknown>>;
   const canJoinGames =
-    marketColumns.has("game_id") &&
-    gameColumns.has("id") &&
-    gameColumns.has("home_id") &&
-    gameColumns.has("away_id");
+    hasColumns(columns, "limitless_markets", ["game_id"]) &&
+    hasColumns(columns, "games", ["id", "home_id", "away_id"]);
 
-  if (canJoinGames) {
-    rows = (await prisma.$queryRaw`
-      select lm.*, g.home_id, g.away_id
-      from sports_data.limitless_markets lm
-      join sports_data.games g on g.id::text = lm.game_id::text
-      where g.home_id::text = ${teamId}
-         or g.away_id::text = ${teamId}
-    `) as Array<Record<string, unknown>>;
-  } else if (marketColumns.has("home_id") && marketColumns.has("away_id")) {
-    requireColumns(columns, "limitless_markets", ["home_id", "away_id"]);
-    rows = (await prisma.$queryRaw`
-      select lm.*
-      from sports_data.limitless_markets lm
-      where lm.home_id::text = ${teamId}
-         or lm.away_id::text = ${teamId}
-    `) as Array<Record<string, unknown>>;
-  } else {
-    return getCachedLimitlessMarketsForTeam(prisma, teamId, columns);
+  try {
+    if (canJoinGames) {
+      rows = (await prisma.$queryRaw`
+        select lm.*, g.home_id, g.away_id
+        from sports_data.limitless_markets lm
+        join sports_data.games g on g.id::text = lm.game_id::text
+        where g.home_id::text = ${teamId}
+           or g.away_id::text = ${teamId}
+      `) as Array<Record<string, unknown>>;
+    } else if (marketColumns && marketColumns.has("home_id") && marketColumns.has("away_id")) {
+      rows = (await prisma.$queryRaw`
+        select lm.*
+        from sports_data.limitless_markets lm
+        where lm.home_id::text = ${teamId}
+           or lm.away_id::text = ${teamId}
+      `) as Array<Record<string, unknown>>;
+    } else {
+      return getCachedLimitlessMarketsForTeam(prisma, teamId, columns);
+    }
+  } catch (err) {
+    if (isMissingRelationError(err)) {
+      return getCachedLimitlessMarketsForTeam(prisma, teamId, columns);
+    }
+    throw err;
   }
 
-  return mapRowsToMarkets(rows, teamId);
+  const linkedMarkets = mapRowsToMarkets(rows, teamId);
+  const cachedMarkets = await getCachedLimitlessMarketsForTeam(prisma, teamId, columns);
+  const byId = new Map<string, SportsDataMarket>();
+  for (const market of [...linkedMarkets, ...cachedMarkets]) {
+    byId.set(market.id, market);
+  }
+  return Array.from(byId.values()).sort((a, b) => {
+    const ad = a.endDate ? new Date(a.endDate).getTime() : Number.POSITIVE_INFINITY;
+    const bd = b.endDate ? new Date(b.endDate).getTime() : Number.POSITIVE_INFINITY;
+    if (ad !== bd) return ad - bd;
+    return b.liquidity - a.liquidity;
+  });
 }

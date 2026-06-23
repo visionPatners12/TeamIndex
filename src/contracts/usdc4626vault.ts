@@ -78,6 +78,7 @@ export const USDC4626VAULT = {
     // Events used for onchain->DB sync
     "event Deposit(address indexed caller, address indexed owner, uint256 assets, uint256 shares)",
     "event Withdraw(address indexed caller, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)",
+    "event Transfer(address indexed from, address indexed to, uint256 value)",
     "event VaultFeeCharged(address indexed payer, address indexed treasury, uint256 grossAssets, uint256 feeAssets, uint256 netAssets)",
     "event PoolValuationUpdated(uint256 openPositionsValue, int256 realizedPnl)",
     "event ValuatorUpdated(address indexed oldValuator, address indexed newValuator)",

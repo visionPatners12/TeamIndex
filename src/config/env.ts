@@ -28,6 +28,7 @@ const EnvSchema = z.object({
   ETH_GETLOGS_COOLDOWN_MS: z.string().optional().default("60000"),
   CHAIN_EVENT_CURSOR_LOCK_STALE_MS: z.string().optional().default("120000"),
   BASE_GETLOGS_BLOCK_CHUNK: z.string().optional().default("10"),
+  VAULT_SYNC_START_BLOCK: z.string().optional(),
   VAULT_SYNC_MAX_BLOCKS_PER_TICK: z.string().optional().default("100"),
   VAULT_SYNC_POOLS_PER_TICK: z.string().optional().default("1"),
 
@@ -56,6 +57,8 @@ const EnvSchema = z.object({
 
   // ─── Coinbase CDP webhooks ───────────────────────────────────────────────
   CDP_WEBHOOK_SECRET: z.string().optional(),
+  // Bearer token/JWT for Coinbase CDP SQL API (`/platform/v2/data/query/run`).
+  CDP_SQL_API_TOKEN: z.string().optional(),
 
   // ─── Scheduling / BullMQ ─────────────────────────────────────────────────
   REDIS_URL: z.string().optional(),
@@ -87,6 +90,7 @@ export function loadEnv(): Env {
     ETH_GETLOGS_COOLDOWN_MS: process.env.ETH_GETLOGS_COOLDOWN_MS,
     CHAIN_EVENT_CURSOR_LOCK_STALE_MS: process.env.CHAIN_EVENT_CURSOR_LOCK_STALE_MS,
     BASE_GETLOGS_BLOCK_CHUNK: process.env.BASE_GETLOGS_BLOCK_CHUNK,
+    VAULT_SYNC_START_BLOCK: process.env.VAULT_SYNC_START_BLOCK,
     VAULT_SYNC_MAX_BLOCKS_PER_TICK: process.env.VAULT_SYNC_MAX_BLOCKS_PER_TICK,
     VAULT_SYNC_POOLS_PER_TICK: process.env.VAULT_SYNC_POOLS_PER_TICK,
 
@@ -102,6 +106,7 @@ export function loadEnv(): Env {
     LIMITLESS_ENRICH_BATCH: process.env.LIMITLESS_ENRICH_BATCH,
 
     CDP_WEBHOOK_SECRET: process.env.CDP_WEBHOOK_SECRET,
+    CDP_SQL_API_TOKEN: process.env.CDP_SQL_API_TOKEN,
 
     REDIS_URL: process.env.REDIS_URL,
     QUEUE_CONCURRENCY: process.env.QUEUE_CONCURRENCY,

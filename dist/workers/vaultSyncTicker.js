@@ -20,8 +20,18 @@ function positiveIntFromEnv(name, fallback) {
         return fallback;
     return Math.floor(n);
 }
+function nonNegativeIntFromEnv(name) {
+    const raw = process.env[name];
+    if (!raw)
+        return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0)
+        return undefined;
+    return Math.floor(n);
+}
 function startVaultSyncTicker({ env, logger }) {
     const intervalMs = Number(process.env.VAULT_SYNC_INTERVAL_MS || 60_000);
+    const configuredStartBlock = nonNegativeIntFromEnv("VAULT_SYNC_START_BLOCK");
     const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
     const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
     if ((0, rpc_1.getBaseRpcUrls)(env).length === 0) {
@@ -62,7 +72,7 @@ function startVaultSyncTicker({ env, logger }) {
                 }
                 const cursorKey = `polygon:${vaultAddress.toLowerCase()}:VaultEvents:${pool.id}`;
                 const lastSynced = getLastSyncedBlock(pool.riskParams);
-                const startBlock = lastSynced !== undefined ? lastSynced : Math.max(0, latest - 2_001);
+                const startBlock = lastSynced ?? configuredStartBlock ?? Math.max(0, latest - 2_001);
                 const workerId = (0, chainEventCursor_1.makeCursorWorkerId)("vault-sync");
                 const cursor = await (0, chainEventCursor_1.claimChainEventCursor)({
                     key: cursorKey,

@@ -640,6 +640,12 @@ model lim_games {
   awayTeam  String?
   /// Expected kick-off / start time of the fixture.
   gameTime  DateTime?
+  /// Canonical sports_data.games.id when this Limitless market is linked to a known match.
+  sportsDataGameId String?
+  /// Canonical sports_data.teams.id for the home/first team.
+  homeSportsDataTeamId String? @db.Uuid
+  /// Canonical sports_data.teams.id for the away/second team.
+  awaySportsDataTeamId String? @db.Uuid
   rawJson   Json?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -648,4 +654,7 @@ model lim_games {
 
   @@index([sport, league])
   @@index([gameTime])
+  @@index([sportsDataGameId])
+  @@index([homeSportsDataTeamId])
+  @@index([awaySportsDataTeamId])
 }
