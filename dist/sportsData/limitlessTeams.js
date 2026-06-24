@@ -151,7 +151,8 @@ async function getLimitlessTeamCountsFromEntityLinks(prisma) {
       where mel.entity_type = 'team'
         and mel.role = 'fixture_teams'
         and mel.home_team_id is not null
-        and upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+        and upper(coalesce(mk.status, mg.status, '')) <> 'RESOLVED'
+        and coalesce(mk.hidden, false) = false
       union all
       select
         mel.away_team_id as team_id,
@@ -162,7 +163,8 @@ async function getLimitlessTeamCountsFromEntityLinks(prisma) {
       where mel.entity_type = 'team'
         and mel.role = 'fixture_teams'
         and mel.away_team_id is not null
-        and upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+        and upper(coalesce(mk.status, mg.status, '')) <> 'RESOLVED'
+        and coalesce(mk.hidden, false) = false
     )
     select team_id::text as id, count(distinct market_key)::int as "limitlessMarketsCount"
     from linked
@@ -283,6 +285,18 @@ async function getSportsDataTeamName(prisma, teamId, columns) {
     return name;
 }
 function mapRowsToMarkets(rows, teamId) {
+    // Derive a match label per game: player-prop groups have null team names but
+    // share the same game_id with a fixture group that does carry the names.
+    const gameLabelById = new Map();
+    for (const row of rows) {
+        const gameId = textValue(row, ["game_id", "gameId"]);
+        if (!gameId || gameLabelById.has(gameId))
+            continue;
+        const home = textValue(row, ["home_team_name", "homeTeam"]);
+        const away = textValue(row, ["away_team_name", "awayTeam"]);
+        if (home && away)
+            gameLabelById.set(gameId, `${home} vs ${away}`);
+    }
     return rows
         .map((row) => {
         const homeId = row.home_id == null ? null : String(row.home_id);
@@ -292,8 +306,16 @@ function mapRowsToMarkets(rows, teamId) {
             : homeId === teamId ? "HOME" : "AWAY";
         const id = textValue(row, ["id", "slug", "market_id", "marketId"]);
         const title = textValue(row, ["title", "question", "name"], id ? `Market ${id}` : "Untitled market");
+        const gameId = textValue(row, ["game_id", "gameId"]) || null;
+        const marketGroupTitle = textValue(row, ["market_group_title", "marketGroupTitle"]) || null;
+        const gameLabel = (gameId && gameLabelById.get(gameId)) || marketGroupTitle || null;
+        const outcomeIndexRaw = row.outcome_index ?? row.outcomeIndex;
+        const outcomeIndex = outcomeIndexRaw == null || outcomeIndexRaw === ""
+            ? null
+            : Number(outcomeIndexRaw);
         return {
             id,
+            conditionId: textValue(row, ["condition_id", "conditionId"]) || null,
             title,
             status: textValue(row, ["status"], "ACTIVE"),
             yesPrice: numberValue(row, ["yes_price", "yesPrice", "yes", "price"], 0.5),
@@ -304,6 +326,15 @@ function mapRowsToMarkets(rows, teamId) {
             homeId,
             awayId,
             sideHint,
+            gameId,
+            gameLabel,
+            gameStartsAt: dateValue(row, ["starts_at", "startsAt", "game_time", "gameTime", "end_date"]),
+            gameState: textValue(row, ["game_state", "gameState", "state"]) || null,
+            leagueName: textValue(row, ["league_name", "leagueName", "league"]) || null,
+            marketGroupId: textValue(row, ["market_group_id", "marketGroupId"]) || null,
+            marketGroupTitle,
+            marketKind: textValue(row, ["lim_market_type", "limMarketType", "market_type"]) || null,
+            outcomeIndex: Number.isFinite(outcomeIndex) ? outcomeIndex : null,
             raw: row,
         };
     })
@@ -313,6 +344,17 @@ function mapRowsToMarkets(rows, teamId) {
         const bd = b.endDate ? new Date(b.endDate).getTime() : Number.POSITIVE_INFINITY;
         if (ad !== bd)
             return ad - bd;
+        // Keep markets of the same match/group together, outcomes in index order.
+        const ag = a.gameId ?? "", bg = b.gameId ?? "";
+        if (ag !== bg)
+            return ag < bg ? -1 : 1;
+        const amg = a.marketGroupId ?? "", bmg = b.marketGroupId ?? "";
+        if (amg !== bmg)
+            return amg < bmg ? -1 : 1;
+        const ao = a.outcomeIndex ?? Number.POSITIVE_INFINITY;
+        const bo = b.outcomeIndex ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo)
+            return ao - bo;
         return b.liquidity - a.liquidity;
     });
 }
@@ -428,6 +470,7 @@ async function getEntityLinkedLimitlessMarketsForTeam(prisma, teamId) {
     )
     select
       mk.id::text as id,
+      mk.condition_id::text as condition_id,
       coalesce(mk.title, mg.title, mk.slug, mg.slug, mk.id::text, mg.group_id::text) as title,
       coalesce(mk.status, mg.status, 'ACTIVE') as status,
       coalesce(mk.prices[1], 0.5)::float8 as yes_price,
@@ -441,6 +484,8 @@ async function getEntityLinkedLimitlessMarketsForTeam(prisma, teamId) {
       mg.group_id::text as market_group_id,
       mg.slug as market_group_slug,
       mg.title as market_group_title,
+      mg.home_team_name,
+      mg.away_team_name,
       mg.sport_slug,
       mg.league_name,
       mg.lim_market_type,
@@ -459,7 +504,8 @@ async function getEntityLinkedLimitlessMarketsForTeam(prisma, teamId) {
     join limitless.market_groups mg on mg.group_id = lg.group_id
     join limitless.markets mk on mk.group_id = mg.group_id
     left join sports_data.games g on g.id = mg.game_id
-    where upper(coalesce(mk.status, mg.status, 'ACTIVE')) = 'ACTIVE'
+    where upper(coalesce(mk.status, mg.status, '')) <> 'RESOLVED'
+      and coalesce(mk.hidden, false) = false
     order by coalesce(g.starts_at, mg.start_match_at) asc nulls last,
              coalesce(mk.volume, mg.volume, 0) desc,
              mk.outcome_index asc nulls last,

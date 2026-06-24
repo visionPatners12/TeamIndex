@@ -1,5 +1,6 @@
 import express from "express";
 import { createHmac, timingSafeEqual } from "crypto";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createLogger } from "../config/log";
 import type { Env } from "../config/env";
@@ -48,7 +49,14 @@ import { discoverLimitlessClubCandidates } from "../limitless/limitlessDiscovery
 import { syncLimitlessFillsAndSettle } from "../limitless/limitlessPositionSync";
 import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
 import { fetchLimitlessMarketData, fetchLimitlessMarketDataBatch } from "../limitless/limitlessMarketData";
-import { isLimitlessTradingReady } from "../limitless/limitlessOrderClient";
+import {
+  getBestBidAsk,
+  getOrderBook,
+  getOrderRejectMessage,
+  isAcceptedOrderResult,
+  isLimitlessTradingReady,
+  postLimitlessOrder,
+} from "../limitless/limitlessOrderClient";
 import {
   createPartnerServerAccount,
   partnerAccountCreationEnabled,
@@ -2094,6 +2102,175 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     }
   });
 
+  const marketGroupsQuerySchema = z.object({
+    teamId: z.string().optional(),
+    sport: z.string().optional(),
+    league: z.string().optional(),
+    status: z.string().optional().default("ACTIVE"),
+    limit: z.coerce.number().int().min(1).max(200).optional().default(50),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+  });
+
+  function finiteNumber(value: unknown, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function isoOrNull(value: unknown) {
+    if (!value) return null;
+    const d = new Date(String(value));
+    return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+  }
+
+  /**
+   * GET /admin/limitless/market-groups
+   * Browse Limitless markets grouped as match/group -> outcomes.
+   * ?teamId=...&sport=soccer&league=Premier+League&status=ACTIVE&limit=50&offset=0
+   */
+  app.get("/admin/limitless/market-groups", requireAdmin, async (req, res) => {
+    try {
+      const { teamId, sport, league, status: rawStatus, limit, offset } = marketGroupsQuerySchema.parse(req.query);
+      const status = rawStatus.trim().toUpperCase();
+      const filters: Prisma.Sql[] = [
+        Prisma.sql`coalesce(mk.hidden, false) = false`,
+        Prisma.sql`upper(coalesce(mk.status, mg.status, 'ACTIVE')) <> 'RESOLVED'`,
+      ];
+
+      if (status && status !== "ALL") {
+        filters.push(Prisma.sql`upper(coalesce(mk.status, mg.status, 'ACTIVE')) = ${status}`);
+      }
+      if (teamId) {
+        filters.push(Prisma.sql`(mel.home_team_id::text = ${teamId} or mel.away_team_id::text = ${teamId})`);
+      }
+      if (sport) {
+        filters.push(Prisma.sql`lower(coalesce(mg.sport_slug, '')) = lower(${sport})`);
+      }
+      if (league) {
+        filters.push(Prisma.sql`lower(coalesce(mg.league_name, '')) = lower(${league})`);
+      }
+
+      const whereSql = Prisma.sql`where ${Prisma.join(filters, " and ")}`;
+      const totalRows = await prisma.$queryRaw<Array<{ total: number }>>`
+        select count(*)::int as total
+        from (
+          select distinct mg.group_id
+          from limitless.market_groups mg
+          join limitless.markets mk on mk.group_id = mg.group_id
+          left join limitless.market_entity_links mel on mel.market_group_id = mg.group_id
+          ${whereSql}
+        ) grouped
+      `;
+
+      const rows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
+        with matching_groups as (
+          select
+            mg.group_id,
+            min(coalesce(g.starts_at, mg.start_match_at)) as starts_at_sort,
+            max(coalesce(mk.volume, mg.volume, 0)) as volume_sort
+          from limitless.market_groups mg
+          join limitless.markets mk on mk.group_id = mg.group_id
+          left join sports_data.games g on g.id = mg.game_id
+          left join limitless.market_entity_links mel on mel.market_group_id = mg.group_id
+          ${whereSql}
+          group by mg.group_id
+          order by min(coalesce(g.starts_at, mg.start_match_at)) asc nulls last,
+                   max(coalesce(mk.volume, mg.volume, 0)) desc,
+                   mg.group_id asc
+          limit ${limit}
+          offset ${offset}
+        )
+        select
+          mg.group_id::text as "groupId",
+          mg.slug as "groupSlug",
+          mg.title as "groupTitle",
+          coalesce(mk.status, mg.status, 'ACTIVE') as status,
+          mg.game_id::text as "gameId",
+          mg.home_team_name as "homeTeamName",
+          mg.away_team_name as "awayTeamName",
+          mg.sport_slug as sport,
+          mg.league_name as league,
+          mg.lim_market_type as "marketKind",
+          coalesce(g.starts_at, mg.start_match_at) as "startsAt",
+          g.state::text as "gameState",
+          mk.id::text as "marketId",
+          coalesce(mk.slug, mk.id::text) as "marketSlug",
+          mk.condition_id::text as "conditionId",
+          coalesce(mk.title, mg.title, mk.slug, mg.slug, mk.id::text) as "outcomeTitle",
+          mk.outcome_index as "outcomeIndex",
+          coalesce(mk.prices[1], 0.5)::float8 as "yesPrice",
+          coalesce(mk.prices[2], case when mk.prices[1] is null then 0.5 else 1 - mk.prices[1] end)::float8 as "noPrice",
+          coalesce(mk.volume, mg.volume, 0)::float8 as volume,
+          mk.yes_token::text as "yesToken",
+          mk.no_token::text as "noToken"
+        from matching_groups page
+        join limitless.market_groups mg on mg.group_id = page.group_id
+        join limitless.markets mk on mk.group_id = mg.group_id
+        left join sports_data.games g on g.id = mg.game_id
+        where coalesce(mk.hidden, false) = false
+          and upper(coalesce(mk.status, mg.status, 'ACTIVE')) <> 'RESOLVED'
+          and (${status} = 'ALL' or upper(coalesce(mk.status, mg.status, 'ACTIVE')) = ${status})
+        order by page.starts_at_sort asc nulls last,
+                 page.volume_sort desc,
+                 mg.group_id asc,
+                 mk.outcome_index asc nulls last,
+                 mk.id asc
+      `;
+
+      const groups = new Map<string, any>();
+      for (const row of rows) {
+        const groupId = String(row.groupId ?? "");
+        if (!groupId) continue;
+        let group = groups.get(groupId);
+        if (!group) {
+          group = {
+            groupId,
+            groupSlug: row.groupSlug ? String(row.groupSlug) : null,
+            groupTitle: row.groupTitle ? String(row.groupTitle) : null,
+            gameId: row.gameId ? String(row.gameId) : null,
+            homeTeamName: row.homeTeamName ? String(row.homeTeamName) : null,
+            awayTeamName: row.awayTeamName ? String(row.awayTeamName) : null,
+            sport: row.sport ? String(row.sport) : null,
+            league: row.league ? String(row.league) : null,
+            marketKind: row.marketKind ? String(row.marketKind) : null,
+            startsAt: isoOrNull(row.startsAt),
+            gameState: row.gameState ? String(row.gameState) : null,
+            status: row.status ? String(row.status) : null,
+            outcomes: [],
+          };
+          groups.set(groupId, group);
+        }
+
+        group.outcomes.push({
+          marketId: String(row.marketId ?? ""),
+          marketSlug: String(row.marketSlug ?? row.marketId ?? ""),
+          conditionId: row.conditionId ? String(row.conditionId) : null,
+          outcomeIndex: row.outcomeIndex == null ? null : finiteNumber(row.outcomeIndex, 0),
+          title: String(row.outcomeTitle ?? "Untitled outcome"),
+          yesPrice: finiteNumber(row.yesPrice, 0.5),
+          noPrice: finiteNumber(row.noPrice, 0.5),
+          volume: finiteNumber(row.volume, 0),
+          tokens: {
+            yes: row.yesToken ? String(row.yesToken) : null,
+            no: row.noToken ? String(row.noToken) : null,
+          },
+        });
+      }
+
+      res.json({
+        ok: true,
+        total: Number(totalRows[0]?.total ?? 0),
+        limit,
+        offset,
+        groups: [...groups.values()],
+      });
+    } catch (e: any) {
+      if (e instanceof z.ZodError) {
+        return res.status(400).json({ ok: false, error: "Invalid market-groups query", details: e.flatten() });
+      }
+      res.status(500).json({ ok: false, error: e?.message ?? "market_groups_error" });
+    }
+  });
+
   /**
    * GET /admin/limitless/categories
    * List all synced categories.
@@ -2141,6 +2318,140 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       res.json({ ok: true, ...result, count: candidates.length, candidates });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e?.message ?? "discovery_error" });
+    }
+  });
+
+  const manualLimitlessBetSchema = z.object({
+    poolId: z.string().min(1),
+    marketSlug: z.string().min(1),
+    outcome: z.enum(["yes", "no"]),
+    amountUsd: z.coerce.number().min(0.01),
+    maxPrice: z.coerce.number().gt(0).lt(1).optional(),
+  });
+
+  /**
+   * POST /admin/limitless/bets
+   * Place one immediate manual Limitless buy from a pool vault.
+   * Body: { poolId, marketSlug, outcome: "yes"|"no", amountUsd, maxPrice? }
+   */
+  app.post("/admin/limitless/bets", requireAdmin, async (req, res) => {
+    try {
+      const body = manualLimitlessBetSchema.parse(req.body);
+
+      const pool = await prisma.club_pools.findUnique({ where: { id: body.poolId } });
+      if (!pool) return res.status(404).json({ ok: false, error: "Pool not found" });
+      if (!pool.vaultAddress) {
+        return res.status(400).json({ ok: false, error: "Pool vaultAddress missing" });
+      }
+
+      const marketRows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
+        select
+          mk.id::text as "marketId",
+          coalesce(mk.slug, mk.id::text) as "marketSlug",
+          coalesce(mk.status, mg.status, 'ACTIVE') as status,
+          coalesce(mk.hidden, false) as hidden,
+          mk.outcome_index as "outcomeIndex",
+          mk.condition_id::text as "conditionId",
+          coalesce(mk.title, mg.title, mk.slug, mg.slug, mk.id::text) as title,
+          mg.group_id::text as "groupId",
+          mg.game_id::text as "gameId"
+        from limitless.markets mk
+        join limitless.market_groups mg on mg.group_id = mk.group_id
+        where mk.id::text = ${body.marketSlug}
+           or mk.slug = ${body.marketSlug}
+           or coalesce(mk.slug, mk.id::text) = ${body.marketSlug}
+        limit 1
+      `;
+      const market = marketRows[0];
+      if (!market) return res.status(404).json({ ok: false, error: "Market not found" });
+      if (market.hidden === true || String(market.status ?? "").toUpperCase() !== "ACTIVE") {
+        return res.status(400).json({ ok: false, error: "Market is not active" });
+      }
+
+      const readiness = isLimitlessTradingReady(env);
+      if (!readiness.ready) {
+        return res.status(400).json({
+          ok: false,
+          error: `Limitless not ready: ${readiness.reasons.join("; ")}`,
+          readiness,
+        });
+      }
+
+      const marketSlug = String(market.marketSlug ?? body.marketSlug);
+      const book = await getOrderBook(env, marketSlug);
+      const { bestAsk } = getBestBidAsk(book);
+      if (!book.asks.length || !Number.isFinite(bestAsk) || bestAsk <= 0 || bestAsk >= 1) {
+        return res.status(400).json({ ok: false, error: "No valid market / no liquidity" });
+      }
+      if (body.maxPrice !== undefined && bestAsk > body.maxPrice + 1e-12) {
+        return res.status(409).json({
+          ok: false,
+          error: "Best ask exceeds maxPrice",
+          bestAsk,
+          maxPrice: body.maxPrice,
+        });
+      }
+
+      const orderResult = await postLimitlessOrder(env, {
+        marketSlug,
+        outcome: body.outcome,
+        price: bestAsk,
+        size: body.amountUsd,
+        side: "BUY",
+        orderType: "GTC",
+        makerAddress: pool.vaultAddress,
+      });
+
+      if (!isAcceptedOrderResult(orderResult)) {
+        return res.status(502).json({
+          ok: false,
+          error: getOrderRejectMessage(orderResult),
+          orderResult,
+        });
+      }
+
+      const outcomeIndex = body.outcome === "yes" ? 0 : 1;
+      const side = body.outcome === "yes" ? "YES" : "NO";
+      const plannedQuantity = body.amountUsd / bestAsk;
+      const clobOrderId =
+        (orderResult as any)?.orderId ?? (orderResult as any)?.orderID ?? (orderResult as any)?.id ?? null;
+
+      const position = await prisma.club_pool_positions.create({
+        data: {
+          poolId: body.poolId,
+          eventId: String(market.gameId ?? market.groupId ?? ""),
+          marketId: marketSlug,
+          tokenId: `${marketSlug}:${outcomeIndex}`,
+          side: side as any,
+          entryPrice: String(bestAsk),
+          clobOrderId,
+          plannedStake: String(body.amountUsd),
+          plannedQuantity: String(plannedQuantity),
+          stake: "0",
+          quantity: "0",
+          investedAmount: "0",
+          currentValue: "0",
+          realizedPnl: "0",
+          status: "OPEN",
+        },
+      });
+
+      res.json({
+        ok: true,
+        positionId: position.id,
+        marketSlug,
+        outcome: body.outcome,
+        amountUsd: body.amountUsd,
+        price: bestAsk,
+        plannedQuantity,
+        orderResult,
+      });
+    } catch (e: any) {
+      if (e instanceof z.ZodError) {
+        return res.status(400).json({ ok: false, error: "Invalid manual bet request", details: e.flatten() });
+      }
+      logger.error({ err: e }, "manual limitless bet failed");
+      res.status(500).json({ ok: false, error: e?.message ?? "manual_bet_error" });
     }
   });
 
