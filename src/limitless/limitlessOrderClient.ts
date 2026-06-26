@@ -21,6 +21,7 @@
 import type { Env } from "../config/env";
 import { getOrderBook, getMarketBySlug } from "./limitlessClient";
 import type { LimitlessOrderBook } from "./limitlessClient";
+import { limitlessGetJson, limitlessRequestJson } from "./limitlessAuth";
 
 // ─── Re-export LimitlessOrderBook for consumers ───────────────────────────────
 export type { LimitlessOrderBook };
@@ -68,40 +69,12 @@ export interface LimitlessOrderResult {
   [k: string]: unknown;
 }
 
-// ─── HTTP helpers ─────────────────────────────────────────────────────────────
-
-function limitlessBase(env: Env): string {
-  return (env as any).LIMITLESS_BASE_URL ?? "https://api.limitless.exchange";
-}
-
-function authHeaders(env: Env): Record<string, string> {
-  const key = (env as any).LIMITLESS_API_KEY as string | undefined;
-  return key ? { "X-API-Key": key } : {};
-}
-
 async function getJson<T>(env: Env, path: string, params?: Record<string, unknown>): Promise<T> {
-  const u = new URL(`${limitlessBase(env)}${path}`);
-  if (params) for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null) u.searchParams.set(k, String(v));
-  }
-  const res = await fetch(u.toString(), {
-    headers: { Accept: "application/json", ...authHeaders(env) },
-  });
-  if (!res.ok) throw new Error(`Limitless API ${res.status} ${path}`);
-  return (await res.json()) as T;
+  return limitlessGetJson<T>(env, path, params);
 }
 
 async function postJson<T>(env: Env, path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${limitlessBase(env)}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders(env) },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Limitless API ${res.status} ${path}: ${text}`);
-  }
-  return (await res.json()) as T;
+  return limitlessRequestJson<T>(env, "POST", path, body);
 }
 
 // ─── Order book helpers ───────────────────────────────────────────────────────
@@ -444,6 +417,7 @@ function getLimitlessOrderSignerPrivateKey(env: Env): string | undefined {
 export function assertLimitlessTradingConfig(env: Env): void {
   const missing: string[] = [];
   if (!(env as any).LIMITLESS_API_KEY) missing.push("LIMITLESS_API_KEY");
+  if (!(env as any).LIMITLESS_API_SECRET) missing.push("LIMITLESS_API_SECRET");
   if (!getLimitlessOrderSignerPrivateKey(env)) {
     missing.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY");
   }
@@ -455,6 +429,7 @@ export function assertLimitlessTradingConfig(env: Env): void {
 export function isLimitlessTradingReady(env: Env): { ready: boolean; reasons: string[] } {
   const reasons: string[] = [];
   if (!(env as any).LIMITLESS_API_KEY) reasons.push("LIMITLESS_API_KEY not set");
+  if (!(env as any).LIMITLESS_API_SECRET) reasons.push("LIMITLESS_API_SECRET not set");
   if (!getLimitlessOrderSignerPrivateKey(env)) {
     reasons.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY not set");
   }

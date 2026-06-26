@@ -38,6 +38,9 @@ const EnvSchema = z.object({
   LIMITLESS_API_KEY: z.string().optional(),
   // Scoped HMAC token used for partner accounts and delegated signing.
   LIMITLESS_API_SECRET: z.string().optional(),
+  LIMITLESS_WS_URL: z.string().optional().default("wss://ws.limitless.exchange/markets"),
+  LIMITLESS_WS_ENABLED: z.string().optional().default("true"),
+  LIMITLESS_WS_RECONCILE_INTERVAL_MS: z.string().optional().default("600000"),
   LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: z
     .string()
     .optional()
@@ -97,6 +100,9 @@ export function loadEnv(): Env {
     LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
     LIMITLESS_API_KEY: process.env.LIMITLESS_API_KEY,
     LIMITLESS_API_SECRET: process.env.LIMITLESS_API_SECRET,
+    LIMITLESS_WS_URL: process.env.LIMITLESS_WS_URL,
+    LIMITLESS_WS_ENABLED: process.env.LIMITLESS_WS_ENABLED,
+    LIMITLESS_WS_RECONCILE_INTERVAL_MS: process.env.LIMITLESS_WS_RECONCILE_INTERVAL_MS,
     LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: process.env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED,
     LIMITLESS_FEE_RATE_BPS: process.env.LIMITLESS_FEE_RATE_BPS,
     LIMITLESS_CHAIN_ID: process.env.LIMITLESS_CHAIN_ID,

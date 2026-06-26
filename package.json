@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc -p tsconfig.json",
+    "test:limitless": "mocha -r ts-node/register 'test/limitless/**/*.test.ts'",
     "start": "node dist/index.js",
     "contracts:compile": "hardhat compile",
     "contracts:test": "hardhat test",
@@ -33,6 +34,7 @@
     "express": "^4.19.2",
     "ioredis": "^5.4.1",
     "pino": "^9.3.2",
+    "socket.io-client": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
     "viem": "^2.50.4",
     "zod": "^3.23.8"

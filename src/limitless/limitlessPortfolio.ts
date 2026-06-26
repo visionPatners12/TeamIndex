@@ -1,33 +1,30 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
+import { limitlessGetJson } from "./limitlessAuth";
 
 type JsonRecord = Record<string, unknown>;
 
-function limitlessBase(env: Env): string {
-  return (env as any).LIMITLESS_BASE_URL ?? "https://api.limitless.exchange";
-}
+export type NormalizedPortfolioPosition = {
+  marketSlug: string | null;
+  marketId: string | null;
+  outcome: "yes" | "no" | null;
+  outcomeIndex: number | null;
+  tokenId: string | null;
+  quantity: number;
+  cost: number;
+  marketValue: number;
+  unrealizedPnl: number;
+  realizedPnl: number;
+  raw: JsonRecord;
+};
 
-function authHeaders(env: Env): Record<string, string> {
-  const key = (env as any).LIMITLESS_API_KEY as string | undefined;
-  return key ? { "X-API-Key": key, Accept: "application/json" } : { Accept: "application/json" };
-}
-
-async function getJson<T>(env: Env, path: string, params?: Record<string, unknown>): Promise<T> {
-  const url = new URL(`${limitlessBase(env)}${path}`);
-  for (const [key, value] of Object.entries(params ?? {})) {
-    if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
-  }
-  const res = await fetch(url, { headers: authHeaders(env) });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`Limitless portfolio ${res.status} ${path}: ${text}`);
-  return (text ? JSON.parse(text) : {}) as T;
-}
+const VAULT_SHARE_DECIMALS = 6;
 
 function asArray(raw: unknown): JsonRecord[] {
   if (Array.isArray(raw)) return raw.filter((x): x is JsonRecord => !!x && typeof x === "object" && !Array.isArray(x));
   if (raw && typeof raw === "object") {
     const record = raw as JsonRecord;
-    for (const key of ["data", "positions", "trades", "points", "pnl"]) {
+    for (const key of ["data", "positions", "trades", "points", "pnl", "history"]) {
       const value = record[key];
       if (Array.isArray(value)) return asArray(value);
     }
@@ -40,38 +37,215 @@ function num(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function pickNumber(row: JsonRecord, keys: string[]) {
-  for (const key of keys) {
-    if (row[key] !== undefined && row[key] !== null) return num(row[key]);
+export function humanOrBase6(value: unknown, fallback = 0) {
+  const n = num(value, fallback);
+  if (!Number.isFinite(n)) return fallback;
+  if (typeof value === "string" && value.includes(".")) return n;
+  if (Math.abs(n) >= 10_000) return n / 1e6;
+  return n;
+}
+
+function priceNumber(value: unknown, fallback = 0) {
+  const n = num(value, fallback);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.abs(n) > 1 ? n / 1e6 : n;
+}
+
+function nestedValue(row: JsonRecord, key: string): unknown {
+  const parts = key.split(".");
+  let value: unknown = row;
+  for (const part of parts) {
+    value = value && typeof value === "object" && !Array.isArray(value)
+      ? (value as JsonRecord)[part]
+      : undefined;
   }
-  return 0;
+  return value;
 }
 
 function pickString(row: JsonRecord, keys: string[]) {
   for (const key of keys) {
-    const value = row[key];
+    const value = nestedValue(row, key);
     if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return null;
 }
 
+function pickNumber(row: JsonRecord, keys: string[], parser: (value: unknown) => number = num) {
+  for (const key of keys) {
+    const value = nestedValue(row, key);
+    if (value !== undefined && value !== null) return parser(value);
+  }
+  return 0;
+}
+
 function pickDate(row: JsonRecord, keys: string[]) {
-  const value = pickString(row, keys);
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date : null;
+  for (const key of keys) {
+    const value = nestedValue(row, key);
+    if (value === undefined || value === null || value === "") continue;
+    const date = typeof value === "number" && value < 10_000_000_000
+      ? new Date(value * 1000)
+      : new Date(String(value));
+    if (Number.isFinite(date.getTime())) return date;
+  }
+  return null;
 }
 
-export async function fetchPortfolioPositions(env: Env, account: string): Promise<JsonRecord> {
-  return getJson<JsonRecord>(env, "/portfolio/positions", { account });
+function positionSidePayload(raw: JsonRecord, side: "yes" | "no"): JsonRecord | null {
+  const positions = raw.positions;
+  if (!positions || typeof positions !== "object" || Array.isArray(positions)) return null;
+  const payload = (positions as JsonRecord)[side];
+  return payload && typeof payload === "object" && !Array.isArray(payload) ? payload as JsonRecord : null;
 }
 
-export async function fetchPortfolioTrades(env: Env, account: string): Promise<JsonRecord> {
-  return getJson<JsonRecord>(env, "/portfolio/trades", { account });
+export function normalizePortfolioPositions(raw: unknown): NormalizedPortfolioPosition[] {
+  const root = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as JsonRecord : {};
+  const normalized: NormalizedPortfolioPosition[] = [];
+
+  for (const row of asArray(root.clob)) {
+    const marketSlug = pickString(row, ["market.slug", "market.id", "market.address"]);
+    for (const [side, outcomeIndex] of [["yes", 0], ["no", 1]] as const) {
+      const payload = positionSidePayload(row, side);
+      if (!payload) continue;
+
+      const marketValue = pickNumber(payload, ["marketValue", "value", "currentValue"], humanOrBase6);
+      const cost = pickNumber(payload, ["cost", "costBasis", "collateralAmount"], humanOrBase6);
+      const unrealizedPnl = pickNumber(payload, ["unrealizedPnl", "unrealizedPNL"], humanOrBase6);
+      const realizedPnl = pickNumber(payload, ["realisedPnl", "realizedPnl", "realizedPNL"], humanOrBase6);
+      const fillPrice = pickNumber(payload, ["fillPrice", "averageFillPrice"], priceNumber);
+      const quantity = pickNumber(payload, ["quantity", "ctfBalance", "balance", "outcomeTokenAmount"], humanOrBase6) ||
+        (fillPrice > 0 && cost > 0 ? cost / fillPrice : 0);
+
+      if (marketValue === 0 && cost === 0 && unrealizedPnl === 0 && realizedPnl === 0 && quantity === 0) continue;
+      normalized.push({
+        marketSlug,
+        marketId: marketSlug,
+        outcome: side,
+        outcomeIndex,
+        tokenId: pickString(payload, ["tokenId"]),
+        quantity,
+        cost,
+        marketValue,
+        unrealizedPnl,
+        realizedPnl,
+        raw: { ...row, normalizedSide: side, sidePayload: payload },
+      });
+    }
+  }
+
+  for (const row of asArray(root.amm)) {
+    const outcomeIndexRaw = pickNumber(row, ["outcomeIndex"]);
+    const outcomeIndex = Number.isFinite(outcomeIndexRaw) ? Math.trunc(outcomeIndexRaw) : null;
+    const marketValue = pickNumber(row, ["collateralOutOnSell", "marketValue"], humanOrBase6) ||
+      pickNumber(row, ["collateralAmount"], humanOrBase6);
+    const cost = pickNumber(row, ["collateralAmount", "cost"], humanOrBase6);
+    normalized.push({
+      marketSlug: pickString(row, ["market.slug", "market.id", "market.address", "marketAddress"]),
+      marketId: pickString(row, ["market.slug", "market.id", "market.address", "marketAddress"]),
+      outcome: outcomeIndex === 0 ? "yes" : outcomeIndex === 1 ? "no" : null,
+      outcomeIndex,
+      tokenId: pickString(row, ["tokenId"]),
+      quantity: pickNumber(row, ["outcomeTokenAmount", "balance"], humanOrBase6),
+      cost,
+      marketValue,
+      unrealizedPnl: marketValue - cost,
+      realizedPnl: 0,
+      raw: row,
+    });
+  }
+
+  return normalized;
 }
 
-export async function fetchPortfolioPnlChart(env: Env, account: string): Promise<JsonRecord> {
-  return getJson<JsonRecord>(env, "/portfolio/pnl-chart", { account });
+export function extractRealizedPnl(raw: unknown, positions: NormalizedPortfolioPosition[] = []): number {
+  const root = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as JsonRecord : {};
+  const current = root.current && typeof root.current === "object" && !Array.isArray(root.current)
+    ? root.current as JsonRecord
+    : {};
+  const fromCurrent = pickNumber(current, ["realizedPnl", "realisedPnl", "realized"]);
+  if (fromCurrent !== 0) return fromCurrent;
+  const currentValue = pickNumber(root, ["currentValue"]);
+  if (currentValue !== 0) return currentValue;
+  return positions.reduce((sum, pos) => sum + pos.realizedPnl, 0);
+}
+
+function vaultCashDbToHuman(cashRaw: unknown): number {
+  const s = String((cashRaw as any)?.toString?.() ?? cashRaw ?? "").trim();
+  if (!s || s === "0") return 0;
+  if (s.includes(".") || /[eE]/i.test(s)) return Number(s);
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return /^\d+$/.test(s) ? n / 1e6 : n;
+}
+
+export async function fetchPortfolioPositions(env: Env, profileId?: string): Promise<JsonRecord> {
+  return limitlessGetJson<JsonRecord>(
+    env,
+    "/portfolio/positions",
+    undefined,
+    profileId ? { "x-on-behalf-of": profileId } : undefined
+  );
+}
+
+export async function fetchPortfolioHistory(env: Env, profileId?: string, limit = 100): Promise<JsonRecord> {
+  return limitlessGetJson<JsonRecord>(
+    env,
+    "/portfolio/history",
+    { limit },
+    profileId ? { "x-on-behalf-of": profileId } : undefined
+  );
+}
+
+export async function fetchPortfolioPnlChart(env: Env, profileId?: string, timeframe = "7d"): Promise<JsonRecord> {
+  return limitlessGetJson<JsonRecord>(
+    env,
+    "/portfolio/pnl-chart",
+    { timeframe },
+    profileId ? { "x-on-behalf-of": profileId } : undefined
+  );
+}
+
+export async function applyNormalizedPortfolioPositions(poolId: string, positions: NormalizedPortfolioPosition[]) {
+  if (!positions.length) return { updated: 0 };
+  const localPositions = await prisma.club_pool_positions.findMany({
+    where: { poolId, status: "OPEN", tokenId: { contains: ":" } },
+  });
+
+  let updated = 0;
+  for (const remote of positions) {
+    if (!remote.marketSlug && !remote.marketId) continue;
+    const local = localPositions.find((pos) => {
+      const localOutcome = pos.side === "YES" ? "yes" : pos.side === "NO" ? "no" : null;
+      return (pos.marketId === remote.marketSlug || pos.marketId === remote.marketId) &&
+        (remote.outcome == null || localOutcome === remote.outcome);
+    });
+    if (!local) continue;
+
+    const previousInvested = num((local as any).investedAmount?.toString?.() ?? local.investedAmount);
+    const nextInvested = remote.cost > 0 ? remote.cost : previousInvested;
+    const data: Record<string, string> = {
+      currentValue: remote.marketValue.toString(),
+    };
+    if (remote.quantity > 0) data.quantity = remote.quantity.toString();
+    if (nextInvested > 0) {
+      data.stake = nextInvested.toString();
+      data.investedAmount = nextInvested.toString();
+    }
+    if (remote.realizedPnl !== 0) data.realizedPnl = remote.realizedPnl.toString();
+
+    await prisma.$transaction(async (tx) => {
+      const deltaInvested = nextInvested - previousInvested;
+      if (deltaInvested > 0) {
+        await tx.club_pools.update({
+          where: { id: poolId },
+          data: { cash: { decrement: deltaInvested.toString() } },
+        });
+      }
+      await tx.club_pool_positions.update({ where: { id: local.id }, data });
+    });
+    updated += 1;
+  }
+  return { updated };
 }
 
 export async function syncLimitlessPortfolioForPool(env: Env, poolId: string) {
@@ -79,37 +253,26 @@ export async function syncLimitlessPortfolioForPool(env: Env, poolId: string) {
   if (!pool) throw new Error(`Pool not found: ${poolId}`);
 
   const account = await (prisma as any).pool_limitless_accounts.findUnique({ where: { poolId } });
-  const accountId = account?.accountAddress ?? account?.limitlessProfileId;
+  const accountId = account?.limitlessProfileId ?? account?.accountAddress;
   if (!accountId) throw new Error(`Pool ${poolId} has no Limitless account address/profile id`);
 
-  const [positionsRaw, tradesRaw, pnlRaw] = await Promise.all([
+  const [positionsRaw, historyRaw, pnlRaw] = await Promise.all([
     fetchPortfolioPositions(env, accountId),
-    fetchPortfolioTrades(env, accountId),
+    fetchPortfolioHistory(env, accountId),
     fetchPortfolioPnlChart(env, accountId),
   ]);
 
-  const positions = asArray(positionsRaw);
-  const trades = asArray(tradesRaw);
-  const pnl = asArray(pnlRaw);
-
-  const marketValue = positions.reduce(
-    (sum, row) => sum + pickNumber(row, ["marketValue", "value", "currentValue", "notional"]),
-    0
-  );
-  const unrealizedPnl = positions.reduce(
-    (sum, row) => sum + pickNumber(row, ["unrealizedPnl", "unrealizedPNL", "pnl"]),
-    0
-  );
-  const realizedPnl = pnl.reduce(
-    (sum, row) => sum + pickNumber(row, ["realizedPnl", "realizedPNL", "realized"]),
-    0
-  );
+  const positions = normalizePortfolioPositions(positionsRaw);
+  const trades = asArray(historyRaw);
+  const marketValue = positions.reduce((sum, row) => sum + row.marketValue, 0);
+  const unrealizedPnl = positions.reduce((sum, row) => sum + row.unrealizedPnl, 0);
+  const realizedPnl = extractRealizedPnl(pnlRaw, positions);
 
   await (prisma as any).pool_limitless_position_snapshots.create({
     data: {
       poolId,
       accountId,
-      positionsJson: positions as any,
+      positionsJson: positions.map(({ raw: _raw, ...position }) => position) as any,
       marketValue: marketValue.toString(),
       unrealizedPnl: unrealizedPnl.toString(),
       rawJson: positionsRaw as any,
@@ -132,13 +295,13 @@ export async function syncLimitlessPortfolioForPool(env: Env, poolId: string) {
         poolId,
         accountId,
         externalTradeId,
-        marketId: pickString(trade, ["marketId", "market", "slug"]),
-        side: pickString(trade, ["side", "outcome", "direction"]),
+        marketId: pickString(trade, ["marketId", "market.slug", "market.id", "slug"]),
+        side: pickString(trade, ["side", "outcome", "direction", "strategy"]),
         outcomeIndex: trade.outcomeIndex == null ? undefined : Math.trunc(num(trade.outcomeIndex)),
-        price: trade.price == null ? undefined : num(trade.price).toString(),
-        size: trade.size == null ? undefined : num(trade.size).toString(),
-        fee: trade.fee == null ? undefined : num(trade.fee).toString(),
-        executedAt: pickDate(trade, ["executedAt", "createdAt", "timestamp"]) ?? undefined,
+        price: (trade.price ?? trade.outcomeTokenPrice) == null ? undefined : num(trade.price ?? trade.outcomeTokenPrice).toString(),
+        size: (trade.size ?? trade.outcomeTokenAmount) == null ? undefined : humanOrBase6(trade.size ?? trade.outcomeTokenAmount).toString(),
+        fee: trade.fee == null ? undefined : humanOrBase6(trade.fee).toString(),
+        executedAt: pickDate(trade, ["executedAt", "createdAt", "timestamp", "blockTimestamp"]) ?? undefined,
         rawJson: trade as any,
       },
     });
@@ -148,17 +311,21 @@ export async function syncLimitlessPortfolioForPool(env: Env, poolId: string) {
     data: {
       poolId,
       accountId,
-      pnlJson: pnl as any,
+      pnlJson: asArray(pnlRaw) as any,
       realizedPnl: realizedPnl.toString(),
       unrealizedPnl: unrealizedPnl.toString(),
       rawJson: pnlRaw as any,
     },
   });
 
-  const cash = num((pool as any).cash?.toString?.() ?? (pool as any).cash);
-  const totalTokenSupply = num((pool as any).totalTokenSupply?.toString?.() ?? (pool as any).totalTokenSupply);
+  await applyNormalizedPortfolioPositions(poolId, positions);
+
+  const freshPool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+  const cash = vaultCashDbToHuman((freshPool ?? pool).cash);
+  const totalTokenSupply = num((freshPool ?? pool).totalTokenSupply?.toString?.() ?? (freshPool ?? pool).totalTokenSupply);
+  const sharesHuman = totalTokenSupply / 10 ** VAULT_SHARE_DECIMALS;
   const totalPoolValue = cash + marketValue + realizedPnl;
-  const officialTokenPrice = totalTokenSupply > 0 ? totalPoolValue / totalTokenSupply : 1;
+  const officialTokenPrice = sharesHuman > 0 ? totalPoolValue / sharesHuman : 0;
 
   const valuation = await (prisma as any).pool_valuation_snapshots.create({
     data: {
@@ -170,13 +337,14 @@ export async function syncLimitlessPortfolioForPool(env: Env, poolId: string) {
       totalTokenSupply: totalTokenSupply.toString(),
       officialTokenPrice: officialTokenPrice.toString(),
       source: "LIMITLESS_REST",
-      rawJson: { positions: positionsRaw, pnl: pnlRaw } as any,
+      rawJson: { positions: positionsRaw, pnl: pnlRaw, history: historyRaw } as any,
     },
   });
 
   await prisma.club_pools.update({
     where: { id: poolId },
     data: {
+      cash: cash.toString(),
       openPositionsValue: marketValue.toString(),
       realizedPnl: realizedPnl.toString(),
       totalPoolValue: totalPoolValue.toString(),

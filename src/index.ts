@@ -5,6 +5,7 @@ import { startWorker } from "./workers/startWorker";
 import { initDb } from "./db/initDb";
 import { startPriceTicker } from "./workers/priceTicker";
 import { startVaultSyncTicker } from "./workers/vaultSyncTicker";
+import { startLimitlessWebsocketTicker } from "./workers/limitlessWebsocketTicker";
 
 async function main() {
   const env = loadEnv();
@@ -43,6 +44,12 @@ async function main() {
     startVaultSyncTicker({ env, logger });
   } catch (err: any) {
     logger.error({ err }, "Vault sync ticker crashed");
+  }
+
+  try {
+    startLimitlessWebsocketTicker({ env, logger });
+  } catch (err: any) {
+    logger.error({ err }, "Limitless websocket ticker crashed");
   }
 }
 
