@@ -14,7 +14,7 @@
  *
  * Amount scaling: 1e6 (USDC has 6 decimals on Base).
  *
- * Auth: X-API-Key header for REST calls.
+ * Auth: HMAC (lmts-api-key / lmts-timestamp / lmts-signature) via limitlessAuth.
  * Docs: https://docs.limitless.exchange
  */
 
@@ -58,7 +58,26 @@ export interface PostLimitlessOrderParams {
   expiration?: number;
   /** Optional smart-contract maker. When set, orders use ERC-1271 signatureType=3. */
   makerAddress?: string;
+  /**
+   * Limitless profile id that owns the order. For pool vaults this must be the
+   * pool's partner-account profileId (pool_limitless_accounts.limitlessProfileId).
+   * Falls back to the global /profiles/me id when omitted.
+   */
+  ownerId?: number;
+  /** Override the signatureType (defaults: maker set → ERC-1271, else EOA). */
+  signatureType?: number;
+  /** Optional structured logger for order tracing. */
+  log?: OrderLogger;
 }
+
+/** Minimal logger shape — satisfied by pino. */
+export interface OrderLogger {
+  info: (obj: unknown, msg?: string) => void;
+  warn: (obj: unknown, msg?: string) => void;
+  error: (obj: unknown, msg?: string) => void;
+}
+
+const noopLogger: OrderLogger = { info: () => {}, warn: () => {}, error: () => {} };
 
 export interface LimitlessOrderResult {
   orderId?: string;
@@ -174,13 +193,32 @@ export async function getMidpoint(
 
 /**
  * Fetch the current user profile to get the numeric `ownerId`.
- * GET /profile
+ * Prefers GET /profiles/me (current docs); falls back to legacy GET /profile.
+ * Only used as a fallback — pool bets pass an explicit per-account ownerId.
  */
 async function getOwnerId(env: Env): Promise<number> {
-  const profile = await getJson<{ id?: number; profileId?: number }>(env, "/profile");
-  const id = Number(profile.id ?? profile.profileId);
-  if (!Number.isFinite(id) || id <= 0) throw new Error("Could not resolve Limitless ownerId from /profile");
+  let profile: { id?: number; profileId?: number } | undefined;
+  try {
+    profile = await getJson<{ id?: number; profileId?: number }>(env, "/profiles/me");
+  } catch {
+    profile = await getJson<{ id?: number; profileId?: number }>(env, "/profile");
+  }
+  const id = Number(profile?.id ?? profile?.profileId);
+  if (!Number.isFinite(id) || id <= 0) throw new Error("Could not resolve Limitless ownerId from /profiles/me");
   return id;
+}
+
+/** ERC-1271 signatureType value, overridable via env while the SDK value is confirmed. */
+function erc1271SignatureType(env: Env): number {
+  const raw = (env as any).LIMITLESS_SIGNATURE_TYPE;
+  const n = Number(raw);
+  return Number.isFinite(n) && raw !== undefined && raw !== "" ? n : SIGNATURE_TYPE_ERC1271;
+}
+
+/** Clamp a price into Limitless' accepted GTC range [0.01, 0.99]. */
+function clampOrderPrice(price: number): number {
+  if (!Number.isFinite(price)) return 0.5;
+  return Math.min(0.99, Math.max(0.01, price));
 }
 
 /**
@@ -297,6 +335,7 @@ export async function postLimitlessOrder(
   env: Env,
   params: PostLimitlessOrderParams
 ): Promise<LimitlessOrderResult> {
+  const log = params.log ?? noopLogger;
   assertLimitlessTradingConfig(env);
 
   const { Wallet } = await import("ethers");
@@ -314,20 +353,44 @@ export async function postLimitlessOrder(
   const verifyingContract = market.venue.exchange;
 
   // ── Compute amounts ───────────────────────────────────────────────────────
-  const { makerAmount, takerAmount } = computeAmounts(params.price, params.size, params.side);
+  const price = clampOrderPrice(params.price);
+  const { makerAmount, takerAmount } = computeAmounts(price, params.size, params.side);
 
-  // ── Resolve ownerId ───────────────────────────────────────────────────────
-  const ownerId = await getOwnerId(env);
+  // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
+  const ownerId = params.ownerId ?? (await getOwnerId(env));
 
   // ── Build + sign ──────────────────────────────────────────────────────────
-  const expiration = params.expiration ?? Math.floor(Date.now() / 1000) + 300; // 5 min
-  const nonce = Date.now();
+  // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
+  const expiration = 0;
+  const nonce = 0;
   const feeRateBps = Number((env as any).LIMITLESS_FEE_RATE_BPS ?? 200);
   const sideInt: 0 | 1 = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
 
   const chainId = Number((env as any).LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
   const makerAddress = params.makerAddress ?? wallet.address;
-  const signatureType = params.makerAddress ? SIGNATURE_TYPE_ERC1271 : SIGNATURE_TYPE_EOA;
+  const signatureType =
+    params.signatureType ?? (params.makerAddress ? erc1271SignatureType(env) : SIGNATURE_TYPE_EOA);
+
+  log.info(
+    {
+      marketSlug: params.marketSlug,
+      outcome: params.outcome,
+      side: params.side,
+      ownerId,
+      maker: makerAddress,
+      signerEoa: wallet.address,
+      signatureType,
+      verifyingContract,
+      tokenId: String(tokenId),
+      price,
+      sizeUsd: params.size,
+      makerAmount: String(makerAmount),
+      takerAmount: String(takerAmount),
+      feeRateBps,
+    },
+    "limitless order: building + signing"
+  );
+
   const { domain, types, order, salt } = buildEip712Order({
     maker: makerAddress,
     tokenId,
@@ -345,7 +408,7 @@ export async function postLimitlessOrder(
   const signature = await wallet.signTypedData(domain, types, order);
 
   // ── POST /orders ──────────────────────────────────────────────────────────
-  const body = {
+  const requestBody = {
     ownerId,
     orderType: params.orderType ?? "GTC",
     marketSlug: params.marketSlug,
@@ -359,6 +422,7 @@ export async function postLimitlessOrder(
       takerAmount: String(takerAmount),
       expiration: String(expiration),
       nonce: String(nonce),
+      price,
       feeRateBps: String(feeRateBps),
       side: sideInt,
       signatureType,
@@ -366,7 +430,20 @@ export async function postLimitlessOrder(
     },
   };
 
-  return postJson<LimitlessOrderResult>(env, "/orders", body);
+  try {
+    const result = await postJson<LimitlessOrderResult>(env, "/orders", requestBody);
+    log.info(
+      { marketSlug: params.marketSlug, ownerId, status: result?.status, orderId: result?.orderId ?? result?.id },
+      "limitless order: posted"
+    );
+    return result;
+  } catch (e: any) {
+    log.error(
+      { marketSlug: params.marketSlug, ownerId, maker: makerAddress, err: e?.message ?? String(e) },
+      "limitless order: POST /orders failed"
+    );
+    throw e;
+  }
 }
 
 // ─── Order status ─────────────────────────────────────────────────────────────

@@ -60,6 +60,8 @@ import {
 import {
   createPartnerServerAccount,
   partnerAccountCreationEnabled,
+  checkPartnerAccountAllowances,
+  retryPartnerAccountAllowances,
 } from "../limitless/partnerAccounts";
 import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
 import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
@@ -2377,6 +2379,106 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         });
       }
 
+      logger.info(
+        { poolId: body.poolId, marketSlug: body.marketSlug, outcome: body.outcome, amountUsd: body.amountUsd },
+        "limitless bet: start"
+      );
+
+      // ── Preflight 1: ensure the pool has a real Limitless partner account ────
+      let account = await (prisma as any).pool_limitless_accounts.findUnique({
+        where: { poolId: body.poolId },
+      });
+      if (!account?.limitlessProfileId) {
+        const displayName =
+          account?.displayName ?? `pool-${String(pool.id).slice(-6)}`;
+        logger.info({ poolId: body.poolId, displayName }, "limitless bet: provisioning partner account");
+        try {
+          const created = await createPartnerServerAccount(env, displayName);
+          account = await (prisma as any).pool_limitless_accounts.upsert({
+            where: { poolId: body.poolId },
+            update: {
+              limitlessProfileId: created.limitlessProfileId,
+              accountAddress: created.accountAddress,
+              displayName: created.displayName,
+              status: created.accountAddress ? "ACTIVE" : "PENDING",
+              rawJson: created.rawJson as any,
+            },
+            create: {
+              poolId: body.poolId,
+              limitlessProfileId: created.limitlessProfileId,
+              accountAddress: created.accountAddress,
+              displayName: created.displayName,
+              serverWallet: true,
+              allowanceStatus: "PENDING",
+              status: created.accountAddress ? "ACTIVE" : "PENDING",
+              rawJson: created.rawJson as any,
+            },
+          });
+          logger.info(
+            { poolId: body.poolId, profileId: account?.limitlessProfileId, accountAddress: account?.accountAddress },
+            "limitless bet: partner account provisioned"
+          );
+        } catch (e: any) {
+          logger.error({ poolId: body.poolId, err: e?.message ?? String(e) }, "limitless bet: account provisioning failed");
+          return res.status(400).json({ ok: false, error: `Limitless account not provisioned: ${e?.message ?? e}` });
+        }
+      }
+      const ownerId = Number(account?.limitlessProfileId);
+      if (!account?.limitlessProfileId || !Number.isFinite(ownerId) || ownerId <= 0) {
+        return res.status(400).json({
+          ok: false,
+          error: `Pool has no usable Limitless profileId (got ${account?.limitlessProfileId ?? "null"})`,
+        });
+      }
+
+      // ── Preflight 2: allowances (best-effort, non-fatal) ────────────────────
+      try {
+        const allowanceRef = String(account.limitlessProfileId ?? account.accountAddress);
+        const allowances = await checkPartnerAccountAllowances(env, allowanceRef);
+        const allowanceStatus = String(
+          (allowances as any)?.status ?? (allowances as any)?.allowanceStatus ?? ""
+        ).toUpperCase();
+        logger.info({ poolId: body.poolId, allowanceStatus: allowanceStatus || "unknown" }, "limitless bet: allowance check");
+        if (allowanceStatus && !["ACTIVE", "READY", "OK", "APPROVED"].includes(allowanceStatus)) {
+          logger.warn({ poolId: body.poolId, allowanceStatus }, "limitless bet: retrying allowances");
+          await retryPartnerAccountAllowances(env, allowanceRef).catch(() => {});
+        }
+        await (prisma as any).pool_limitless_accounts
+          .update({
+            where: { poolId: body.poolId },
+            data: { allowanceStatus: allowanceStatus || "UNKNOWN", lastAllowanceCheckAt: new Date() },
+          })
+          .catch(() => {});
+      } catch (e: any) {
+        logger.warn({ poolId: body.poolId, err: e?.message ?? String(e) }, "limitless bet: allowance check failed (continuing)");
+      }
+
+      // ── Preflight 3: vault must authorize the order-signer EOA (ERC-1271) ────
+      try {
+        const signerKey =
+          (env as any).LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || (env as any).LIMITLESS_TRADER_PRIVATE_KEY;
+        const signerAddr = new ethers.Wallet(signerKey).address;
+        const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined };
+        const authorized = await isOrderSigner(env, vaultRef, signerAddr);
+        if (!authorized) {
+          logger.warn({ poolId: body.poolId, signerAddr }, "limitless bet: signer not authorized on vault — authorizing");
+          const tx = await adminSetOrderSigner(env, vaultRef, { signer: signerAddr, allowed: true });
+          logger.info({ poolId: body.poolId, signerAddr, txHash: (tx as any)?.hash }, "limitless bet: setOrderSigner sent");
+          if (typeof (tx as any)?.wait === "function") await (tx as any).wait();
+          if (!(await isOrderSigner(env, vaultRef, signerAddr))) {
+            return res.status(400).json({
+              ok: false,
+              error: "Vault has not authorized the order signer (after setOrderSigner)",
+            });
+          }
+        } else {
+          logger.info({ poolId: body.poolId, signerAddr }, "limitless bet: order signer already authorized");
+        }
+      } catch (e: any) {
+        logger.error({ poolId: body.poolId, err: e?.message ?? String(e) }, "limitless bet: signer authorization failed");
+        return res.status(400).json({ ok: false, error: `Order signer authorization failed: ${e?.message ?? e}` });
+      }
+
       const marketSlug = String(market.marketSlug ?? body.marketSlug);
       const book = await getOrderBook(env, marketSlug);
       const { bestAsk } = getBestBidAsk(book);
@@ -2400,9 +2502,15 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         side: "BUY",
         orderType: "GTC",
         makerAddress: pool.vaultAddress,
+        ownerId,
+        log: logger,
       });
 
       if (!isAcceptedOrderResult(orderResult)) {
+        logger.error(
+          { poolId: body.poolId, marketSlug, orderResult },
+          "limitless bet: order rejected"
+        );
         return res.status(502).json({
           ok: false,
           error: getOrderRejectMessage(orderResult),
@@ -2435,6 +2543,20 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
           status: "OPEN",
         },
       });
+
+      logger.info(
+        {
+          poolId: body.poolId,
+          positionId: position.id,
+          marketSlug,
+          outcome: body.outcome,
+          ownerId,
+          price: bestAsk,
+          plannedQuantity,
+          clobOrderId,
+        },
+        "limitless bet: success"
+      );
 
       res.json({
         ok: true,

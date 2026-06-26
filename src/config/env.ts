@@ -51,6 +51,8 @@ const EnvSchema = z.object({
   LIMITLESS_CHAIN_ID: z.string().optional().default("8453"),
   // EOA allowed by each vault's ERC-1271 `setOrderSigner`; signs orders, does not hold funds.
   LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: z.string().optional(),
+  // Override the ERC-1271 signatureType sent to Limitless (default 3) while the SDK value is confirmed.
+  LIMITLESS_SIGNATURE_TYPE: z.string().optional(),
   // Legacy EOA trading key. Used as a fallback signer only while migrating existing envs.
   LIMITLESS_TRADER_PRIVATE_KEY: z.string().optional(),
   // How many markets to refresh per price-sync tick
@@ -107,6 +109,7 @@ export function loadEnv(): Env {
     LIMITLESS_FEE_RATE_BPS: process.env.LIMITLESS_FEE_RATE_BPS,
     LIMITLESS_CHAIN_ID: process.env.LIMITLESS_CHAIN_ID,
     LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: process.env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY,
+    LIMITLESS_SIGNATURE_TYPE: process.env.LIMITLESS_SIGNATURE_TYPE,
     LIMITLESS_TRADER_PRIVATE_KEY: process.env.LIMITLESS_TRADER_PRIVATE_KEY,
     LIMITLESS_PRICE_SYNC_BATCH: process.env.LIMITLESS_PRICE_SYNC_BATCH,
     LIMITLESS_ENRICH_BATCH: process.env.LIMITLESS_ENRICH_BATCH,
