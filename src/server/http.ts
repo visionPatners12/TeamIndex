@@ -2366,8 +2366,15 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       `;
       const market = marketRows[0];
       if (!market) return res.status(404).json({ ok: false, error: "Market not found" });
-      if (market.hidden === true || String(market.status ?? "").toUpperCase() !== "ACTIVE") {
-        return res.status(400).json({ ok: false, error: "Market is not active" });
+      // Mirror the Market Selector gate: only terminal/hidden markets are blocked here.
+      // The cached DB status can lag; live tradability is enforced below via the order
+      // book + Limitless API (no-liquidity / order-rejected), so we don't require "ACTIVE".
+      const marketStatusUpper = String(market.status ?? "").toUpperCase();
+      if (market.hidden === true || marketStatusUpper === "RESOLVED") {
+        return res.status(400).json({
+          ok: false,
+          error: `Market is not tradable (status=${market.status ?? "unknown"}${market.hidden === true ? ", hidden" : ""})`,
+        });
       }
 
       const readiness = isLimitlessTradingReady(env);
