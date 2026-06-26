@@ -27,6 +27,23 @@ function pickString(raw: JsonRecord, keys: string[]): string | null {
   return null;
 }
 
+/**
+ * Like pickString, but also accepts numeric ids — the Limitless profile id is
+ * returned as a number (e.g. `id: 12345`), which pickString would silently drop.
+ */
+function pickIdString(raw: JsonRecord, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = raw[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" ? (value as JsonRecord) : {};
+}
+
 export async function createPartnerServerAccount(
   env: Env,
   displayName: string
@@ -36,14 +53,22 @@ export async function createPartnerServerAccount(
     createServerWallet: true,
   });
 
-  const account = (raw.account && typeof raw.account === "object" ? raw.account : raw) as JsonRecord;
-  return {
-    limitlessProfileId: pickString(raw, ["profileId", "id"]) ?? pickString(account, ["profileId", "id"]),
-    accountAddress: pickString(raw, ["accountAddress", "address", "walletAddress"]) ??
-      pickString(account, ["accountAddress", "address", "walletAddress"]),
-    displayName,
-    rawJson: raw,
-  };
+  // The id/address may live at the top level or nested under account/profile/data.
+  const containers: JsonRecord[] = [
+    raw,
+    asRecord(raw.account),
+    asRecord(raw.profile),
+    asRecord(raw.data),
+  ];
+
+  let limitlessProfileId: string | null = null;
+  let accountAddress: string | null = null;
+  for (const c of containers) {
+    limitlessProfileId = limitlessProfileId ?? pickIdString(c, ["profileId", "id"]);
+    accountAddress = accountAddress ?? pickString(c, ["accountAddress", "address", "walletAddress"]);
+  }
+
+  return { limitlessProfileId, accountAddress, displayName, rawJson: raw };
 }
 
 export async function checkPartnerAccountAllowances(

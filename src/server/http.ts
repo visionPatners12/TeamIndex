@@ -2401,6 +2401,12 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         logger.info({ poolId: body.poolId, displayName }, "limitless bet: provisioning partner account");
         try {
           const created = await createPartnerServerAccount(env, displayName);
+          if (!created.limitlessProfileId) {
+            logger.warn(
+              { poolId: body.poolId, rawKeys: Object.keys(created.rawJson ?? {}), raw: created.rawJson },
+              "limitless bet: partner account response missing profileId"
+            );
+          }
           account = await (prisma as any).pool_limitless_accounts.upsert({
             where: { poolId: body.poolId },
             update: {
