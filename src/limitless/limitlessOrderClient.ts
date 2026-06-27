@@ -413,17 +413,20 @@ export async function postLimitlessOrder(
     orderType: params.orderType ?? "GTC",
     marketSlug: params.marketSlug,
     order: {
+      // Limitless expects: salt/tokenId/expiration as strings, but
+      // makerAmount/takerAmount/nonce/feeRateBps as NUMBERS. The EIP-712 signature is
+      // over the numeric values, so the JSON representation just has to match them.
       salt: String(salt),
       maker: makerAddress,
       signer: makerAddress,
       taker: "0x0000000000000000000000000000000000000000",
       tokenId: String(tokenId),
-      makerAmount: String(makerAmount),
-      takerAmount: String(takerAmount),
+      makerAmount: Number(makerAmount),
+      takerAmount: Number(takerAmount),
       expiration: String(expiration),
-      nonce: String(nonce),
+      nonce: nonce,
       price,
-      feeRateBps: String(feeRateBps),
+      feeRateBps: feeRateBps,
       side: sideInt,
       signatureType,
       signature,
