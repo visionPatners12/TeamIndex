@@ -1,3 +1,4 @@
+import { Wallet } from "ethers";
 import type { Env } from "../config/env";
 import { limitlessRequestJson } from "./limitlessAuth";
 
@@ -96,4 +97,109 @@ export async function retryPartnerAccountAllowances(
 
 export function partnerAccountCreationEnabled(env: Env) {
   return String((env as any).LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED ?? "false").toLowerCase() === "true";
+}
+
+/** Pull a profileId out of a Limitless response, top-level or nested. */
+function extractProfileId(raw: JsonRecord): string | null {
+  const containers: JsonRecord[] = [
+    raw,
+    asRecord(raw.account),
+    asRecord(raw.profile),
+    asRecord(raw.data),
+    ...(Array.isArray((raw as any).accounts) ? (raw as any).accounts.map(asRecord) : []),
+  ];
+  for (const c of containers) {
+    const id = pickIdString(c, ["profileId", "id"]);
+    if (id) return id;
+  }
+  return null;
+}
+
+/**
+ * Register an on-chain address (e.g. a pool vault) as a Limitless partner sub-account
+ * so it gets a profileId usable as `ownerId` when that address is the order maker.
+ *
+ * Proves ownership via x-account / x-signing-message / x-signature: the order-signer
+ * EOA signs an arbitrary message; for a contract vault Limitless validates it through
+ * the vault's ERC-1271 `isValidSignature` (which recovers the signer and checks that it
+ * is an authorized order signer). The EOA must already be authorized via setOrderSigner.
+ *
+ * NOTE: the exact `x-signing-message` format is not publicly documented — best-effort,
+ * confirm with Limitless Builders if the API rejects it.
+ */
+export async function registerVaultPartnerAccount(
+  env: Env,
+  vaultAddress: string,
+  displayName: string
+): Promise<PartnerAccountResult> {
+  const signerKey = (env as any).LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || (env as any).LIMITLESS_TRADER_PRIVATE_KEY;
+  if (!signerKey) throw new Error("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY required to register a vault profile");
+
+  const wallet = new Wallet(signerKey);
+  const message = `Limitless partner account registration\naccount: ${vaultAddress}\nts: ${Date.now()}`;
+  const signature = await wallet.signMessage(message); // EIP-191 personal_sign
+
+  const extraHeaders = {
+    "x-account": vaultAddress,
+    "x-signing-message": message,
+    "x-signature": signature,
+  };
+
+  try {
+    const raw = await limitlessRequestJson<JsonRecord>(
+      env,
+      "POST",
+      "/profiles/partner-accounts",
+      { displayName },
+      extraHeaders
+    );
+    return {
+      limitlessProfileId: extractProfileId(raw),
+      accountAddress: vaultAddress,
+      displayName,
+      rawJson: raw,
+    };
+  } catch (e: any) {
+    // 409 Conflict = profile already exists for this address → resolve and reuse it.
+    if (/\b409\b/.test(String(e?.message ?? ""))) {
+      const existing = await resolveProfileIdForAddress(env, vaultAddress);
+      return { limitlessProfileId: existing, accountAddress: vaultAddress, displayName, rawJson: { conflict: true } };
+    }
+    throw e;
+  }
+}
+
+/**
+ * Resolve the Limitless profileId that owns orders for a given on-chain address
+ * (used as `ownerId` when that address is the order maker — e.g. a pool vault).
+ *
+ * Tries the partner sub-account lookup first, then the public profile-by-address
+ * endpoint. Returns null if no profile is registered for the address.
+ */
+export async function resolveProfileIdForAddress(env: Env, address: string): Promise<string | null> {
+  const collect = (raw: JsonRecord): string | null => extractProfileId(raw);
+
+  // 1) Partner sub-account by wallet.
+  try {
+    const raw = await limitlessJson<JsonRecord>(
+      env,
+      "GET",
+      `/profiles/partner-accounts?account=${encodeURIComponent(address)}`
+    );
+    const id = collect(raw);
+    if (id) return id;
+  } catch {
+    // not found / not a partner account — fall through
+  }
+
+  // 2) Public profile by address.
+  try {
+    const raw = await limitlessJson<JsonRecord>(env, "GET", `/profiles/${encodeURIComponent(address)}`);
+    const id = collect(raw);
+    if (id) return id;
+  } catch {
+    // no profile for this address
+  }
+
+  return null;
 }

@@ -62,6 +62,8 @@ import {
   partnerAccountCreationEnabled,
   checkPartnerAccountAllowances,
   retryPartnerAccountAllowances,
+  resolveProfileIdForAddress,
+  registerVaultPartnerAccount,
 } from "../limitless/partnerAccounts";
 import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
 import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
@@ -2404,6 +2406,104 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     }
   });
 
+  /**
+   * GET /admin/pools/:poolId/limitless-account
+   * Read the stored Limitless profile/account for a pool (for the admin UI).
+   */
+  app.get("/admin/pools/:poolId/limitless-account", requireAdmin, async (req, res) => {
+    try {
+      const account = await (prisma as any).pool_limitless_accounts.findUnique({
+        where: { poolId: req.params.poolId },
+      });
+      return res.json({
+        ok: true,
+        account: account
+          ? {
+              limitlessProfileId: account.limitlessProfileId ?? null,
+              accountAddress: account.accountAddress ?? null,
+              status: account.status ?? null,
+              allowanceStatus: account.allowanceStatus ?? null,
+              serverWallet: account.serverWallet ?? null,
+              displayName: account.displayName ?? null,
+              updatedAt: account.updatedAt ?? null,
+            }
+          : null,
+      });
+    } catch (e: any) {
+      return res.status(500).json({ ok: false, error: e?.message ?? "limitless_account_error" });
+    }
+  });
+
+  /**
+   * POST /admin/limitless/backfill-vault-profiles
+   * For each pool vault that has no Limitless profileId yet, resolve it (if a profile
+   * already exists for the vault address) or register the vault as a partner sub-account,
+   * then store the profileId on pool_limitless_accounts.
+   * Body (optional): { poolId } to scope to a single pool.
+   */
+  app.post("/admin/limitless/backfill-vault-profiles", requireAdmin, async (req, res) => {
+    try {
+      const poolId = req.body?.poolId ? String(req.body.poolId) : null;
+      const pools = await prisma.club_pools.findMany({
+        where: { vaultAddress: { not: null }, ...(poolId ? { id: poolId } : {}) },
+      });
+
+      const results: Array<Record<string, unknown>> = [];
+      for (const pool of pools) {
+        const vault = pool.vaultAddress!;
+        const displayName = `pool-${String(pool.id).slice(-6)}`;
+        try {
+          // Skip if we already stored a profileId for this pool.
+          const existingRow = await (prisma as any).pool_limitless_accounts.findUnique({
+            where: { poolId: pool.id },
+          });
+          if (existingRow?.limitlessProfileId) {
+            results.push({ poolId: pool.id, vault, profileId: existingRow.limitlessProfileId, action: "already-stored" });
+            continue;
+          }
+
+          let profileId = await resolveProfileIdForAddress(env, vault);
+          let action = "resolved";
+          if (!profileId) {
+            logger.info({ poolId: pool.id, vault }, "backfill: registering vault profile");
+            const reg = await registerVaultPartnerAccount(env, vault, displayName);
+            profileId = reg.limitlessProfileId;
+            action = "registered";
+          }
+
+          if (!profileId) {
+            results.push({ poolId: pool.id, vault, action: "no-profile" });
+            continue;
+          }
+
+          await (prisma as any).pool_limitless_accounts.upsert({
+            where: { poolId: pool.id },
+            update: { limitlessProfileId: profileId, accountAddress: vault, status: "ACTIVE" },
+            create: {
+              poolId: pool.id,
+              limitlessProfileId: profileId,
+              accountAddress: vault,
+              displayName,
+              serverWallet: false,
+              allowanceStatus: "PENDING",
+              status: "ACTIVE",
+            },
+          });
+          logger.info({ poolId: pool.id, vault, profileId, action }, "backfill: vault profile stored");
+          results.push({ poolId: pool.id, vault, profileId, action });
+        } catch (e: any) {
+          logger.error({ poolId: pool.id, vault, err: e?.message ?? String(e) }, "backfill: vault profile failed");
+          results.push({ poolId: pool.id, vault, error: e?.message ?? String(e) });
+        }
+      }
+
+      return res.json({ ok: true, total: pools.length, results });
+    } catch (e: any) {
+      logger.error({ err: e }, "backfill-vault-profiles failed");
+      return res.status(500).json({ ok: false, error: e?.message ?? "backfill_error" });
+    }
+  });
+
   const manualLimitlessBetSchema = z.object({
     poolId: z.string().min(1),
     marketSlug: z.string().min(1),
@@ -2472,82 +2572,28 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         "limitless bet: start"
       );
 
-      // ── Preflight 1: ensure the pool has a real Limitless partner account ────
-      let account = await (prisma as any).pool_limitless_accounts.findUnique({
-        where: { poolId: body.poolId },
-      });
-      if (!account?.limitlessProfileId) {
-        const displayName =
-          account?.displayName ?? `pool-${String(pool.id).slice(-6)}`;
-        logger.info({ poolId: body.poolId, displayName }, "limitless bet: provisioning partner account");
-        try {
-          const created = await createPartnerServerAccount(env, displayName);
-          if (!created.limitlessProfileId) {
-            logger.warn(
-              { poolId: body.poolId, rawKeys: Object.keys(created.rawJson ?? {}), raw: created.rawJson },
-              "limitless bet: partner account response missing profileId"
-            );
-          }
-          account = await (prisma as any).pool_limitless_accounts.upsert({
-            where: { poolId: body.poolId },
-            update: {
-              limitlessProfileId: created.limitlessProfileId,
-              accountAddress: created.accountAddress,
-              displayName: created.displayName,
-              status: created.accountAddress ? "ACTIVE" : "PENDING",
-              rawJson: created.rawJson as any,
-            },
-            create: {
-              poolId: body.poolId,
-              limitlessProfileId: created.limitlessProfileId,
-              accountAddress: created.accountAddress,
-              displayName: created.displayName,
-              serverWallet: true,
-              allowanceStatus: "PENDING",
-              status: created.accountAddress ? "ACTIVE" : "PENDING",
-              rawJson: created.rawJson as any,
-            },
-          });
-          logger.info(
-            { poolId: body.poolId, profileId: account?.limitlessProfileId, accountAddress: account?.accountAddress },
-            "limitless bet: partner account provisioned"
-          );
-        } catch (e: any) {
-          logger.error({ poolId: body.poolId, err: e?.message ?? String(e) }, "limitless bet: account provisioning failed");
-          return res.status(400).json({ ok: false, error: `Limitless account not provisioned: ${e?.message ?? e}` });
-        }
-      }
-      const ownerId = Number(account?.limitlessProfileId);
-      if (!account?.limitlessProfileId || !Number.isFinite(ownerId) || ownerId <= 0) {
+      // ── Preflight 1: resolve the vault's Limitless profile (maker = vault) ────
+      // Limitless binds an order's ownerId to the profile registered for order.maker.
+      // Since maker = the vault, ownerId must be the vault's Limitless profileId.
+      const vaultAddress = pool.vaultAddress;
+      const vaultProfileId = await resolveProfileIdForAddress(env, vaultAddress);
+      if (!vaultProfileId) {
+        logger.error({ poolId: body.poolId, vaultAddress }, "limitless bet: no Limitless profile for vault");
         return res.status(400).json({
           ok: false,
-          error: `Pool has no usable Limitless profileId (got ${account?.limitlessProfileId ?? "null"})`,
+          error:
+            `No Limitless profile is registered for the vault ${vaultAddress}. ` +
+            "Register the vault as a Limitless partner sub-account (x-account = vault, ERC-1271 proof) before betting.",
+          vaultAddress,
         });
       }
-
-      // ── Preflight 2: allowances (best-effort, non-fatal) ────────────────────
-      try {
-        const allowanceRef = String(account.limitlessProfileId ?? account.accountAddress);
-        const allowances = await checkPartnerAccountAllowances(env, allowanceRef);
-        const allowanceStatus = String(
-          (allowances as any)?.status ?? (allowances as any)?.allowanceStatus ?? ""
-        ).toUpperCase();
-        logger.info({ poolId: body.poolId, allowanceStatus: allowanceStatus || "unknown" }, "limitless bet: allowance check");
-        if (allowanceStatus && !["ACTIVE", "READY", "OK", "APPROVED"].includes(allowanceStatus)) {
-          logger.warn({ poolId: body.poolId, allowanceStatus }, "limitless bet: retrying allowances");
-          await retryPartnerAccountAllowances(env, allowanceRef).catch(() => {});
-        }
-        await (prisma as any).pool_limitless_accounts
-          .update({
-            where: { poolId: body.poolId },
-            data: { allowanceStatus: allowanceStatus || "UNKNOWN", lastAllowanceCheckAt: new Date() },
-          })
-          .catch(() => {});
-      } catch (e: any) {
-        logger.warn({ poolId: body.poolId, err: e?.message ?? String(e) }, "limitless bet: allowance check failed (continuing)");
+      const ownerId = Number(vaultProfileId);
+      if (!Number.isFinite(ownerId) || ownerId <= 0) {
+        return res.status(400).json({ ok: false, error: `Invalid Limitless profileId for vault: ${vaultProfileId}` });
       }
+      logger.info({ poolId: body.poolId, vaultAddress, ownerId }, "limitless bet: resolved vault profile");
 
-      // ── Preflight 3: vault must authorize the order-signer EOA (ERC-1271) ────
+      // ── Preflight 2: vault must authorize the order-signer EOA (ERC-1271) ────
       {
         const signerKey =
           (env as any).LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || (env as any).LIMITLESS_TRADER_PRIVATE_KEY;
