@@ -31,6 +31,10 @@ const EnvSchema = z.object({
   VAULT_SYNC_START_BLOCK: z.string().optional(),
   VAULT_SYNC_MAX_BLOCKS_PER_TICK: z.string().optional().default("100"),
   VAULT_SYNC_POOLS_PER_TICK: z.string().optional().default("1"),
+  // Min delay between on-chain NAV pushes (setPoolValuation) per pool. The DB/snapshot
+  // is refreshed every price-recalc cycle (real-time); the on-chain write is throttled
+  // to this interval. Default 1h.
+  ONCHAIN_NAV_PUSH_INTERVAL_MS: z.string().optional().default("3600000"),
 
   // ─── Limitless Exchange (market data + trading, Base chain) ──────────────
   LIMITLESS_BASE_URL: z.string().optional().default("https://api.limitless.exchange"),
@@ -98,6 +102,7 @@ export function loadEnv(): Env {
     VAULT_SYNC_START_BLOCK: process.env.VAULT_SYNC_START_BLOCK,
     VAULT_SYNC_MAX_BLOCKS_PER_TICK: process.env.VAULT_SYNC_MAX_BLOCKS_PER_TICK,
     VAULT_SYNC_POOLS_PER_TICK: process.env.VAULT_SYNC_POOLS_PER_TICK,
+    ONCHAIN_NAV_PUSH_INTERVAL_MS: process.env.ONCHAIN_NAV_PUSH_INTERVAL_MS,
 
     LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
     LIMITLESS_API_KEY: process.env.LIMITLESS_API_KEY,

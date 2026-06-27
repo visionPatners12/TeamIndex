@@ -40,6 +40,21 @@ function humanUsdToUsdcBaseUnits(h: number): bigint {
 /** Must match `USDC4626Vault.decimals()` — raw `totalSupply()` is in these base units. */
 const VAULT_SHARE_DECIMALS = 6;
 
+/**
+ * Last time we pushed NAV on-chain per pool (epoch ms). In-memory: on restart the
+ * first cycle re-pushes for every pool, which is the desired resync-after-downtime.
+ */
+const lastOnchainNavPushAt = new Map<string, number>();
+
+/** Last NAV values (USDC base units) actually pushed on-chain per pool, to skip no-op writes. */
+const lastOnchainNavValue = new Map<string, { pos: bigint; pnl: bigint }>();
+
+/** Min delay between on-chain `setPoolValuation` writes per pool (default 1h). */
+function onchainNavPushIntervalMs(env: Env): number {
+  const n = Number((env as any).ONCHAIN_NAV_PUSH_INTERVAL_MS);
+  return Number.isFinite(n) && n > 0 ? n : 3_600_000;
+}
+
 export async function recalculateOfficialPrices(env: Env) {
   const pools = await prisma.club_pools.findMany({ where: { status: "ACTIVE" } });
 
@@ -88,17 +103,27 @@ export async function recalculateOfficialPrices(env: Env) {
     });
 
     // Keep onchain valuation inputs in sync with offchain calculations so ERC4626
-    // conversions use the same "official token price" basis. The vault lives on Base
-    // and `getVaultContract` returns a contract already bound to the Base executor
-    // signer. Pools are processed sequentially in this loop, so nonces from the shared
-    // executor wallet don't collide (each `tx.wait()` mines before the next pool).
-    if (env.BASE_EXECUTOR_PRIVATE_KEY) {
+    // conversions use the same "official token price" basis. The DB (above) is refreshed
+    // every cycle (real-time); the on-chain `setPoolValuation` write is throttled to
+    // ONCHAIN_NAV_PUSH_INTERVAL_MS (default 1h) per pool to bound gas spend. The vault
+    // lives on Base and `getVaultContract` returns a contract bound to the Base executor
+    // signer. Pools are processed sequentially, so nonces from the shared executor wallet
+    // don't collide (each `tx.wait()` mines before the next pool).
+    // Compute the on-chain valuation inputs up front so we can skip the write when the
+    // value hasn't changed since the last push (no-op pushes just waste gas).
+    const posBase = humanUsdToUsdcBaseUnits(positionsValue);
+    // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
+    const rPnLBase = realizedPnl >= 0
+      ? humanUsdToUsdcBaseUnits(realizedPnl)
+      : -humanUsdToUsdcBaseUnits(-realizedPnl);
+
+    const lastPushed = lastOnchainNavValue.get(pool.id);
+    const navChanged = !lastPushed || lastPushed.pos !== posBase || lastPushed.pnl !== rPnLBase;
+    const navPushDue =
+      Date.now() - (lastOnchainNavPushAt.get(pool.id) ?? 0) >= onchainNavPushIntervalMs(env);
+
+    if (env.BASE_EXECUTOR_PRIVATE_KEY && navPushDue && navChanged) {
       try {
-        const posBase = humanUsdToUsdcBaseUnits(positionsValue);
-        // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
-        const rPnLBase = realizedPnl >= 0
-          ? humanUsdToUsdcBaseUnits(realizedPnl)
-          : -humanUsdToUsdcBaseUnits(-realizedPnl);
         await withBaseRpcRetry(env, async (provider) => {
           const vault = await getVaultContract(env, provider, {
             clubName: pool.clubName,
@@ -111,6 +136,9 @@ export async function recalculateOfficialPrices(env: Env) {
             if (!isRpcRateLimitError(err)) throw err;
           }
         }, { maxRetriesPerUrl: 1 });
+        // Only record on success so failures retry on the next cycle.
+        lastOnchainNavPushAt.set(pool.id, Date.now());
+        lastOnchainNavValue.set(pool.id, { pos: posBase, pnl: rPnLBase });
       } catch {
         // Onchain valuation update failure shouldn't block price recalculation.
       }

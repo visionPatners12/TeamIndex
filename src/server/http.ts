@@ -859,6 +859,87 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     });
   });
 
+  /**
+   * POST /admin/pools/:poolId/redeploy-vault
+   * Backend-signed migration helper: deploys a fresh vault clone for an existing pool
+   * on the CURRENT factory (CLUB_VAULT_FACTORY_ADDRESS — point it at the new factory whose
+   * implementation supports ERC-1271 order signers), repoints pool.vaultAddress, and
+   * authorizes the Limitless order-signer EOA on the new vault.
+   *
+   * Use this when an existing pool's vault is an older clone that lacks setOrderSigner.
+   * NOTE: this abandons the old vault — only safe when the old vault holds no funds.
+   * Requires BASE_EXECUTOR_PRIVATE_KEY to be the factory owner (and thus vault owner).
+   */
+  app.post("/admin/pools/:poolId/redeploy-vault", requireAdmin, async (req, res) => {
+    try {
+      const { poolId } = req.params;
+      const body = z.object({ depositCap: z.coerce.bigint().optional() }).parse(req.body ?? {});
+
+      const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+      if (!pool) return res.status(404).json({ ok: false, error: "Pool not found" });
+
+      const depositCap =
+        body.depositCap ?? BigInt(String((pool as any).depositCap ?? "0").replace(/\..*$/, "") || "0");
+      const oldVault = pool.vaultAddress;
+
+      logger.info({ poolId, clubName: pool.clubName, oldVault, depositCap: String(depositCap) }, "redeploy-vault: start");
+
+      const deployment = await ensureClubVaultExists({
+        env,
+        clubName: pool.clubName,
+        symbol: pool.symbol,
+        depositCap,
+      });
+
+      if (deployment.vaultAddress === oldVault) {
+        return res.status(409).json({
+          ok: false,
+          error:
+            "Factory returned the same vault address — the configured CLUB_VAULT_FACTORY_ADDRESS still points to the old implementation. Deploy the new factory (scripts/deployBase.ts) and update the env first.",
+          vaultAddress: deployment.vaultAddress,
+        });
+      }
+
+      await prisma.club_pools.update({
+        where: { id: poolId },
+        data: { vaultAddress: deployment.vaultAddress },
+      });
+      logger.info(
+        { poolId, oldVault, newVault: deployment.vaultAddress, created: deployment.created },
+        "redeploy-vault: pool repointed to new vault"
+      );
+
+      // Authorize the Limitless order-signer EOA on the new vault (ERC-1271).
+      let orderSignerAuthorized = false;
+      try {
+        const signerKey =
+          (env as any).LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || (env as any).LIMITLESS_TRADER_PRIVATE_KEY;
+        if (signerKey) {
+          const signerAddr = new ethers.Wallet(signerKey).address;
+          const vaultRef = { clubName: pool.clubName, vaultAddress: deployment.vaultAddress };
+          const tx = await adminSetOrderSigner(env, vaultRef, { signer: signerAddr, allowed: true });
+          if (typeof (tx as any)?.wait === "function") await (tx as any).wait();
+          orderSignerAuthorized = await isOrderSigner(env, vaultRef, signerAddr);
+          logger.info({ poolId, signerAddr, orderSignerAuthorized }, "redeploy-vault: order signer authorized");
+        }
+      } catch (e: any) {
+        logger.error({ poolId, err: e?.message ?? String(e) }, "redeploy-vault: order signer authorization failed");
+      }
+
+      return res.json({
+        ok: true,
+        poolId,
+        oldVault,
+        vaultAddress: deployment.vaultAddress,
+        created: deployment.created,
+        orderSignerAuthorized,
+      });
+    } catch (e: any) {
+      logger.error({ err: e, poolId: req.params.poolId }, "redeploy-vault failed");
+      return res.status(500).json({ ok: false, error: e?.message ?? "redeploy_vault_error" });
+    }
+  });
+
   // After admin signs the vault deploy tx in MetaMask and gets back the vault address,
   // call this to create the DB pool record.
   app.post("/admin/pools", requireAdmin, async (req, res) => {
@@ -2467,17 +2548,54 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       }
 
       // ── Preflight 3: vault must authorize the order-signer EOA (ERC-1271) ────
-      try {
+      {
         const signerKey =
           (env as any).LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || (env as any).LIMITLESS_TRADER_PRIVATE_KEY;
         const signerAddr = new ethers.Wallet(signerKey).address;
         const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined };
-        const authorized = await isOrderSigner(env, vaultRef, signerAddr);
+
+        // Read current authorization. A no-data revert (CALL_EXCEPTION/BAD_DATA) on this
+        // plain view getter means the deployed vault does not implement the order-signer
+        // feature — i.e. it predates ERC-1271 support and must be upgraded/redeployed.
+        let authorized: boolean;
+        try {
+          authorized = await isOrderSigner(env, vaultRef, signerAddr);
+        } catch (e: any) {
+          const code = e?.code ?? "";
+          const unsupported =
+            code === "CALL_EXCEPTION" || code === "BAD_DATA" || /missing revert data|could not decode/i.test(String(e?.message ?? ""));
+          logger.error(
+            { poolId: body.poolId, vaultAddress: pool.vaultAddress, code, err: e?.message ?? String(e) },
+            "limitless bet: isOrderSigner call failed"
+          );
+          if (unsupported) {
+            return res.status(400).json({
+              ok: false,
+              error:
+                "Vault does not implement ERC-1271 order signers (isOrderSigner reverted). " +
+                "This vault predates the order-signer feature — redeploy/upgrade it to the current " +
+                "USDC4626Vault before placing vault-maker Limitless orders.",
+              vaultAddress: pool.vaultAddress,
+            });
+          }
+          return res.status(400).json({ ok: false, error: `Vault isOrderSigner check failed: ${e?.message ?? e}` });
+        }
+
         if (!authorized) {
           logger.warn({ poolId: body.poolId, signerAddr }, "limitless bet: signer not authorized on vault — authorizing");
-          const tx = await adminSetOrderSigner(env, vaultRef, { signer: signerAddr, allowed: true });
-          logger.info({ poolId: body.poolId, signerAddr, txHash: (tx as any)?.hash }, "limitless bet: setOrderSigner sent");
-          if (typeof (tx as any)?.wait === "function") await (tx as any).wait();
+          try {
+            const tx = await adminSetOrderSigner(env, vaultRef, { signer: signerAddr, allowed: true });
+            logger.info({ poolId: body.poolId, signerAddr, txHash: (tx as any)?.hash }, "limitless bet: setOrderSigner sent");
+            if (typeof (tx as any)?.wait === "function") await (tx as any).wait();
+          } catch (e: any) {
+            logger.error({ poolId: body.poolId, signerAddr, err: e?.message ?? String(e) }, "limitless bet: setOrderSigner failed");
+            return res.status(400).json({
+              ok: false,
+              error:
+                `Could not authorize order signer on vault: ${e?.message ?? e}. ` +
+                "Ensure BASE_EXECUTOR_PRIVATE_KEY is the vault owner.",
+            });
+          }
           if (!(await isOrderSigner(env, vaultRef, signerAddr))) {
             return res.status(400).json({
               ok: false,
@@ -2487,9 +2605,6 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         } else {
           logger.info({ poolId: body.poolId, signerAddr }, "limitless bet: order signer already authorized");
         }
-      } catch (e: any) {
-        logger.error({ poolId: body.poolId, err: e?.message ?? String(e) }, "limitless bet: signer authorization failed");
-        return res.status(400).json({ ok: false, error: `Order signer authorization failed: ${e?.message ?? e}` });
       }
 
       const marketSlug = String(market.marketSlug ?? body.marketSlug);
