@@ -2500,6 +2500,7 @@ function startHttpServer({ env, logger }) {
                 orderType: "GTC",
                 makerAddress: pool.vaultAddress,
                 ownerId,
+                onBehalfOf: ownerId,
                 log: logger,
             });
             if (!(0, limitlessOrderClient_1.isAcceptedOrderResult)(orderResult)) {

@@ -55,7 +55,7 @@ const EnvSchema = z.object({
   LIMITLESS_CHAIN_ID: z.string().optional().default("8453"),
   // EOA allowed by each vault's ERC-1271 `setOrderSigner`; signs orders, does not hold funds.
   LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: z.string().optional(),
-  // Override the ERC-1271 signatureType sent to Limitless (default 3) while the SDK value is confirmed.
+  // Override the ERC-1271 signatureType sent to Limitless (default 2, matching current SDK smart-wallet value).
   LIMITLESS_SIGNATURE_TYPE: z.string().optional(),
   // Legacy EOA trading key. Used as a fallback signer only while migrating existing envs.
   LIMITLESS_TRADER_PRIVATE_KEY: z.string().optional(),

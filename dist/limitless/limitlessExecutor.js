@@ -247,6 +247,7 @@ async function executeLimitlessTranche(params) {
                 orderType: "GTC",
                 makerAddress: pool.vaultAddress,
                 ownerId,
+                onBehalfOf: ownerId,
             });
         }
         catch (err) {

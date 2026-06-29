@@ -75,8 +75,8 @@ const SIDE_BUY = 0;
 const SIDE_SELL = 1;
 /** signatureType: EOA = 0 (standard EOA sig). */
 const SIGNATURE_TYPE_EOA = 0;
-/** signatureType: ERC-1271 = 3 (smart contract wallet / vault sig). */
-const SIGNATURE_TYPE_ERC1271 = 3;
+/** signatureType: smart contract wallet / ERC-1271-compatible signature. */
+const SIGNATURE_TYPE_ERC1271 = 2;
 const noopLogger = { info: () => { }, warn: () => { }, error: () => { } };
 async function getJson(env, path, params) {
     return (0, limitlessAuth_1.limitlessGetJson)(env, path, params);
@@ -182,7 +182,7 @@ async function getOwnerId(env) {
         throw new Error("Could not resolve Limitless ownerId from /profiles/me");
     return id;
 }
-/** ERC-1271 signatureType value, overridable via env while the SDK value is confirmed. */
+/** ERC-1271 signatureType value, overridable via env if Limitless changes it. */
 function erc1271SignatureType(env) {
     const raw = env.LIMITLESS_SIGNATURE_TYPE;
     const n = Number(raw);
@@ -305,6 +305,7 @@ async function postLimitlessOrder(env, params) {
     const { makerAmount, takerAmount } = computeAmounts(price, params.size, params.side);
     // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
     const ownerId = params.ownerId ?? (await getOwnerId(env));
+    const onBehalfOf = params.onBehalfOf ?? params.ownerId;
     // ── Build + sign ──────────────────────────────────────────────────────────
     // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
     const expiration = 0;
@@ -319,6 +320,7 @@ async function postLimitlessOrder(env, params) {
         outcome: params.outcome,
         side: params.side,
         ownerId,
+        onBehalfOf,
         maker: makerAddress,
         signerEoa: wallet.address,
         signatureType,
@@ -347,6 +349,7 @@ async function postLimitlessOrder(env, params) {
     // ── POST /orders ──────────────────────────────────────────────────────────
     const requestBody = {
         ownerId,
+        ...(onBehalfOf !== undefined ? { onBehalfOf } : {}),
         orderType: params.orderType ?? "GTC",
         marketSlug: params.marketSlug,
         order: {

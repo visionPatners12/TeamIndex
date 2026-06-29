@@ -1,7 +1,7 @@
 # Graph Report - TeamIndex  (2026-06-29)
 
 ## Corpus Check
-- 73 files · ~50,877 words
+- 73 files · ~50,917 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7204cf30`
+- Built from commit: `4a15dff7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

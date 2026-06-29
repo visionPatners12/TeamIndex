@@ -2755,6 +2755,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         orderType: "GTC",
         makerAddress: pool.vaultAddress,
         ownerId,
+        onBehalfOf: ownerId,
         log: logger,
       });
 

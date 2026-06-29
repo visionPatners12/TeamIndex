@@ -40,8 +40,8 @@ const SIDE_SELL = 1;
 
 /** signatureType: EOA = 0 (standard EOA sig). */
 const SIGNATURE_TYPE_EOA = 0;
-/** signatureType: ERC-1271 = 3 (smart contract wallet / vault sig). */
-const SIGNATURE_TYPE_ERC1271 = 3;
+/** signatureType: smart contract wallet / ERC-1271-compatible signature. */
+const SIGNATURE_TYPE_ERC1271 = 2;
 
 export interface PostLimitlessOrderParams {
   /** Market slug (e.g. "will-eth-hit-4000-by-june-30"). */
@@ -56,7 +56,7 @@ export interface PostLimitlessOrderParams {
   orderType: LimitlessOrderType;
   /** Expiration unix timestamp (seconds). Default: now + 5 min. */
   expiration?: number;
-  /** Optional smart-contract maker. When set, orders use ERC-1271 signatureType=3. */
+  /** Optional smart-contract maker. When set, orders use ERC-1271 signatureType=2 by default. */
   makerAddress?: string;
   /**
    * Limitless profile id that owns the order. For pool vaults this must be the
@@ -64,6 +64,11 @@ export interface PostLimitlessOrderParams {
    * Falls back to the global /profiles/me id when omitted.
    */
   ownerId?: number;
+  /**
+   * Partner/delegated profile id the HMAC API token is acting for. For signed
+   * partner orders this should match ownerId.
+   */
+  onBehalfOf?: number;
   /** Override the signatureType (defaults: maker set → ERC-1271, else EOA). */
   signatureType?: number;
   /** Optional structured logger for order tracing. */
@@ -208,7 +213,7 @@ async function getOwnerId(env: Env): Promise<number> {
   return id;
 }
 
-/** ERC-1271 signatureType value, overridable via env while the SDK value is confirmed. */
+/** ERC-1271 signatureType value, overridable via env if Limitless changes it. */
 function erc1271SignatureType(env: Env): number {
   const raw = (env as any).LIMITLESS_SIGNATURE_TYPE;
   const n = Number(raw);
@@ -358,6 +363,7 @@ export async function postLimitlessOrder(
 
   // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
   const ownerId = params.ownerId ?? (await getOwnerId(env));
+  const onBehalfOf = params.onBehalfOf ?? params.ownerId;
 
   // ── Build + sign ──────────────────────────────────────────────────────────
   // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
@@ -377,6 +383,7 @@ export async function postLimitlessOrder(
       outcome: params.outcome,
       side: params.side,
       ownerId,
+      onBehalfOf,
       maker: makerAddress,
       signerEoa: wallet.address,
       signatureType,
@@ -410,6 +417,7 @@ export async function postLimitlessOrder(
   // ── POST /orders ──────────────────────────────────────────────────────────
   const requestBody = {
     ownerId,
+    ...(onBehalfOf !== undefined ? { onBehalfOf } : {}),
     orderType: params.orderType ?? "GTC",
     marketSlug: params.marketSlug,
     order: {

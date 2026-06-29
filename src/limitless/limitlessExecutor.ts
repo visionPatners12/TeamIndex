@@ -291,6 +291,7 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
         orderType: "GTC",
         makerAddress: pool.vaultAddress,
         ownerId,
+        onBehalfOf: ownerId,
       });
     } catch (err: any) {
       const lastError = `Order posting failed: ${String(err?.message ?? err)}`;

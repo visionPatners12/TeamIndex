@@ -211,7 +211,7 @@ describe("USDC4626Vault", function () {
       nonce: 0n,
       feeRateBps: 200n,
       side: 0,
-      signatureType: 3,
+      signatureType: 2,
     };
     const digest = ethers.TypedDataEncoder.hash(domain, types, value);
 
