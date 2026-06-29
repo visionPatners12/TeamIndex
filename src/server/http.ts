@@ -2444,10 +2444,31 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
    */
   app.post("/admin/limitless/backfill-vault-profiles", requireAdmin, async (req, res) => {
     try {
-      const poolId = req.body?.poolId ? String(req.body.poolId) : null;
-      const pools = await prisma.club_pools.findMany({
-        where: { vaultAddress: { not: null }, ...(poolId ? { id: poolId } : {}) },
+      const requestedPoolRef = req.body?.poolId ? String(req.body.poolId).trim() : null;
+      let resolvedPoolIdFromProfile: string | null = null;
+
+      let pools = await prisma.club_pools.findMany({
+        where: { vaultAddress: { not: null }, ...(requestedPoolRef ? { id: requestedPoolRef } : {}) },
       });
+
+      if (requestedPoolRef && pools.length === 0) {
+        const account = await (prisma as any).pool_limitless_accounts.findFirst({
+          where: { limitlessProfileId: requestedPoolRef },
+          select: { poolId: true },
+        });
+        if (account?.poolId) {
+          resolvedPoolIdFromProfile = account.poolId;
+          pools = await prisma.club_pools.findMany({
+            where: { id: account.poolId, vaultAddress: { not: null } },
+          });
+        }
+      }
+
+      if (requestedPoolRef && pools.length === 0 && ethers.isAddress(requestedPoolRef)) {
+        pools = await prisma.club_pools.findMany({
+          where: { vaultAddress: { equals: requestedPoolRef, mode: "insensitive" } },
+        });
+      }
 
       const results: Array<Record<string, unknown>> = [];
       for (const pool of pools) {
@@ -2499,7 +2520,13 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         }
       }
 
-      return res.json({ ok: true, total: pools.length, results });
+      return res.json({
+        ok: true,
+        requestedPoolRef,
+        resolvedPoolIdFromProfile,
+        total: pools.length,
+        results,
+      });
     } catch (e: any) {
       logger.error({ err: e }, "backfill-vault-profiles failed");
       return res.status(500).json({ ok: false, error: e?.message ?? "backfill_error" });

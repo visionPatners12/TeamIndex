@@ -2221,10 +2221,28 @@ function startHttpServer({ env, logger }) {
      */
     app.post("/admin/limitless/backfill-vault-profiles", requireAdmin, async (req, res) => {
         try {
-            const poolId = req.body?.poolId ? String(req.body.poolId) : null;
-            const pools = await prisma_1.prisma.club_pools.findMany({
-                where: { vaultAddress: { not: null }, ...(poolId ? { id: poolId } : {}) },
+            const requestedPoolRef = req.body?.poolId ? String(req.body.poolId).trim() : null;
+            let resolvedPoolIdFromProfile = null;
+            let pools = await prisma_1.prisma.club_pools.findMany({
+                where: { vaultAddress: { not: null }, ...(requestedPoolRef ? { id: requestedPoolRef } : {}) },
             });
+            if (requestedPoolRef && pools.length === 0) {
+                const account = await prisma_1.prisma.pool_limitless_accounts.findFirst({
+                    where: { limitlessProfileId: requestedPoolRef },
+                    select: { poolId: true },
+                });
+                if (account?.poolId) {
+                    resolvedPoolIdFromProfile = account.poolId;
+                    pools = await prisma_1.prisma.club_pools.findMany({
+                        where: { id: account.poolId, vaultAddress: { not: null } },
+                    });
+                }
+            }
+            if (requestedPoolRef && pools.length === 0 && ethers_1.ethers.isAddress(requestedPoolRef)) {
+                pools = await prisma_1.prisma.club_pools.findMany({
+                    where: { vaultAddress: { equals: requestedPoolRef, mode: "insensitive" } },
+                });
+            }
             const results = [];
             for (const pool of pools) {
                 const vault = pool.vaultAddress;
@@ -2272,7 +2290,13 @@ function startHttpServer({ env, logger }) {
                     results.push({ poolId: pool.id, vault, error: e?.message ?? String(e) });
                 }
             }
-            return res.json({ ok: true, total: pools.length, results });
+            return res.json({
+                ok: true,
+                requestedPoolRef,
+                resolvedPoolIdFromProfile,
+                total: pools.length,
+                results,
+            });
         }
         catch (e) {
             logger.error({ err: e }, "backfill-vault-profiles failed");
