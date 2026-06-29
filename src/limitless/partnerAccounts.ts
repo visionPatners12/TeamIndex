@@ -56,6 +56,10 @@ export function sameAddress(a: string | null | undefined, b: string | null | und
   return !!aa && !!bb && aa === bb;
 }
 
+function vaultRegistrationMessage(vaultAddress: string): string {
+  return `Limitless partner account registration | account=${vaultAddress} | ts=${Date.now()}`;
+}
+
 export async function createPartnerServerAccount(
   env: Env,
   displayName: string
@@ -147,7 +151,7 @@ export async function registerVaultPartnerAccount(
   if (!signerKey) throw new Error("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY required to register a vault profile");
 
   const wallet = new Wallet(signerKey);
-  const message = `Limitless partner account registration\naccount: ${vaultAddress}\nts: ${Date.now()}`;
+  const message = vaultRegistrationMessage(vaultAddress);
   const signature = await wallet.signMessage(message); // EIP-191 personal_sign
 
   const extraHeaders = {

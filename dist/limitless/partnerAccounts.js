@@ -47,6 +47,9 @@ function sameAddress(a, b) {
     const bb = normalizeAddress(b);
     return !!aa && !!bb && aa === bb;
 }
+function vaultRegistrationMessage(vaultAddress) {
+    return `Limitless partner account registration | account=${vaultAddress} | ts=${Date.now()}`;
+}
 async function createPartnerServerAccount(env, displayName) {
     const raw = await limitlessJson(env, "POST", "/profiles/partner-accounts", {
         displayName,
@@ -109,7 +112,7 @@ async function registerVaultPartnerAccount(env, vaultAddress, displayName) {
     if (!signerKey)
         throw new Error("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY required to register a vault profile");
     const wallet = new ethers_1.Wallet(signerKey);
-    const message = `Limitless partner account registration\naccount: ${vaultAddress}\nts: ${Date.now()}`;
+    const message = vaultRegistrationMessage(vaultAddress);
     const signature = await wallet.signMessage(message); // EIP-191 personal_sign
     const extraHeaders = {
         "x-account": vaultAddress,

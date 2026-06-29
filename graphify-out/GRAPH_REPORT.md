@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-29)
 
 ## Corpus Check
-- 73 files · ~50,685 words
+- 73 files · ~50,777 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 512 nodes · 1073 edges · 31 communities (24 shown, 7 thin omitted)
+- 513 nodes · 1075 edges · 31 communities (24 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6a4f60f9`
+- Built from commit: `f9ad0ed8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -68,7 +68,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
-Nodes (50): globalForPrisma, getMarketBySlug(), getOrderBook(), decodeLimitlessTokenId(), claimQueue(), decToNumber(), ExecuteLimitlessParams, executeLimitlessTranche() (+42 more)
+Nodes (49): getMarketBySlug(), getOrderBook(), decodeLimitlessTokenId(), claimQueue(), decToNumber(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+41 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.13
@@ -84,7 +84,7 @@ Nodes (24): Env, EnvSchema, loadEnv(), createLogger(), assertRequiredTablesExist
 
 ### Community 4 - "Community 4"
 Cohesion: 0.05
-Nodes (37): dependencies, bullmq, dotenv, ethers, express, ioredis, pino, @polymarket/builder-relayer-client (+29 more)
+Nodes (36): dependencies, bullmq, dotenv, ethers, express, ioredis, pino, @polymarket/builder-relayer-client (+28 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.14
@@ -95,12 +95,12 @@ Cohesion: 0.12
 Nodes (26): authHeaders(), detectSportHints(), extractPrices(), getHistoricalPrices(), getJson(), limitlessBase(), LimitlessCategory, LimitlessMarket (+18 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.06
-Nodes (65): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), CLUB_VAULT_FACTORY_ABI (+57 more)
+Cohesion: 0.05
+Nodes (66): globalForPrisma, assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv() (+58 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.13
-Nodes (15): devDependencies, chai, hardhat, @nomicfoundation/hardhat-ethers, @openzeppelin/contracts, @openzeppelin/contracts-upgradeable, prisma, ts-node (+7 more)
+Cohesion: 0.12
+Nodes (16): scripts, build, contracts:check-balance, contracts:compile, contracts:deploy:base, contracts:deploy:chiliz, contracts:deploy:polygon, contracts:diagnose:polygon (+8 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
@@ -112,7 +112,7 @@ Nodes (49): buildPathWithQuery(), hasLimitlessHmacConfig(), limitlessBase(), lim
 
 ### Community 12 - "Community 12"
 Cohesion: 0.17
-Nodes (19): asRecord(), checkPartnerAccountAllowances(), createPartnerServerAccount(), extractProfileId(), hmacHeaders(), JsonRecord, limitlessBase(), limitlessJson() (+11 more)
+Nodes (20): asRecord(), checkPartnerAccountAllowances(), createPartnerServerAccount(), extractProfileId(), hmacHeaders(), JsonRecord, limitlessBase(), limitlessJson() (+12 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.15
@@ -139,7 +139,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
   _137 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07792207792207792 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08106219426974144 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.12903225806451613 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
