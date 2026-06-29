@@ -15,7 +15,7 @@
  *
  * Amount scaling: 1e6 (USDC has 6 decimals on Base).
  *
- * Auth: X-API-Key header for REST calls.
+ * Auth: HMAC (lmts-api-key / lmts-timestamp / lmts-signature) via limitlessAuth.
  * Docs: https://docs.limitless.exchange
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
@@ -67,6 +67,7 @@ exports.assertLimitlessTradingConfig = assertLimitlessTradingConfig;
 exports.isLimitlessTradingReady = isLimitlessTradingReady;
 const limitlessClient_1 = require("./limitlessClient");
 Object.defineProperty(exports, "getOrderBook", { enumerable: true, get: function () { return limitlessClient_1.getOrderBook; } });
+const limitlessAuth_1 = require("./limitlessAuth");
 const BASE_CHAIN_ID = 8453;
 const SCALE = 1000000n; // 1e6 (USDC 6 decimals)
 /** Side enum values used in EIP-712 (uint8). */
@@ -76,39 +77,12 @@ const SIDE_SELL = 1;
 const SIGNATURE_TYPE_EOA = 0;
 /** signatureType: ERC-1271 = 3 (smart contract wallet / vault sig). */
 const SIGNATURE_TYPE_ERC1271 = 3;
-// ─── HTTP helpers ─────────────────────────────────────────────────────────────
-function limitlessBase(env) {
-    return env.LIMITLESS_BASE_URL ?? "https://api.limitless.exchange";
-}
-function authHeaders(env) {
-    const key = env.LIMITLESS_API_KEY;
-    return key ? { "X-API-Key": key } : {};
-}
+const noopLogger = { info: () => { }, warn: () => { }, error: () => { } };
 async function getJson(env, path, params) {
-    const u = new URL(`${limitlessBase(env)}${path}`);
-    if (params)
-        for (const [k, v] of Object.entries(params)) {
-            if (v !== undefined && v !== null)
-                u.searchParams.set(k, String(v));
-        }
-    const res = await fetch(u.toString(), {
-        headers: { Accept: "application/json", ...authHeaders(env) },
-    });
-    if (!res.ok)
-        throw new Error(`Limitless API ${res.status} ${path}`);
-    return (await res.json());
+    return (0, limitlessAuth_1.limitlessGetJson)(env, path, params);
 }
 async function postJson(env, path, body) {
-    const res = await fetch(`${limitlessBase(env)}${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders(env) },
-        body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`Limitless API ${res.status} ${path}: ${text}`);
-    }
-    return (await res.json());
+    return (0, limitlessAuth_1.limitlessRequestJson)(env, "POST", path, body);
 }
 /**
  * Get best bid and best ask from an order book.
@@ -192,14 +166,33 @@ async function getMidpoint(env, marketSlug, outcome = "yes") {
 // ─── Order placement ──────────────────────────────────────────────────────────
 /**
  * Fetch the current user profile to get the numeric `ownerId`.
- * GET /profile
+ * Prefers GET /profiles/me (current docs); falls back to legacy GET /profile.
+ * Only used as a fallback — pool bets pass an explicit per-account ownerId.
  */
 async function getOwnerId(env) {
-    const profile = await getJson(env, "/profile");
-    const id = Number(profile.id ?? profile.profileId);
+    let profile;
+    try {
+        profile = await getJson(env, "/profiles/me");
+    }
+    catch {
+        profile = await getJson(env, "/profile");
+    }
+    const id = Number(profile?.id ?? profile?.profileId);
     if (!Number.isFinite(id) || id <= 0)
-        throw new Error("Could not resolve Limitless ownerId from /profile");
+        throw new Error("Could not resolve Limitless ownerId from /profiles/me");
     return id;
+}
+/** ERC-1271 signatureType value, overridable via env while the SDK value is confirmed. */
+function erc1271SignatureType(env) {
+    const raw = env.LIMITLESS_SIGNATURE_TYPE;
+    const n = Number(raw);
+    return Number.isFinite(n) && raw !== undefined && raw !== "" ? n : SIGNATURE_TYPE_ERC1271;
+}
+/** Clamp a price into Limitless' accepted GTC range [0.01, 0.99]. */
+function clampOrderPrice(price) {
+    if (!Number.isFinite(price))
+        return 0.5;
+    return Math.min(0.99, Math.max(0.01, price));
 }
 /**
  * Build EIP-712 typed-data for a Limitless GTC limit order.
@@ -290,6 +283,7 @@ function computeAmounts(price, size, side) {
  *   LIMITLESS_FEE_RATE_BPS     — fee rate in basis points (default 200 = 2%)
  */
 async function postLimitlessOrder(env, params) {
+    const log = params.log ?? noopLogger;
     assertLimitlessTradingConfig(env);
     const { Wallet } = await Promise.resolve().then(() => __importStar(require("ethers")));
     const privateKey = getLimitlessOrderSignerPrivateKey(env);
@@ -307,17 +301,35 @@ async function postLimitlessOrder(env, params) {
     const tokenId = params.outcome === "yes" ? market.tokens.yes : market.tokens.no;
     const verifyingContract = market.venue.exchange;
     // ── Compute amounts ───────────────────────────────────────────────────────
-    const { makerAmount, takerAmount } = computeAmounts(params.price, params.size, params.side);
-    // ── Resolve ownerId ───────────────────────────────────────────────────────
-    const ownerId = await getOwnerId(env);
+    const price = clampOrderPrice(params.price);
+    const { makerAmount, takerAmount } = computeAmounts(price, params.size, params.side);
+    // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
+    const ownerId = params.ownerId ?? (await getOwnerId(env));
     // ── Build + sign ──────────────────────────────────────────────────────────
-    const expiration = params.expiration ?? Math.floor(Date.now() / 1000) + 300; // 5 min
-    const nonce = Date.now();
+    // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
+    const expiration = 0;
+    const nonce = 0;
     const feeRateBps = Number(env.LIMITLESS_FEE_RATE_BPS ?? 200);
     const sideInt = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
     const chainId = Number(env.LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
     const makerAddress = params.makerAddress ?? wallet.address;
-    const signatureType = params.makerAddress ? SIGNATURE_TYPE_ERC1271 : SIGNATURE_TYPE_EOA;
+    const signatureType = params.signatureType ?? (params.makerAddress ? erc1271SignatureType(env) : SIGNATURE_TYPE_EOA);
+    log.info({
+        marketSlug: params.marketSlug,
+        outcome: params.outcome,
+        side: params.side,
+        ownerId,
+        maker: makerAddress,
+        signerEoa: wallet.address,
+        signatureType,
+        verifyingContract,
+        tokenId: String(tokenId),
+        price,
+        sizeUsd: params.size,
+        makerAmount: String(makerAmount),
+        takerAmount: String(takerAmount),
+        feeRateBps,
+    }, "limitless order: building + signing");
     const { domain, types, order, salt } = buildEip712Order({
         maker: makerAddress,
         tokenId,
@@ -333,27 +345,39 @@ async function postLimitlessOrder(env, params) {
     });
     const signature = await wallet.signTypedData(domain, types, order);
     // ── POST /orders ──────────────────────────────────────────────────────────
-    const body = {
+    const requestBody = {
         ownerId,
         orderType: params.orderType ?? "GTC",
         marketSlug: params.marketSlug,
         order: {
+            // Limitless expects: salt/tokenId/expiration as strings, but
+            // makerAmount/takerAmount/nonce/feeRateBps as NUMBERS. The EIP-712 signature is
+            // over the numeric values, so the JSON representation just has to match them.
             salt: String(salt),
             maker: makerAddress,
             signer: makerAddress,
             taker: "0x0000000000000000000000000000000000000000",
             tokenId: String(tokenId),
-            makerAmount: String(makerAmount),
-            takerAmount: String(takerAmount),
+            makerAmount: Number(makerAmount),
+            takerAmount: Number(takerAmount),
             expiration: String(expiration),
-            nonce: String(nonce),
-            feeRateBps: String(feeRateBps),
+            nonce: nonce,
+            price,
+            feeRateBps: feeRateBps,
             side: sideInt,
             signatureType,
             signature,
         },
     };
-    return postJson(env, "/orders", body);
+    try {
+        const result = await postJson(env, "/orders", requestBody);
+        log.info({ marketSlug: params.marketSlug, ownerId, status: result?.status, orderId: result?.orderId ?? result?.id }, "limitless order: posted");
+        return result;
+    }
+    catch (e) {
+        log.error({ marketSlug: params.marketSlug, ownerId, maker: makerAddress, err: e?.message ?? String(e) }, "limitless order: POST /orders failed");
+        throw e;
+    }
 }
 // ─── Order status ─────────────────────────────────────────────────────────────
 /**
@@ -398,6 +422,8 @@ function assertLimitlessTradingConfig(env) {
     const missing = [];
     if (!env.LIMITLESS_API_KEY)
         missing.push("LIMITLESS_API_KEY");
+    if (!env.LIMITLESS_API_SECRET)
+        missing.push("LIMITLESS_API_SECRET");
     if (!getLimitlessOrderSignerPrivateKey(env)) {
         missing.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY");
     }
@@ -409,6 +435,8 @@ function isLimitlessTradingReady(env) {
     const reasons = [];
     if (!env.LIMITLESS_API_KEY)
         reasons.push("LIMITLESS_API_KEY not set");
+    if (!env.LIMITLESS_API_SECRET)
+        reasons.push("LIMITLESS_API_SECRET not set");
     if (!getLimitlessOrderSignerPrivateKey(env)) {
         reasons.push("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY not set");
     }

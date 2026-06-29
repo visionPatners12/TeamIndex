@@ -45,6 +45,17 @@ function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" ? (value as JsonRecord) : {};
 }
 
+export function normalizeAddress(address: string | null | undefined): string | null {
+  const trimmed = address?.trim();
+  return trimmed ? trimmed.toLowerCase() : null;
+}
+
+export function sameAddress(a: string | null | undefined, b: string | null | undefined): boolean {
+  const aa = normalizeAddress(a);
+  const bb = normalizeAddress(b);
+  return !!aa && !!bb && aa === bb;
+}
+
 export async function createPartnerServerAccount(
   env: Env,
   displayName: string

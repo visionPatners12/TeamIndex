@@ -753,6 +753,76 @@ function startHttpServer({ env, logger }) {
             clubId,
         });
     });
+    /**
+     * POST /admin/pools/:poolId/redeploy-vault
+     * Backend-signed migration helper: deploys a fresh vault clone for an existing pool
+     * on the CURRENT factory (CLUB_VAULT_FACTORY_ADDRESS — point it at the new factory whose
+     * implementation supports ERC-1271 order signers), repoints pool.vaultAddress, and
+     * authorizes the Limitless order-signer EOA on the new vault.
+     *
+     * Use this when an existing pool's vault is an older clone that lacks setOrderSigner.
+     * NOTE: this abandons the old vault — only safe when the old vault holds no funds.
+     * Requires BASE_EXECUTOR_PRIVATE_KEY to be the factory owner (and thus vault owner).
+     */
+    app.post("/admin/pools/:poolId/redeploy-vault", requireAdmin, async (req, res) => {
+        try {
+            const { poolId } = req.params;
+            const body = zod_1.z.object({ depositCap: zod_1.z.coerce.bigint().optional() }).parse(req.body ?? {});
+            const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } });
+            if (!pool)
+                return res.status(404).json({ ok: false, error: "Pool not found" });
+            const depositCap = body.depositCap ?? BigInt(String(pool.depositCap ?? "0").replace(/\..*$/, "") || "0");
+            const oldVault = pool.vaultAddress;
+            logger.info({ poolId, clubName: pool.clubName, oldVault, depositCap: String(depositCap) }, "redeploy-vault: start");
+            const deployment = await (0, clubVaultFactoryExecutor_1.ensureClubVaultExists)({
+                env,
+                clubName: pool.clubName,
+                symbol: pool.symbol,
+                depositCap,
+            });
+            if (deployment.vaultAddress === oldVault) {
+                return res.status(409).json({
+                    ok: false,
+                    error: "Factory returned the same vault address — the configured CLUB_VAULT_FACTORY_ADDRESS still points to the old implementation. Deploy the new factory (scripts/deployBase.ts) and update the env first.",
+                    vaultAddress: deployment.vaultAddress,
+                });
+            }
+            await prisma_1.prisma.club_pools.update({
+                where: { id: poolId },
+                data: { vaultAddress: deployment.vaultAddress },
+            });
+            logger.info({ poolId, oldVault, newVault: deployment.vaultAddress, created: deployment.created }, "redeploy-vault: pool repointed to new vault");
+            // Authorize the Limitless order-signer EOA on the new vault (ERC-1271).
+            let orderSignerAuthorized = false;
+            try {
+                const signerKey = env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || env.LIMITLESS_TRADER_PRIVATE_KEY;
+                if (signerKey) {
+                    const signerAddr = new ethers_1.ethers.Wallet(signerKey).address;
+                    const vaultRef = { clubName: pool.clubName, vaultAddress: deployment.vaultAddress };
+                    const tx = await (0, vaultExecutor_1.adminSetOrderSigner)(env, vaultRef, { signer: signerAddr, allowed: true });
+                    if (typeof tx?.wait === "function")
+                        await tx.wait();
+                    orderSignerAuthorized = await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr);
+                    logger.info({ poolId, signerAddr, orderSignerAuthorized }, "redeploy-vault: order signer authorized");
+                }
+            }
+            catch (e) {
+                logger.error({ poolId, err: e?.message ?? String(e) }, "redeploy-vault: order signer authorization failed");
+            }
+            return res.json({
+                ok: true,
+                poolId,
+                oldVault,
+                vaultAddress: deployment.vaultAddress,
+                created: deployment.created,
+                orderSignerAuthorized,
+            });
+        }
+        catch (e) {
+            logger.error({ err: e, poolId: req.params.poolId }, "redeploy-vault failed");
+            return res.status(500).json({ ok: false, error: e?.message ?? "redeploy_vault_error" });
+        }
+    });
     // After admin signs the vault deploy tx in MetaMask and gets back the vault address,
     // call this to create the DB pool record.
     app.post("/admin/pools", requireAdmin, async (req, res) => {
@@ -2114,6 +2184,101 @@ function startHttpServer({ env, logger }) {
             res.status(500).json({ ok: false, error: e?.message ?? "discovery_error" });
         }
     });
+    /**
+     * GET /admin/pools/:poolId/limitless-account
+     * Read the stored Limitless profile/account for a pool (for the admin UI).
+     */
+    app.get("/admin/pools/:poolId/limitless-account", requireAdmin, async (req, res) => {
+        try {
+            const account = await prisma_1.prisma.pool_limitless_accounts.findUnique({
+                where: { poolId: req.params.poolId },
+            });
+            return res.json({
+                ok: true,
+                account: account
+                    ? {
+                        limitlessProfileId: account.limitlessProfileId ?? null,
+                        accountAddress: account.accountAddress ?? null,
+                        status: account.status ?? null,
+                        allowanceStatus: account.allowanceStatus ?? null,
+                        serverWallet: account.serverWallet ?? null,
+                        displayName: account.displayName ?? null,
+                        updatedAt: account.updatedAt ?? null,
+                    }
+                    : null,
+            });
+        }
+        catch (e) {
+            return res.status(500).json({ ok: false, error: e?.message ?? "limitless_account_error" });
+        }
+    });
+    /**
+     * POST /admin/limitless/backfill-vault-profiles
+     * For each pool vault that has no Limitless profileId yet, resolve it (if a profile
+     * already exists for the vault address) or register the vault as a partner sub-account,
+     * then store the profileId on pool_limitless_accounts.
+     * Body (optional): { poolId } to scope to a single pool.
+     */
+    app.post("/admin/limitless/backfill-vault-profiles", requireAdmin, async (req, res) => {
+        try {
+            const poolId = req.body?.poolId ? String(req.body.poolId) : null;
+            const pools = await prisma_1.prisma.club_pools.findMany({
+                where: { vaultAddress: { not: null }, ...(poolId ? { id: poolId } : {}) },
+            });
+            const results = [];
+            for (const pool of pools) {
+                const vault = pool.vaultAddress;
+                const displayName = `pool-${String(pool.id).slice(-6)}`;
+                try {
+                    const existingRow = await prisma_1.prisma.pool_limitless_accounts.findUnique({
+                        where: { poolId: pool.id },
+                    });
+                    const storedProfileId = existingRow?.limitlessProfileId ? String(existingRow.limitlessProfileId) : null;
+                    const storedAccountAddress = existingRow?.accountAddress ? String(existingRow.accountAddress) : null;
+                    if (storedProfileId && (0, partnerAccounts_1.sameAddress)(storedAccountAddress, vault)) {
+                        results.push({ poolId: pool.id, vault, profileId: storedProfileId, action: "already-stored" });
+                        continue;
+                    }
+                    let profileId = await (0, partnerAccounts_1.resolveProfileIdForAddress)(env, vault);
+                    let action = storedProfileId ? "replaced-non-vault-profile" : "resolved";
+                    if (!profileId) {
+                        logger.info({ poolId: pool.id, vault }, "backfill: registering vault profile");
+                        const reg = await (0, partnerAccounts_1.registerVaultPartnerAccount)(env, vault, displayName);
+                        profileId = reg.limitlessProfileId;
+                        action = storedProfileId ? "registered-vault-replacing-non-vault-profile" : "registered";
+                    }
+                    if (!profileId) {
+                        results.push({ poolId: pool.id, vault, action: "no-profile" });
+                        continue;
+                    }
+                    await prisma_1.prisma.pool_limitless_accounts.upsert({
+                        where: { poolId: pool.id },
+                        update: { limitlessProfileId: profileId, accountAddress: vault, serverWallet: false, status: "ACTIVE" },
+                        create: {
+                            poolId: pool.id,
+                            limitlessProfileId: profileId,
+                            accountAddress: vault,
+                            displayName,
+                            serverWallet: false,
+                            allowanceStatus: "PENDING",
+                            status: "ACTIVE",
+                        },
+                    });
+                    logger.info({ poolId: pool.id, vault, profileId, action }, "backfill: vault profile stored");
+                    results.push({ poolId: pool.id, vault, profileId, action });
+                }
+                catch (e) {
+                    logger.error({ poolId: pool.id, vault, err: e?.message ?? String(e) }, "backfill: vault profile failed");
+                    results.push({ poolId: pool.id, vault, error: e?.message ?? String(e) });
+                }
+            }
+            return res.json({ ok: true, total: pools.length, results });
+        }
+        catch (e) {
+            logger.error({ err: e }, "backfill-vault-profiles failed");
+            return res.status(500).json({ ok: false, error: e?.message ?? "backfill_error" });
+        }
+    });
     const manualLimitlessBetSchema = zod_1.z.object({
         poolId: zod_1.z.string().min(1),
         marketSlug: zod_1.z.string().min(1),
@@ -2156,8 +2321,15 @@ function startHttpServer({ env, logger }) {
             const market = marketRows[0];
             if (!market)
                 return res.status(404).json({ ok: false, error: "Market not found" });
-            if (market.hidden === true || String(market.status ?? "").toUpperCase() !== "ACTIVE") {
-                return res.status(400).json({ ok: false, error: "Market is not active" });
+            // Mirror the Market Selector gate: only terminal/hidden markets are blocked here.
+            // The cached DB status can lag; live tradability is enforced below via the order
+            // book + Limitless API (no-liquidity / order-rejected), so we don't require "ACTIVE".
+            const marketStatusUpper = String(market.status ?? "").toUpperCase();
+            if (market.hidden === true || marketStatusUpper === "RESOLVED") {
+                return res.status(400).json({
+                    ok: false,
+                    error: `Market is not tradable (status=${market.status ?? "unknown"}${market.hidden === true ? ", hidden" : ""})`,
+                });
             }
             const readiness = (0, limitlessOrderClient_1.isLimitlessTradingReady)(env);
             if (!readiness.ready) {
@@ -2166,6 +2338,115 @@ function startHttpServer({ env, logger }) {
                     error: `Limitless not ready: ${readiness.reasons.join("; ")}`,
                     readiness,
                 });
+            }
+            logger.info({ poolId: body.poolId, marketSlug: body.marketSlug, outcome: body.outcome, amountUsd: body.amountUsd }, "limitless bet: start");
+            // ── Preflight 1: resolve the vault's Limitless profile (maker = vault) ────
+            // Limitless binds an order's ownerId to the profile registered for order.maker.
+            // Since maker = the vault, ownerId must be the vault's Limitless profileId.
+            const vaultAddress = pool.vaultAddress;
+            const storedLimitlessAccount = await prisma_1.prisma.pool_limitless_accounts.findUnique({
+                where: { poolId: body.poolId },
+            });
+            let vaultProfileId = await (0, partnerAccounts_1.resolveProfileIdForAddress)(env, vaultAddress);
+            let vaultProfileSource = "limitless-api";
+            if (!vaultProfileId &&
+                storedLimitlessAccount?.limitlessProfileId &&
+                (0, partnerAccounts_1.sameAddress)(storedLimitlessAccount.accountAddress, vaultAddress)) {
+                vaultProfileId = String(storedLimitlessAccount.limitlessProfileId);
+                vaultProfileSource = "db";
+            }
+            if (!vaultProfileId) {
+                logger.error({ poolId: body.poolId, vaultAddress }, "limitless bet: no Limitless profile for vault");
+                return res.status(400).json({
+                    ok: false,
+                    error: `No Limitless profile is registered for the vault ${vaultAddress}. ` +
+                        "Register the vault as a Limitless partner sub-account (x-account = vault, ERC-1271 proof) before betting.",
+                    vaultAddress,
+                    storedLimitlessProfileId: storedLimitlessAccount?.limitlessProfileId ?? null,
+                    storedLimitlessAccountAddress: storedLimitlessAccount?.accountAddress ?? null,
+                });
+            }
+            const ownerId = Number(vaultProfileId);
+            if (!Number.isFinite(ownerId) || ownerId <= 0) {
+                return res.status(400).json({ ok: false, error: `Invalid Limitless profileId for vault: ${vaultProfileId}` });
+            }
+            try {
+                await prisma_1.prisma.pool_limitless_accounts.upsert({
+                    where: { poolId: body.poolId },
+                    update: {
+                        limitlessProfileId: vaultProfileId,
+                        accountAddress: vaultAddress,
+                        serverWallet: false,
+                        status: "ACTIVE",
+                    },
+                    create: {
+                        poolId: body.poolId,
+                        limitlessProfileId: vaultProfileId,
+                        accountAddress: vaultAddress,
+                        displayName: `pool-${String(body.poolId).slice(-6)}`,
+                        serverWallet: false,
+                        allowanceStatus: "PENDING",
+                        status: "ACTIVE",
+                    },
+                });
+            }
+            catch (e) {
+                logger.warn({ poolId: body.poolId, vaultAddress, err: e?.message ?? String(e) }, "limitless bet: profile cache update failed");
+            }
+            logger.info({ poolId: body.poolId, vaultAddress, ownerId, vaultProfileSource }, "limitless bet: resolved vault profile");
+            // ── Preflight 2: vault must authorize the order-signer EOA (ERC-1271) ────
+            {
+                const signerKey = env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || env.LIMITLESS_TRADER_PRIVATE_KEY;
+                const signerAddr = new ethers_1.ethers.Wallet(signerKey).address;
+                const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined };
+                // Read current authorization. A no-data revert (CALL_EXCEPTION/BAD_DATA) on this
+                // plain view getter means the deployed vault does not implement the order-signer
+                // feature — i.e. it predates ERC-1271 support and must be upgraded/redeployed.
+                let authorized;
+                try {
+                    authorized = await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr);
+                }
+                catch (e) {
+                    const code = e?.code ?? "";
+                    const unsupported = code === "CALL_EXCEPTION" || code === "BAD_DATA" || /missing revert data|could not decode/i.test(String(e?.message ?? ""));
+                    logger.error({ poolId: body.poolId, vaultAddress: pool.vaultAddress, code, err: e?.message ?? String(e) }, "limitless bet: isOrderSigner call failed");
+                    if (unsupported) {
+                        return res.status(400).json({
+                            ok: false,
+                            error: "Vault does not implement ERC-1271 order signers (isOrderSigner reverted). " +
+                                "This vault predates the order-signer feature — redeploy/upgrade it to the current " +
+                                "USDC4626Vault before placing vault-maker Limitless orders.",
+                            vaultAddress: pool.vaultAddress,
+                        });
+                    }
+                    return res.status(400).json({ ok: false, error: `Vault isOrderSigner check failed: ${e?.message ?? e}` });
+                }
+                if (!authorized) {
+                    logger.warn({ poolId: body.poolId, signerAddr }, "limitless bet: signer not authorized on vault — authorizing");
+                    try {
+                        const tx = await (0, vaultExecutor_1.adminSetOrderSigner)(env, vaultRef, { signer: signerAddr, allowed: true });
+                        logger.info({ poolId: body.poolId, signerAddr, txHash: tx?.hash }, "limitless bet: setOrderSigner sent");
+                        if (typeof tx?.wait === "function")
+                            await tx.wait();
+                    }
+                    catch (e) {
+                        logger.error({ poolId: body.poolId, signerAddr, err: e?.message ?? String(e) }, "limitless bet: setOrderSigner failed");
+                        return res.status(400).json({
+                            ok: false,
+                            error: `Could not authorize order signer on vault: ${e?.message ?? e}. ` +
+                                "Ensure BASE_EXECUTOR_PRIVATE_KEY is the vault owner.",
+                        });
+                    }
+                    if (!(await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr))) {
+                        return res.status(400).json({
+                            ok: false,
+                            error: "Vault has not authorized the order signer (after setOrderSigner)",
+                        });
+                    }
+                }
+                else {
+                    logger.info({ poolId: body.poolId, signerAddr }, "limitless bet: order signer already authorized");
+                }
             }
             const marketSlug = String(market.marketSlug ?? body.marketSlug);
             const book = await (0, limitlessOrderClient_1.getOrderBook)(env, marketSlug);
@@ -2189,8 +2470,11 @@ function startHttpServer({ env, logger }) {
                 side: "BUY",
                 orderType: "GTC",
                 makerAddress: pool.vaultAddress,
+                ownerId,
+                log: logger,
             });
             if (!(0, limitlessOrderClient_1.isAcceptedOrderResult)(orderResult)) {
+                logger.error({ poolId: body.poolId, marketSlug, orderResult }, "limitless bet: order rejected");
                 return res.status(502).json({
                     ok: false,
                     error: (0, limitlessOrderClient_1.getOrderRejectMessage)(orderResult),
@@ -2220,6 +2504,16 @@ function startHttpServer({ env, logger }) {
                     status: "OPEN",
                 },
             });
+            logger.info({
+                poolId: body.poolId,
+                positionId: position.id,
+                marketSlug,
+                outcome: body.outcome,
+                ownerId,
+                price: bestAsk,
+                plannedQuantity,
+                clobOrderId,
+            }, "limitless bet: success");
             res.json({
                 ok: true,
                 positionId: position.id,

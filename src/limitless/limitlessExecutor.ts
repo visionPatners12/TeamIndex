@@ -26,6 +26,7 @@ import {
 } from "./limitlessOrderClient";
 import { getOrderBook } from "./limitlessClient";
 import { decodeLimitlessTokenId } from "./limitlessDiscoveryService";
+import { resolveProfileIdForAddress, sameAddress } from "./partnerAccounts";
 import { isWithinRisk } from "../services/riskEngine";
 
 type ExecuteLimitlessParams = {
@@ -224,6 +225,60 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
       throw new Error("Invalid trancheStakeUsd");
     }
 
+    // ── Resolve the vault's Limitless ownerId ──────────────────────────────
+    // Since the order maker is the vault, ownerId must belong to that vault's
+    // Limitless partner sub-account, not the global API profile/server wallet.
+    const storedLimitlessAccount = await (prisma as any).pool_limitless_accounts.findUnique({
+      where: { poolId },
+    });
+    let vaultProfileId: string | null = null;
+    if (
+      storedLimitlessAccount?.limitlessProfileId &&
+      sameAddress(storedLimitlessAccount.accountAddress, pool.vaultAddress)
+    ) {
+      vaultProfileId = String(storedLimitlessAccount.limitlessProfileId);
+    } else {
+      vaultProfileId = await resolveProfileIdForAddress(env, pool.vaultAddress);
+    }
+
+    if (!vaultProfileId) {
+      const lastError =
+        `No Limitless profile is registered for the vault ${pool.vaultAddress}. ` +
+        "Register the vault as a Limitless partner sub-account before betting.";
+      await finishQueue(queue.id, "FAILED", lastError);
+      return { skipped: true, reason: "missing_vault_limitless_profile" };
+    }
+
+    const ownerId = Number(vaultProfileId);
+    if (!Number.isFinite(ownerId) || ownerId <= 0) {
+      const lastError = `Invalid Limitless profileId for vault ${pool.vaultAddress}: ${vaultProfileId}`;
+      await finishQueue(queue.id, "FAILED", lastError);
+      return { skipped: true, reason: "invalid_vault_limitless_profile" };
+    }
+
+    try {
+      await (prisma as any).pool_limitless_accounts.upsert({
+        where: { poolId },
+        update: {
+          limitlessProfileId: vaultProfileId,
+          accountAddress: pool.vaultAddress,
+          serverWallet: false,
+          status: "ACTIVE",
+        },
+        create: {
+          poolId,
+          limitlessProfileId: vaultProfileId,
+          accountAddress: pool.vaultAddress,
+          displayName: `pool-${String(poolId).slice(-6)}`,
+          serverWallet: false,
+          allowanceStatus: "PENDING",
+          status: "ACTIVE",
+        },
+      });
+    } catch {
+      // A cache write should not block an otherwise valid order attempt.
+    }
+
     // ── Post the order via Limitless order API ────────────────────────────
     let orderResult: Awaited<ReturnType<typeof postLimitlessOrder>>;
     try {
@@ -235,6 +290,7 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
         side: "BUY",
         orderType: "GTC",
         makerAddress: pool.vaultAddress,
+        ownerId,
       });
     } catch (err: any) {
       const lastError = `Order posting failed: ${String(err?.message ?? err)}`;

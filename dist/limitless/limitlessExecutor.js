@@ -21,6 +21,7 @@ const prisma_1 = require("../db/prisma");
 const limitlessOrderClient_1 = require("./limitlessOrderClient");
 const limitlessClient_1 = require("./limitlessClient");
 const limitlessDiscoveryService_1 = require("./limitlessDiscoveryService");
+const partnerAccounts_1 = require("./partnerAccounts");
 const riskEngine_1 = require("../services/riskEngine");
 function decToNumber(d) {
     if (typeof d === "number")
@@ -185,6 +186,55 @@ async function executeLimitlessTranche(params) {
         if (!Number.isFinite(trancheStakeUsd) || trancheStakeUsd <= 0) {
             throw new Error("Invalid trancheStakeUsd");
         }
+        // ── Resolve the vault's Limitless ownerId ──────────────────────────────
+        // Since the order maker is the vault, ownerId must belong to that vault's
+        // Limitless partner sub-account, not the global API profile/server wallet.
+        const storedLimitlessAccount = await prisma_1.prisma.pool_limitless_accounts.findUnique({
+            where: { poolId },
+        });
+        let vaultProfileId = null;
+        if (storedLimitlessAccount?.limitlessProfileId &&
+            (0, partnerAccounts_1.sameAddress)(storedLimitlessAccount.accountAddress, pool.vaultAddress)) {
+            vaultProfileId = String(storedLimitlessAccount.limitlessProfileId);
+        }
+        else {
+            vaultProfileId = await (0, partnerAccounts_1.resolveProfileIdForAddress)(env, pool.vaultAddress);
+        }
+        if (!vaultProfileId) {
+            const lastError = `No Limitless profile is registered for the vault ${pool.vaultAddress}. ` +
+                "Register the vault as a Limitless partner sub-account before betting.";
+            await finishQueue(queue.id, "FAILED", lastError);
+            return { skipped: true, reason: "missing_vault_limitless_profile" };
+        }
+        const ownerId = Number(vaultProfileId);
+        if (!Number.isFinite(ownerId) || ownerId <= 0) {
+            const lastError = `Invalid Limitless profileId for vault ${pool.vaultAddress}: ${vaultProfileId}`;
+            await finishQueue(queue.id, "FAILED", lastError);
+            return { skipped: true, reason: "invalid_vault_limitless_profile" };
+        }
+        try {
+            await prisma_1.prisma.pool_limitless_accounts.upsert({
+                where: { poolId },
+                update: {
+                    limitlessProfileId: vaultProfileId,
+                    accountAddress: pool.vaultAddress,
+                    serverWallet: false,
+                    status: "ACTIVE",
+                },
+                create: {
+                    poolId,
+                    limitlessProfileId: vaultProfileId,
+                    accountAddress: pool.vaultAddress,
+                    displayName: `pool-${String(poolId).slice(-6)}`,
+                    serverWallet: false,
+                    allowanceStatus: "PENDING",
+                    status: "ACTIVE",
+                },
+            });
+        }
+        catch {
+            // A cache write should not block an otherwise valid order attempt.
+        }
         // ── Post the order via Limitless order API ────────────────────────────
         let orderResult;
         try {
@@ -196,6 +246,7 @@ async function executeLimitlessTranche(params) {
                 side: "BUY",
                 orderType: "GTC",
                 makerAddress: pool.vaultAddress,
+                ownerId,
             });
         }
         catch (err) {

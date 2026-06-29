@@ -64,6 +64,7 @@ import {
   retryPartnerAccountAllowances,
   resolveProfileIdForAddress,
   registerVaultPartnerAccount,
+  sameAddress,
 } from "../limitless/partnerAccounts";
 import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
 import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
@@ -2453,22 +2454,23 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         const vault = pool.vaultAddress!;
         const displayName = `pool-${String(pool.id).slice(-6)}`;
         try {
-          // Skip if we already stored a profileId for this pool.
           const existingRow = await (prisma as any).pool_limitless_accounts.findUnique({
             where: { poolId: pool.id },
           });
-          if (existingRow?.limitlessProfileId) {
-            results.push({ poolId: pool.id, vault, profileId: existingRow.limitlessProfileId, action: "already-stored" });
+          const storedProfileId = existingRow?.limitlessProfileId ? String(existingRow.limitlessProfileId) : null;
+          const storedAccountAddress = existingRow?.accountAddress ? String(existingRow.accountAddress) : null;
+          if (storedProfileId && sameAddress(storedAccountAddress, vault)) {
+            results.push({ poolId: pool.id, vault, profileId: storedProfileId, action: "already-stored" });
             continue;
           }
 
           let profileId = await resolveProfileIdForAddress(env, vault);
-          let action = "resolved";
+          let action = storedProfileId ? "replaced-non-vault-profile" : "resolved";
           if (!profileId) {
             logger.info({ poolId: pool.id, vault }, "backfill: registering vault profile");
             const reg = await registerVaultPartnerAccount(env, vault, displayName);
             profileId = reg.limitlessProfileId;
-            action = "registered";
+            action = storedProfileId ? "registered-vault-replacing-non-vault-profile" : "registered";
           }
 
           if (!profileId) {
@@ -2478,7 +2480,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
           await (prisma as any).pool_limitless_accounts.upsert({
             where: { poolId: pool.id },
-            update: { limitlessProfileId: profileId, accountAddress: vault, status: "ACTIVE" },
+            update: { limitlessProfileId: profileId, accountAddress: vault, serverWallet: false, status: "ACTIVE" },
             create: {
               poolId: pool.id,
               limitlessProfileId: profileId,
@@ -2576,7 +2578,19 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       // Limitless binds an order's ownerId to the profile registered for order.maker.
       // Since maker = the vault, ownerId must be the vault's Limitless profileId.
       const vaultAddress = pool.vaultAddress;
-      const vaultProfileId = await resolveProfileIdForAddress(env, vaultAddress);
+      const storedLimitlessAccount = await (prisma as any).pool_limitless_accounts.findUnique({
+        where: { poolId: body.poolId },
+      });
+      let vaultProfileId = await resolveProfileIdForAddress(env, vaultAddress);
+      let vaultProfileSource = "limitless-api";
+      if (
+        !vaultProfileId &&
+        storedLimitlessAccount?.limitlessProfileId &&
+        sameAddress(storedLimitlessAccount.accountAddress, vaultAddress)
+      ) {
+        vaultProfileId = String(storedLimitlessAccount.limitlessProfileId);
+        vaultProfileSource = "db";
+      }
       if (!vaultProfileId) {
         logger.error({ poolId: body.poolId, vaultAddress }, "limitless bet: no Limitless profile for vault");
         return res.status(400).json({
@@ -2585,13 +2599,37 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
             `No Limitless profile is registered for the vault ${vaultAddress}. ` +
             "Register the vault as a Limitless partner sub-account (x-account = vault, ERC-1271 proof) before betting.",
           vaultAddress,
+          storedLimitlessProfileId: storedLimitlessAccount?.limitlessProfileId ?? null,
+          storedLimitlessAccountAddress: storedLimitlessAccount?.accountAddress ?? null,
         });
       }
       const ownerId = Number(vaultProfileId);
       if (!Number.isFinite(ownerId) || ownerId <= 0) {
         return res.status(400).json({ ok: false, error: `Invalid Limitless profileId for vault: ${vaultProfileId}` });
       }
-      logger.info({ poolId: body.poolId, vaultAddress, ownerId }, "limitless bet: resolved vault profile");
+      try {
+        await (prisma as any).pool_limitless_accounts.upsert({
+          where: { poolId: body.poolId },
+          update: {
+            limitlessProfileId: vaultProfileId,
+            accountAddress: vaultAddress,
+            serverWallet: false,
+            status: "ACTIVE",
+          },
+          create: {
+            poolId: body.poolId,
+            limitlessProfileId: vaultProfileId,
+            accountAddress: vaultAddress,
+            displayName: `pool-${String(body.poolId).slice(-6)}`,
+            serverWallet: false,
+            allowanceStatus: "PENDING",
+            status: "ACTIVE",
+          },
+        });
+      } catch (e: any) {
+        logger.warn({ poolId: body.poolId, vaultAddress, err: e?.message ?? String(e) }, "limitless bet: profile cache update failed");
+      }
+      logger.info({ poolId: body.poolId, vaultAddress, ownerId, vaultProfileSource }, "limitless bet: resolved vault profile");
 
       // ── Preflight 2: vault must authorize the order-signer EOA (ERC-1271) ────
       {

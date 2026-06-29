@@ -30,12 +30,19 @@ const EnvSchema = zod_1.z.object({
     VAULT_SYNC_START_BLOCK: zod_1.z.string().optional(),
     VAULT_SYNC_MAX_BLOCKS_PER_TICK: zod_1.z.string().optional().default("100"),
     VAULT_SYNC_POOLS_PER_TICK: zod_1.z.string().optional().default("1"),
+    // Min delay between on-chain NAV pushes (setPoolValuation) per pool. The DB/snapshot
+    // is refreshed every price-recalc cycle (real-time); the on-chain write is throttled
+    // to this interval. Default 1h.
+    ONCHAIN_NAV_PUSH_INTERVAL_MS: zod_1.z.string().optional().default("3600000"),
     // ─── Limitless Exchange (market data + trading, Base chain) ──────────────
     LIMITLESS_BASE_URL: zod_1.z.string().optional().default("https://api.limitless.exchange"),
     // Legacy REST auth header — existing API-key users only.
     LIMITLESS_API_KEY: zod_1.z.string().optional(),
     // Scoped HMAC token used for partner accounts and delegated signing.
     LIMITLESS_API_SECRET: zod_1.z.string().optional(),
+    LIMITLESS_WS_URL: zod_1.z.string().optional().default("wss://ws.limitless.exchange/markets"),
+    LIMITLESS_WS_ENABLED: zod_1.z.string().optional().default("true"),
+    LIMITLESS_WS_RECONCILE_INTERVAL_MS: zod_1.z.string().optional().default("600000"),
     LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: zod_1.z
         .string()
         .optional()
@@ -46,6 +53,8 @@ const EnvSchema = zod_1.z.object({
     LIMITLESS_CHAIN_ID: zod_1.z.string().optional().default("8453"),
     // EOA allowed by each vault's ERC-1271 `setOrderSigner`; signs orders, does not hold funds.
     LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: zod_1.z.string().optional(),
+    // Override the ERC-1271 signatureType sent to Limitless (default 3) while the SDK value is confirmed.
+    LIMITLESS_SIGNATURE_TYPE: zod_1.z.string().optional(),
     // Legacy EOA trading key. Used as a fallback signer only while migrating existing envs.
     LIMITLESS_TRADER_PRIVATE_KEY: zod_1.z.string().optional(),
     // How many markets to refresh per price-sync tick
@@ -83,13 +92,18 @@ function loadEnv() {
         VAULT_SYNC_START_BLOCK: process.env.VAULT_SYNC_START_BLOCK,
         VAULT_SYNC_MAX_BLOCKS_PER_TICK: process.env.VAULT_SYNC_MAX_BLOCKS_PER_TICK,
         VAULT_SYNC_POOLS_PER_TICK: process.env.VAULT_SYNC_POOLS_PER_TICK,
+        ONCHAIN_NAV_PUSH_INTERVAL_MS: process.env.ONCHAIN_NAV_PUSH_INTERVAL_MS,
         LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
         LIMITLESS_API_KEY: process.env.LIMITLESS_API_KEY,
         LIMITLESS_API_SECRET: process.env.LIMITLESS_API_SECRET,
+        LIMITLESS_WS_URL: process.env.LIMITLESS_WS_URL,
+        LIMITLESS_WS_ENABLED: process.env.LIMITLESS_WS_ENABLED,
+        LIMITLESS_WS_RECONCILE_INTERVAL_MS: process.env.LIMITLESS_WS_RECONCILE_INTERVAL_MS,
         LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: process.env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED,
         LIMITLESS_FEE_RATE_BPS: process.env.LIMITLESS_FEE_RATE_BPS,
         LIMITLESS_CHAIN_ID: process.env.LIMITLESS_CHAIN_ID,
         LIMITLESS_ORDER_SIGNER_PRIVATE_KEY: process.env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY,
+        LIMITLESS_SIGNATURE_TYPE: process.env.LIMITLESS_SIGNATURE_TYPE,
         LIMITLESS_TRADER_PRIVATE_KEY: process.env.LIMITLESS_TRADER_PRIVATE_KEY,
         LIMITLESS_PRICE_SYNC_BATCH: process.env.LIMITLESS_PRICE_SYNC_BATCH,
         LIMITLESS_ENRICH_BATCH: process.env.LIMITLESS_ENRICH_BATCH,
