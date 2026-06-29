@@ -280,7 +280,7 @@ function computeAmounts(price, size, side) {
  *   LIMITLESS_API_KEY          — REST auth
  *   LIMITLESS_ORDER_SIGNER_PRIVATE_KEY — EOA authorized by each vault via setOrderSigner
  *   LIMITLESS_TRADER_PRIVATE_KEY       — legacy fallback for EIP-712 signing
- *   LIMITLESS_FEE_RATE_BPS     — fee rate in basis points (default 200 = 2%)
+ *   LIMITLESS_FEE_RATE_BPS     — fee ceiling in basis points (default 300 = 3%)
  */
 async function postLimitlessOrder(env, params) {
     const log = params.log ?? noopLogger;
@@ -310,7 +310,10 @@ async function postLimitlessOrder(env, params) {
     // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
     const expiration = 0;
     const nonce = 0;
-    const feeRateBps = Number(env.LIMITLESS_FEE_RATE_BPS ?? 200);
+    const feeRateBps = Number(params.feeRateBps ?? env.LIMITLESS_FEE_RATE_BPS ?? 300);
+    if (!Number.isInteger(feeRateBps) || feeRateBps <= 0) {
+        throw new Error(`Invalid Limitless feeRateBps: ${feeRateBps}`);
+    }
     const sideInt = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
     const chainId = Number(env.LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
     const makerAddress = params.makerAddress ?? wallet.address;

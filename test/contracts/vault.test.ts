@@ -209,7 +209,7 @@ describe("USDC4626Vault", function () {
       takerAmount: 2_000_000n,
       expiration: 0n,
       nonce: 0n,
-      feeRateBps: 200n,
+      feeRateBps: 300n,
       side: 0,
       signatureType: 2,
     };

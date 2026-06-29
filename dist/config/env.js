@@ -47,8 +47,8 @@ const EnvSchema = zod_1.z.object({
         .string()
         .optional()
         .default("false"),
-    // Fee rate in bps (Bronze=200, Silver=150, Gold=100, Diamond=50)
-    LIMITLESS_FEE_RATE_BPS: zod_1.z.string().optional().default("200"),
+    // Fee rate ceiling in bps. Limitless delegated/partner SDK defaults to 300.
+    LIMITLESS_FEE_RATE_BPS: zod_1.z.string().optional().default("300"),
     // chainId for EIP-712 signing (8453 = Base mainnet)
     LIMITLESS_CHAIN_ID: zod_1.z.string().optional().default("8453"),
     // EOA allowed by each vault's ERC-1271 `setOrderSigner`; signs orders, does not hold funds.

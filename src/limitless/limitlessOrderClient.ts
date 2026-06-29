@@ -71,6 +71,8 @@ export interface PostLimitlessOrderParams {
   onBehalfOf?: number;
   /** Override the signatureType (defaults: maker set → ERC-1271, else EOA). */
   signatureType?: number;
+  /** Override fee ceiling in bps. Defaults to LIMITLESS_FEE_RATE_BPS or 300. */
+  feeRateBps?: number;
   /** Optional structured logger for order tracing. */
   log?: OrderLogger;
 }
@@ -334,7 +336,7 @@ function computeAmounts(
  *   LIMITLESS_API_KEY          — REST auth
  *   LIMITLESS_ORDER_SIGNER_PRIVATE_KEY — EOA authorized by each vault via setOrderSigner
  *   LIMITLESS_TRADER_PRIVATE_KEY       — legacy fallback for EIP-712 signing
- *   LIMITLESS_FEE_RATE_BPS     — fee rate in basis points (default 200 = 2%)
+ *   LIMITLESS_FEE_RATE_BPS     — fee ceiling in basis points (default 300 = 3%)
  */
 export async function postLimitlessOrder(
   env: Env,
@@ -369,7 +371,10 @@ export async function postLimitlessOrder(
   // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
   const expiration = 0;
   const nonce = 0;
-  const feeRateBps = Number((env as any).LIMITLESS_FEE_RATE_BPS ?? 200);
+  const feeRateBps = Number(params.feeRateBps ?? (env as any).LIMITLESS_FEE_RATE_BPS ?? 300);
+  if (!Number.isInteger(feeRateBps) || feeRateBps <= 0) {
+    throw new Error(`Invalid Limitless feeRateBps: ${feeRateBps}`);
+  }
   const sideInt: 0 | 1 = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
 
   const chainId = Number((env as any).LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
