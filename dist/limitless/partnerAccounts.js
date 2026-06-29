@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeAddress = normalizeAddress;
 exports.sameAddress = sameAddress;
+exports.encodeLimitlessSigningMessage = encodeLimitlessSigningMessage;
 exports.createPartnerServerAccount = createPartnerServerAccount;
 exports.checkPartnerAccountAllowances = checkPartnerAccountAllowances;
 exports.retryPartnerAccountAllowances = retryPartnerAccountAllowances;
@@ -47,8 +48,19 @@ function sameAddress(a, b) {
     const bb = normalizeAddress(b);
     return !!aa && !!bb && aa === bb;
 }
-function vaultRegistrationMessage(vaultAddress) {
-    return `Limitless partner account registration | account=${vaultAddress} | ts=${Date.now()}`;
+function encodeLimitlessSigningMessage(message) {
+    return (0, ethers_1.hexlify)((0, ethers_1.toUtf8Bytes)(message));
+}
+async function fetchLimitlessSigningMessage(env) {
+    const res = await fetch(`${(0, limitlessAuth_1.limitlessBase)(env)}/auth/signing-message`, {
+        headers: { Accept: "text/plain" },
+    });
+    const text = await res.text();
+    if (!res.ok)
+        throw new Error(`Limitless API ${res.status} /auth/signing-message: ${text}`);
+    if (!text.trim())
+        throw new Error("Limitless signing message is empty");
+    return text;
 }
 async function createPartnerServerAccount(env, displayName) {
     const raw = await limitlessJson(env, "POST", "/profiles/partner-accounts", {
@@ -100,23 +112,21 @@ function extractProfileId(raw) {
  * so it gets a profileId usable as `ownerId` when that address is the order maker.
  *
  * Proves ownership via x-account / x-signing-message / x-signature: the order-signer
- * EOA signs an arbitrary message; for a contract vault Limitless validates it through
+ * EOA signs Limitless' canonical /auth/signing-message text; the message header is
+ * sent as UTF-8 hex. For a contract vault Limitless validates the proof through
  * the vault's ERC-1271 `isValidSignature` (which recovers the signer and checks that it
  * is an authorized order signer). The EOA must already be authorized via setOrderSigner.
- *
- * NOTE: the exact `x-signing-message` format is not publicly documented — best-effort,
- * confirm with Limitless Builders if the API rejects it.
  */
 async function registerVaultPartnerAccount(env, vaultAddress, displayName) {
     const signerKey = env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || env.LIMITLESS_TRADER_PRIVATE_KEY;
     if (!signerKey)
         throw new Error("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY required to register a vault profile");
     const wallet = new ethers_1.Wallet(signerKey);
-    const message = vaultRegistrationMessage(vaultAddress);
+    const message = await fetchLimitlessSigningMessage(env);
     const signature = await wallet.signMessage(message); // EIP-191 personal_sign
     const extraHeaders = {
         "x-account": vaultAddress,
-        "x-signing-message": message,
+        "x-signing-message": encodeLimitlessSigningMessage(message),
         "x-signature": signature,
     };
     try {

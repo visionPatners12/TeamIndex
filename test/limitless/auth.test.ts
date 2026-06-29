@@ -1,6 +1,8 @@
 import { expect } from "chai";
 import { createHmac } from "crypto";
+import { toUtf8String } from "ethers";
 import { buildPathWithQuery, signLimitlessMessage } from "../../src/limitless/limitlessAuth";
+import { encodeLimitlessSigningMessage } from "../../src/limitless/partnerAccounts";
 
 describe("Limitless HMAC auth", () => {
   it("signs the websocket canonical message with base64 HMAC-SHA256", () => {
@@ -16,5 +18,13 @@ describe("Limitless HMAC auth", () => {
   it("keeps REST query params in the signed path", () => {
     expect(buildPathWithQuery("/portfolio/history", { limit: 100, cursor: "abc" }))
       .to.equal("/portfolio/history?limit=100&cursor=abc");
+  });
+
+  it("hex-encodes the Limitless signing message for x-signing-message", () => {
+    const message = "Welcome to Limitless Exchange!\n\nNonce: 0xabc123";
+    const encoded = encodeLimitlessSigningMessage(message);
+
+    expect(encoded).to.match(/^0x[0-9a-f]+$/);
+    expect(toUtf8String(encoded)).to.equal(message);
   });
 });

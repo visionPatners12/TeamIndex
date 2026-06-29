@@ -126,7 +126,7 @@
       "source_file": "package.json",
       "source_location": "L6",
       "id": "package_scripts",
-      "community": 8,
+      "community": 4,
       "norm_label": "scripts"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "package.json",
       "source_location": "L7",
       "id": "package_scripts_dev",
-      "community": 8,
+      "community": 4,
       "norm_label": "dev"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "package.json",
       "source_location": "L8",
       "id": "package_scripts_build",
-      "community": 8,
+      "community": 4,
       "norm_label": "build"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "package.json",
       "source_location": "L9",
       "id": "package_scripts_test_limitless",
-      "community": 8,
+      "community": 4,
       "norm_label": "test:limitless"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "package.json",
       "source_location": "L10",
       "id": "package_scripts_start",
-      "community": 8,
+      "community": 4,
       "norm_label": "start"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "package.json",
       "source_location": "L11",
       "id": "package_scripts_contracts_compile",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:compile"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "package.json",
       "source_location": "L12",
       "id": "package_scripts_contracts_test",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:test"
     },
     {
@@ -189,7 +189,7 @@
       "source_file": "package.json",
       "source_location": "L13",
       "id": "package_scripts_contracts_check_balance",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:check-balance"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "package.json",
       "source_location": "L14",
       "id": "package_scripts_contracts_diagnose_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:diagnose:polygon"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "package.json",
       "source_location": "L15",
       "id": "package_scripts_contracts_deploy_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:polygon"
     },
     {
@@ -216,7 +216,7 @@
       "source_file": "package.json",
       "source_location": "L16",
       "id": "package_scripts_contracts_transfer_ownership_polygon",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:transfer-ownership:polygon"
     },
     {
@@ -225,7 +225,7 @@
       "source_file": "package.json",
       "source_location": "L17",
       "id": "package_scripts_contracts_deploy_base",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:base"
     },
     {
@@ -234,7 +234,7 @@
       "source_file": "package.json",
       "source_location": "L18",
       "id": "package_scripts_contracts_deploy_chiliz",
-      "community": 8,
+      "community": 4,
       "norm_label": "contracts:deploy:chiliz"
     },
     {
@@ -243,7 +243,7 @@
       "source_file": "package.json",
       "source_location": "L19",
       "id": "package_scripts_prisma_migrate",
-      "community": 8,
+      "community": 4,
       "norm_label": "prisma:migrate"
     },
     {
@@ -252,7 +252,7 @@
       "source_file": "package.json",
       "source_location": "L20",
       "id": "package_scripts_prisma_generate",
-      "community": 8,
+      "community": 4,
       "norm_label": "prisma:generate"
     },
     {
@@ -261,7 +261,7 @@
       "source_file": "package.json",
       "source_location": "L21",
       "id": "package_scripts_db_seed",
-      "community": 8,
+      "community": 4,
       "norm_label": "db:seed"
     },
     {
@@ -423,7 +423,7 @@
       "source_file": "package.json",
       "source_location": "L42",
       "id": "package_devdependencies",
-      "community": 4,
+      "community": 8,
       "norm_label": "devdependencies"
     },
     {
@@ -432,7 +432,7 @@
       "source_file": "package.json",
       "source_location": "L43",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
-      "community": 4,
+      "community": 8,
       "norm_label": "@nomicfoundation/hardhat-ethers"
     },
     {
@@ -441,7 +441,7 @@
       "source_file": "package.json",
       "source_location": "L44",
       "id": "package_devdependencies_openzeppelin_contracts",
-      "community": 4,
+      "community": 8,
       "norm_label": "@openzeppelin/contracts"
     },
     {
@@ -450,7 +450,7 @@
       "source_file": "package.json",
       "source_location": "L45",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
-      "community": 4,
+      "community": 8,
       "norm_label": "@openzeppelin/contracts-upgradeable"
     },
     {
@@ -459,7 +459,7 @@
       "source_file": "package.json",
       "source_location": "L46",
       "id": "package_devdependencies_types_chai",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/chai"
     },
     {
@@ -468,7 +468,7 @@
       "source_file": "package.json",
       "source_location": "L47",
       "id": "package_devdependencies_types_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/express"
     },
     {
@@ -477,7 +477,7 @@
       "source_file": "package.json",
       "source_location": "L48",
       "id": "package_devdependencies_types_mocha",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/mocha"
     },
     {
@@ -486,7 +486,7 @@
       "source_file": "package.json",
       "source_location": "L49",
       "id": "package_devdependencies_types_node",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/node"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "package.json",
       "source_location": "L50",
       "id": "package_devdependencies_types_swagger_ui_express",
-      "community": 4,
+      "community": 8,
       "norm_label": "@types/swagger-ui-express"
     },
     {
@@ -504,7 +504,7 @@
       "source_file": "package.json",
       "source_location": "L51",
       "id": "package_devdependencies_chai",
-      "community": 4,
+      "community": 8,
       "norm_label": "chai"
     },
     {
@@ -513,7 +513,7 @@
       "source_file": "package.json",
       "source_location": "L52",
       "id": "package_devdependencies_hardhat",
-      "community": 4,
+      "community": 8,
       "norm_label": "hardhat"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "package.json",
       "source_location": "L53",
       "id": "package_devdependencies_prisma",
-      "community": 4,
+      "community": 8,
       "norm_label": "prisma"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "package.json",
       "source_location": "L54",
       "id": "package_devdependencies_ts_node",
-      "community": 4,
+      "community": 8,
       "norm_label": "ts-node"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "package.json",
       "source_location": "L55",
       "id": "package_devdependencies_tsc_watch",
-      "community": 4,
+      "community": 8,
       "norm_label": "tsc-watch"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "package.json",
       "source_location": "L56",
       "id": "package_devdependencies_typescript",
-      "community": 4,
+      "community": 8,
       "norm_label": "typescript"
     },
     {
@@ -899,7 +899,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L1",
       "id": "db_prisma",
-      "community": 7,
+      "community": 3,
       "norm_label": "prisma.ts"
     },
     {
@@ -908,7 +908,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L4",
       "id": "db_prisma_globalforprisma",
-      "community": 7,
+      "community": 3,
       "norm_label": "globalforprisma"
     },
     {
@@ -944,7 +944,7 @@
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L4",
       "id": "limitless_limitlessauth_limitlessbase",
-      "community": 11,
+      "community": 12,
       "norm_label": "limitlessbase()"
     },
     {
@@ -1025,7 +1025,7 @@
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L86",
       "id": "limitless_limitlessauth_limitlessrequestjson",
-      "community": 11,
+      "community": 12,
       "norm_label": "limitlessrequestjson()"
     },
     {
@@ -1214,7 +1214,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L1",
       "id": "limitless_limitlessdiscoveryservice",
-      "community": 1,
+      "community": 3,
       "norm_label": "limitlessdiscoveryservice.ts"
     },
     {
@@ -1223,7 +1223,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L15",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessinputs",
-      "community": 1,
+      "community": 3,
       "norm_label": "discoverlimitlessinputs"
     },
     {
@@ -1241,7 +1241,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L79",
       "id": "limitless_limitlessdiscoveryservice_decodelimitlesstokenid",
-      "community": 0,
+      "community": 3,
       "norm_label": "decodelimitlesstokenid()"
     },
     {
@@ -1574,7 +1574,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L457",
       "id": "limitless_limitlessorderclient_getlimitlessorder",
-      "community": 0,
+      "community": 3,
       "norm_label": "getlimitlessorder()"
     },
     {
@@ -1808,7 +1808,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L1",
       "id": "limitless_limitlesspositionsync",
-      "community": 0,
+      "community": 3,
       "norm_label": "limitlesspositionsync.ts"
     },
     {
@@ -1817,7 +1817,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L22",
       "id": "limitless_limitlesspositionsync_dectonumber",
-      "community": 0,
+      "community": 3,
       "norm_label": "dectonumber()"
     },
     {
@@ -1826,7 +1826,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L29",
       "id": "limitless_limitlesspositionsync_dectostr",
-      "community": 0,
+      "community": 3,
       "norm_label": "dectostr()"
     },
     {
@@ -1835,7 +1835,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L46",
       "id": "limitless_limitlesspositionsync_synclimitlessfillsandsettle",
-      "community": 0,
+      "community": 3,
       "norm_label": "synclimitlessfillsandsettle()"
     },
     {
@@ -2028,19 +2028,28 @@
       "norm_label": "sameaddress()"
     },
     {
-      "label": "vaultRegistrationMessage()",
+      "label": "encodeLimitlessSigningMessage()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L59",
-      "id": "limitless_partneraccounts_vaultregistrationmessage",
+      "id": "limitless_partneraccounts_encodelimitlesssigningmessage",
       "community": 12,
-      "norm_label": "vaultregistrationmessage()"
+      "norm_label": "encodelimitlesssigningmessage()"
+    },
+    {
+      "label": "fetchLimitlessSigningMessage()",
+      "file_type": "code",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L63",
+      "id": "limitless_partneraccounts_fetchlimitlesssigningmessage",
+      "community": 12,
+      "norm_label": "fetchlimitlesssigningmessage()"
     },
     {
       "label": "createPartnerServerAccount()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L63",
+      "source_location": "L73",
       "id": "limitless_partneraccounts_createpartnerserveraccount",
       "community": 12,
       "norm_label": "createpartnerserveraccount()"
@@ -2049,7 +2058,7 @@
       "label": "checkPartnerAccountAllowances()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L90",
+      "source_location": "L100",
       "id": "limitless_partneraccounts_checkpartneraccountallowances",
       "community": 12,
       "norm_label": "checkpartneraccountallowances()"
@@ -2058,7 +2067,7 @@
       "label": "retryPartnerAccountAllowances()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L101",
+      "source_location": "L111",
       "id": "limitless_partneraccounts_retrypartneraccountallowances",
       "community": 12,
       "norm_label": "retrypartneraccountallowances()"
@@ -2067,7 +2076,7 @@
       "label": "partnerAccountCreationEnabled()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L113",
+      "source_location": "L123",
       "id": "limitless_partneraccounts_partneraccountcreationenabled",
       "community": 12,
       "norm_label": "partneraccountcreationenabled()"
@@ -2076,7 +2085,7 @@
       "label": "extractProfileId()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L118",
+      "source_location": "L128",
       "id": "limitless_partneraccounts_extractprofileid",
       "community": 12,
       "norm_label": "extractprofileid()"
@@ -2085,7 +2094,7 @@
       "label": "registerVaultPartnerAccount()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L145",
+      "source_location": "L153",
       "id": "limitless_partneraccounts_registervaultpartneraccount",
       "community": 12,
       "norm_label": "registervaultpartneraccount()"
@@ -2094,9 +2103,9 @@
       "label": "resolveProfileIdForAddress()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L194",
+      "source_location": "L202",
       "id": "limitless_partneraccounts_resolveprofileidforaddress",
-      "community": 12,
+      "community": 0,
       "norm_label": "resolveprofileidforaddress()"
     },
     {
@@ -4049,7 +4058,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L22",
       "id": "workers_vaultsyncticker_positiveintfromenv",
-      "community": 7,
+      "community": 3,
       "norm_label": "positiveintfromenv()"
     },
     {
@@ -4058,7 +4067,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L28",
       "id": "workers_vaultsyncticker_nonnegativeintfromenv",
-      "community": 7,
+      "community": 3,
       "norm_label": "nonnegativeintfromenv()"
     },
     {
@@ -4067,7 +4076,7 @@
       "source_file": "src/workers/vaultSyncTicker.ts",
       "source_location": "L36",
       "id": "workers_vaultsyncticker_startvaultsyncticker",
-      "community": 7,
+      "community": 3,
       "norm_label": "startvaultsyncticker()"
     },
     {
@@ -4357,6 +4366,15 @@
       "id": "readme_notes",
       "community": 27,
       "norm_label": "notes"
+    },
+    {
+      "label": "vaultRegistrationMessage()",
+      "file_type": "code",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L59",
+      "community": 12,
+      "norm_label": "vaultregistrationmessage()",
+      "id": "limitless_partneraccounts_vaultregistrationmessage"
     },
     {
       "label": "limitlessBase()",
@@ -6725,6 +6743,28 @@
       "confidence_score": 1.0,
       "source": "limitless_limitlessauth_limitlessrequestjson",
       "target": "limitless_limitlessauth_limitlessbase"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts",
+      "target": "limitless_limitlessauth_limitlessbase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts_fetchlimitlesssigningmessage",
+      "target": "limitless_limitlessauth_limitlessbase",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -9993,6 +10033,17 @@
       "target": "limitless_limitlesssyncservice_runfulllimitlesssync"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/limitless/auth.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "limitless_auth_test",
+      "target": "limitless_partneraccounts",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/partnerAccounts.ts",
@@ -10026,11 +10077,31 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts",
+      "target": "limitless_partneraccounts_encodelimitlesssigningmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L114",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "limitless_partneraccounts",
       "target": "limitless_partneraccounts_extractprofileid"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts",
+      "target": "limitless_partneraccounts_fetchlimitlesssigningmessage",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -10188,9 +10259,9 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L59",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_partneraccounts",
-      "target": "limitless_partneraccounts_vaultregistrationmessage",
-      "confidence_score": 1.0
+      "target": "limitless_partneraccounts_vaultregistrationmessage"
     },
     {
       "relation": "imports_from",
@@ -10325,14 +10396,36 @@
       "target": "limitless_partneraccounts_sameaddress"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/limitless/auth.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "limitless_auth_test",
+      "target": "limitless_partneraccounts_encodelimitlesssigningmessage",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L154",
+      "source_location": "L167",
       "weight": 1.0,
       "source": "limitless_partneraccounts_registervaultpartneraccount",
-      "target": "limitless_partneraccounts_vaultregistrationmessage",
+      "target": "limitless_partneraccounts_encodelimitlesssigningmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts_registervaultpartneraccount",
+      "target": "limitless_partneraccounts_fetchlimitlesssigningmessage",
       "confidence_score": 1.0
     },
     {
@@ -10400,6 +10493,17 @@
       "confidence_score": 1.0,
       "source": "limitless_partneraccounts_registervaultpartneraccount",
       "target": "limitless_partneraccounts_resolveprofileidforaddress"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L154",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts_registervaultpartneraccount",
+      "target": "limitless_partneraccounts_vaultregistrationmessage"
     },
     {
       "relation": "imports",
@@ -16005,5 +16109,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f9ad0ed819adc4d372b0aa4f6ae2ae45a7bdf6af"
+  "built_at_commit": "7204cf30bf7e3bd0ba414fea85063ddebbe04949"
 }

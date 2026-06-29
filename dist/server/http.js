@@ -59,6 +59,52 @@ function startHttpServer({ env, logger }) {
             return res.status(403).json({ error: "Forbidden" });
         return next();
     }
+    async function ensureVaultOrderSignerAuthorized(pool) {
+        if (!pool.vaultAddress)
+            throw new Error("Pool vaultAddress missing");
+        const signerKey = env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || env.LIMITLESS_TRADER_PRIVATE_KEY;
+        if (!signerKey)
+            throw new Error("LIMITLESS_ORDER_SIGNER_PRIVATE_KEY required for ERC-1271 vault proof");
+        const signerAddr = new ethers_1.ethers.Wallet(signerKey).address;
+        const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress };
+        let authorized;
+        try {
+            authorized = await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr);
+        }
+        catch (e) {
+            const code = e?.code ?? "";
+            const unsupported = code === "CALL_EXCEPTION" ||
+                code === "BAD_DATA" ||
+                /missing revert data|could not decode/i.test(String(e?.message ?? ""));
+            logger.error({ poolId: pool.id, vaultAddress: pool.vaultAddress, code, err: e?.message ?? String(e) }, "limitless vault proof: isOrderSigner call failed");
+            if (unsupported) {
+                throw new Error("Vault does not implement ERC-1271 order signers (isOrderSigner reverted). " +
+                    "Redeploy/upgrade it to the current USDC4626Vault before registering or betting.");
+            }
+            throw new Error(`Vault isOrderSigner check failed: ${e?.message ?? e}`);
+        }
+        if (authorized) {
+            logger.info({ poolId: pool.id, signerAddr }, "limitless vault proof: order signer already authorized");
+            return { signerAddr, authorizedAlready: true, txHash: null };
+        }
+        logger.warn({ poolId: pool.id, signerAddr }, "limitless vault proof: signer not authorized on vault - authorizing");
+        try {
+            const tx = await (0, vaultExecutor_1.adminSetOrderSigner)(env, vaultRef, { signer: signerAddr, allowed: true });
+            const txHash = tx?.hash ?? null;
+            logger.info({ poolId: pool.id, signerAddr, txHash }, "limitless vault proof: setOrderSigner sent");
+            if (typeof tx?.wait === "function")
+                await tx.wait();
+            if (!(await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr))) {
+                throw new Error("Vault has not authorized the order signer (after setOrderSigner)");
+            }
+            return { signerAddr, authorizedAlready: false, txHash };
+        }
+        catch (e) {
+            logger.error({ poolId: pool.id, signerAddr, err: e?.message ?? String(e) }, "limitless vault proof: setOrderSigner failed");
+            throw new Error(`Could not authorize order signer on vault: ${e?.message ?? e}. ` +
+                "Ensure BASE_EXECUTOR_PRIVATE_KEY is the vault owner.");
+        }
+    }
     function verifyCdpWebhook(req) {
         if (!env.CDP_WEBHOOK_SECRET)
             return true;
@@ -2259,7 +2305,9 @@ function startHttpServer({ env, logger }) {
                     }
                     let profileId = await (0, partnerAccounts_1.resolveProfileIdForAddress)(env, vault);
                     let action = storedProfileId ? "replaced-non-vault-profile" : "resolved";
+                    let signerAuth = null;
                     if (!profileId) {
+                        signerAuth = await ensureVaultOrderSignerAuthorized(pool);
                         logger.info({ poolId: pool.id, vault }, "backfill: registering vault profile");
                         const reg = await (0, partnerAccounts_1.registerVaultPartnerAccount)(env, vault, displayName);
                         profileId = reg.limitlessProfileId;
@@ -2283,7 +2331,7 @@ function startHttpServer({ env, logger }) {
                         },
                     });
                     logger.info({ poolId: pool.id, vault, profileId, action }, "backfill: vault profile stored");
-                    results.push({ poolId: pool.id, vault, profileId, action });
+                    results.push({ poolId: pool.id, vault, profileId, action, signerAuth });
                 }
                 catch (e) {
                     logger.error({ poolId: pool.id, vault, err: e?.message ?? String(e) }, "backfill: vault profile failed");
@@ -2419,58 +2467,15 @@ function startHttpServer({ env, logger }) {
             }
             logger.info({ poolId: body.poolId, vaultAddress, ownerId, vaultProfileSource }, "limitless bet: resolved vault profile");
             // ── Preflight 2: vault must authorize the order-signer EOA (ERC-1271) ────
-            {
-                const signerKey = env.LIMITLESS_ORDER_SIGNER_PRIVATE_KEY || env.LIMITLESS_TRADER_PRIVATE_KEY;
-                const signerAddr = new ethers_1.ethers.Wallet(signerKey).address;
-                const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined };
-                // Read current authorization. A no-data revert (CALL_EXCEPTION/BAD_DATA) on this
-                // plain view getter means the deployed vault does not implement the order-signer
-                // feature — i.e. it predates ERC-1271 support and must be upgraded/redeployed.
-                let authorized;
-                try {
-                    authorized = await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr);
-                }
-                catch (e) {
-                    const code = e?.code ?? "";
-                    const unsupported = code === "CALL_EXCEPTION" || code === "BAD_DATA" || /missing revert data|could not decode/i.test(String(e?.message ?? ""));
-                    logger.error({ poolId: body.poolId, vaultAddress: pool.vaultAddress, code, err: e?.message ?? String(e) }, "limitless bet: isOrderSigner call failed");
-                    if (unsupported) {
-                        return res.status(400).json({
-                            ok: false,
-                            error: "Vault does not implement ERC-1271 order signers (isOrderSigner reverted). " +
-                                "This vault predates the order-signer feature — redeploy/upgrade it to the current " +
-                                "USDC4626Vault before placing vault-maker Limitless orders.",
-                            vaultAddress: pool.vaultAddress,
-                        });
-                    }
-                    return res.status(400).json({ ok: false, error: `Vault isOrderSigner check failed: ${e?.message ?? e}` });
-                }
-                if (!authorized) {
-                    logger.warn({ poolId: body.poolId, signerAddr }, "limitless bet: signer not authorized on vault — authorizing");
-                    try {
-                        const tx = await (0, vaultExecutor_1.adminSetOrderSigner)(env, vaultRef, { signer: signerAddr, allowed: true });
-                        logger.info({ poolId: body.poolId, signerAddr, txHash: tx?.hash }, "limitless bet: setOrderSigner sent");
-                        if (typeof tx?.wait === "function")
-                            await tx.wait();
-                    }
-                    catch (e) {
-                        logger.error({ poolId: body.poolId, signerAddr, err: e?.message ?? String(e) }, "limitless bet: setOrderSigner failed");
-                        return res.status(400).json({
-                            ok: false,
-                            error: `Could not authorize order signer on vault: ${e?.message ?? e}. ` +
-                                "Ensure BASE_EXECUTOR_PRIVATE_KEY is the vault owner.",
-                        });
-                    }
-                    if (!(await (0, vaultExecutor_1.isOrderSigner)(env, vaultRef, signerAddr))) {
-                        return res.status(400).json({
-                            ok: false,
-                            error: "Vault has not authorized the order signer (after setOrderSigner)",
-                        });
-                    }
-                }
-                else {
-                    logger.info({ poolId: body.poolId, signerAddr }, "limitless bet: order signer already authorized");
-                }
+            try {
+                await ensureVaultOrderSignerAuthorized(pool);
+            }
+            catch (e) {
+                return res.status(400).json({
+                    ok: false,
+                    error: e?.message ?? "Vault order signer authorization failed",
+                    vaultAddress: pool.vaultAddress,
+                });
             }
             const marketSlug = String(market.marketSlug ?? body.marketSlug);
             const book = await (0, limitlessOrderClient_1.getOrderBook)(env, marketSlug);
