@@ -199,6 +199,9 @@ function extractExpectedExchangeAddress(errorMessage) {
     const match = errorMessage.match(/Exchange address for this market:\s*(0x[a-fA-F0-9]{40})/i);
     return match?.[1] ?? null;
 }
+function isInvalidSignatureError(errorMessage) {
+    return /Invalid signature/i.test(errorMessage);
+}
 /**
  * Build EIP-712 typed-data for a Limitless GTC limit order.
  *
@@ -290,7 +293,7 @@ function computeAmounts(price, size, side) {
 async function postLimitlessOrder(env, params) {
     const log = params.log ?? noopLogger;
     assertLimitlessTradingConfig(env);
-    const { Wallet } = await Promise.resolve().then(() => __importStar(require("ethers")));
+    const { Wallet, verifyTypedData } = await Promise.resolve().then(() => __importStar(require("ethers")));
     const privateKey = getLimitlessOrderSignerPrivateKey(env);
     if (!privateKey)
         throw new Error("Limitless order signer private key missing");
@@ -322,8 +325,11 @@ async function postLimitlessOrder(env, params) {
     const sideInt = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
     const chainId = Number(env.LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
     const makerAddress = params.makerAddress ?? wallet.address;
+    const signatureTypeOverride = params.signatureType !== undefined ||
+        (env.LIMITLESS_SIGNATURE_TYPE !== undefined && env.LIMITLESS_SIGNATURE_TYPE !== "");
     const signatureType = params.signatureType ?? (params.makerAddress ? erc1271SignatureType(env) : SIGNATURE_TYPE_EOA);
-    async function signAndPost(exchangeAddress, exchangeSource) {
+    const attempts = [];
+    async function signAndPost(exchangeAddress, exchangeSource, attemptSignatureType) {
         log.info({
             marketSlug: params.marketSlug,
             outcome: params.outcome,
@@ -332,7 +338,7 @@ async function postLimitlessOrder(env, params) {
             onBehalfOf,
             maker: makerAddress,
             signerEoa: wallet.address,
-            signatureType,
+            signatureType: attemptSignatureType,
             verifyingContract: exchangeAddress,
             exchangeSource,
             tokenId: String(tokenId),
@@ -351,11 +357,23 @@ async function postLimitlessOrder(env, params) {
             expiration,
             nonce,
             feeRateBps,
-            signatureType,
+            signatureType: attemptSignatureType,
             verifyingContract: exchangeAddress,
             chainId,
         });
         const signature = await wallet.signTypedData(domain, types, order);
+        const recoveredSigner = verifyTypedData(domain, types, order, signature);
+        const attempt = {
+            exchangeSource,
+            verifyingContract: exchangeAddress,
+            signatureType: attemptSignatureType,
+            ownerId,
+            onBehalfOf,
+            maker: makerAddress,
+            signer: makerAddress,
+            recoveredSigner,
+        };
+        attempts.push(attempt);
         const requestBody = {
             ownerId,
             ...(onBehalfOf !== undefined ? { onBehalfOf } : {}),
@@ -377,23 +395,35 @@ async function postLimitlessOrder(env, params) {
                 price,
                 feeRateBps: feeRateBps,
                 side: sideInt,
-                signatureType,
+                signatureType: attemptSignatureType,
                 signature,
             },
         };
-        const result = await postJson(env, "/orders", requestBody);
-        log.info({
-            marketSlug: params.marketSlug,
-            ownerId,
-            verifyingContract: exchangeAddress,
-            exchangeSource,
-            status: result?.status,
-            orderId: result?.orderId ?? result?.id,
-        }, "limitless order: posted");
-        return result;
+        try {
+            const result = await postJson(env, "/orders", requestBody);
+            log.info({
+                marketSlug: params.marketSlug,
+                ownerId,
+                verifyingContract: exchangeAddress,
+                exchangeSource,
+                signatureType: attemptSignatureType,
+                recoveredSigner,
+                status: result?.status,
+                orderId: result?.orderId ?? result?.id,
+            }, "limitless order: posted");
+            return result;
+        }
+        catch (e) {
+            attempt.error = e?.message ?? String(e);
+            throw e;
+        }
+    }
+    function withAttemptContext(error) {
+        const baseMessage = error instanceof Error ? error.message : String(error);
+        return new Error(`${baseMessage} | orderPostAttempts=${JSON.stringify(attempts)}`);
     }
     try {
-        return await signAndPost(verifyingContract, "market");
+        return await signAndPost(verifyingContract, "market", signatureType);
     }
     catch (e) {
         const expectedExchange = extractExpectedExchangeAddress(String(e?.message ?? e));
@@ -407,9 +437,35 @@ async function postLimitlessOrder(env, params) {
                 err: e?.message ?? String(e),
             }, "limitless order: retrying with exchange address returned by API");
             try {
-                return await signAndPost(expectedExchange, "api-retry");
+                return await signAndPost(expectedExchange, "api-retry", signatureType);
             }
             catch (retryErr) {
+                if (params.makerAddress &&
+                    !signatureTypeOverride &&
+                    signatureType !== 3 &&
+                    isInvalidSignatureError(String(retryErr?.message ?? retryErr))) {
+                    log.warn({
+                        marketSlug: params.marketSlug,
+                        ownerId,
+                        maker: makerAddress,
+                        expectedExchange,
+                        previousSignatureType: signatureType,
+                        retrySignatureType: 3,
+                    }, "limitless order: retrying ERC-1271 signatureType=3");
+                    try {
+                        return await signAndPost(expectedExchange, "signature-type-retry", 3);
+                    }
+                    catch (signatureTypeErr) {
+                        log.error({
+                            marketSlug: params.marketSlug,
+                            ownerId,
+                            maker: makerAddress,
+                            attempts,
+                            err: signatureTypeErr?.message ?? String(signatureTypeErr),
+                        }, "limitless order: signatureType retry failed");
+                        throw withAttemptContext(signatureTypeErr);
+                    }
+                }
                 log.error({
                     marketSlug: params.marketSlug,
                     ownerId,
@@ -418,11 +474,37 @@ async function postLimitlessOrder(env, params) {
                     expectedExchange,
                     err: retryErr?.message ?? String(retryErr),
                 }, "limitless order: retry with API exchange failed");
-                throw retryErr;
+                throw withAttemptContext(retryErr);
             }
         }
-        log.error({ marketSlug: params.marketSlug, ownerId, maker: makerAddress, err: e?.message ?? String(e) }, "limitless order: POST /orders failed");
-        throw e;
+        if (params.makerAddress &&
+            !signatureTypeOverride &&
+            signatureType !== 3 &&
+            isInvalidSignatureError(String(e?.message ?? e))) {
+            log.warn({
+                marketSlug: params.marketSlug,
+                ownerId,
+                maker: makerAddress,
+                verifyingContract,
+                previousSignatureType: signatureType,
+                retrySignatureType: 3,
+            }, "limitless order: retrying ERC-1271 signatureType=3");
+            try {
+                return await signAndPost(verifyingContract, "signature-type-retry", 3);
+            }
+            catch (signatureTypeErr) {
+                log.error({
+                    marketSlug: params.marketSlug,
+                    ownerId,
+                    maker: makerAddress,
+                    attempts,
+                    err: signatureTypeErr?.message ?? String(signatureTypeErr),
+                }, "limitless order: signatureType retry failed");
+                throw withAttemptContext(signatureTypeErr);
+            }
+        }
+        log.error({ marketSlug: params.marketSlug, ownerId, maker: makerAddress, attempts, err: e?.message ?? String(e) }, "limitless order: POST /orders failed");
+        throw withAttemptContext(e);
     }
 }
 // ─── Order status ─────────────────────────────────────────────────────────────
