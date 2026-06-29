@@ -24,10 +24,11 @@ import {
   getOrderRejectMessage,
   isLimitlessTradingReady,
 } from "./limitlessOrderClient";
-import { getOrderBook } from "./limitlessClient";
+import { getMarketBySlug, getOrderBook } from "./limitlessClient";
 import { decodeLimitlessTokenId } from "./limitlessDiscoveryService";
 import { resolveProfileIdForAddress, sameAddress } from "./partnerAccounts";
 import { isWithinRisk } from "../services/riskEngine";
+import { ensureVaultErc20Allowance } from "../onchain/vaultExecutor";
 
 type ExecuteLimitlessParams = {
   queueId?: string;
@@ -43,6 +44,11 @@ function decToNumber(d: unknown): number {
   if (typeof d === "string") return Number(d);
   if (d && typeof (d as any).toString === "function") return Number((d as any).toString());
   return 0;
+}
+
+function humanUsdToBase6(amount: number): bigint {
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error(`Invalid USD amount: ${amount}`);
+  return BigInt(Math.ceil(amount * 1_000_000));
 }
 
 function getRiskPerMatchPct(poolRiskParams: unknown, fallback: number): number {
@@ -278,6 +284,26 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
     } catch {
       // A cache write should not block an otherwise valid order attempt.
     }
+
+    // ── Ensure the vault has allowed Limitless to pull collateral ───────────
+    const marketDetail = await getMarketBySlug(env, marketSlug);
+    const limitlessExchange = marketDetail?.venue?.exchange;
+    if (!limitlessExchange) {
+      const lastError = `Market ${marketSlug} has no Limitless exchange address`;
+      await finishQueue(queue.id, "FAILED", lastError);
+      return { skipped: true, reason: "missing_limitless_exchange" };
+    }
+    const collateralToken =
+      ((marketDetail as any)?.collateralToken?.address as string | undefined) ?? env.BASE_USDC_ADDRESS;
+    await ensureVaultErc20Allowance(
+      env,
+      { clubName: pool.clubName, vaultAddress: pool.vaultAddress },
+      {
+        token: collateralToken,
+        spender: limitlessExchange,
+        minAllowance: humanUsdToBase6(trancheStakeUsd),
+      }
+    );
 
     // ── Post the order via Limitless order API ────────────────────────────
     let orderResult: Awaited<ReturnType<typeof postLimitlessOrder>>;

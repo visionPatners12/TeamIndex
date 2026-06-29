@@ -23,6 +23,7 @@ const limitlessClient_1 = require("./limitlessClient");
 const limitlessDiscoveryService_1 = require("./limitlessDiscoveryService");
 const partnerAccounts_1 = require("./partnerAccounts");
 const riskEngine_1 = require("../services/riskEngine");
+const vaultExecutor_1 = require("../onchain/vaultExecutor");
 function decToNumber(d) {
     if (typeof d === "number")
         return d;
@@ -31,6 +32,11 @@ function decToNumber(d) {
     if (d && typeof d.toString === "function")
         return Number(d.toString());
     return 0;
+}
+function humanUsdToBase6(amount) {
+    if (!Number.isFinite(amount) || amount <= 0)
+        throw new Error(`Invalid USD amount: ${amount}`);
+    return BigInt(Math.ceil(amount * 1_000_000));
 }
 function getRiskPerMatchPct(poolRiskParams, fallback) {
     const p = poolRiskParams;
@@ -235,6 +241,20 @@ async function executeLimitlessTranche(params) {
         catch {
             // A cache write should not block an otherwise valid order attempt.
         }
+        // ── Ensure the vault has allowed Limitless to pull collateral ───────────
+        const marketDetail = await (0, limitlessClient_1.getMarketBySlug)(env, marketSlug);
+        const limitlessExchange = marketDetail?.venue?.exchange;
+        if (!limitlessExchange) {
+            const lastError = `Market ${marketSlug} has no Limitless exchange address`;
+            await finishQueue(queue.id, "FAILED", lastError);
+            return { skipped: true, reason: "missing_limitless_exchange" };
+        }
+        const collateralToken = marketDetail?.collateralToken?.address ?? env.BASE_USDC_ADDRESS;
+        await (0, vaultExecutor_1.ensureVaultErc20Allowance)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress }, {
+            token: collateralToken,
+            spender: limitlessExchange,
+            minAllowance: humanUsdToBase6(trancheStakeUsd),
+        });
         // ── Post the order via Limitless order API ────────────────────────────
         let orderResult;
         try {

@@ -9,6 +9,7 @@ import { scheduleMatchTranches } from "../services/scheduler";
 import { recalculateOfficialPrices } from "../services/priceEngine";
 import {
   executeWhitelistedCallViaVault,
+  ensureVaultErc20Allowance,
   adminAddAuthorizedOperator,
   adminAddWhitelistedContract,
   adminPause,
@@ -57,6 +58,7 @@ import {
   isLimitlessTradingReady,
   postLimitlessOrder,
 } from "../limitless/limitlessOrderClient";
+import { getMarketBySlug } from "../limitless/limitlessClient";
 import {
   createPartnerServerAccount,
   partnerAccountCreationEnabled,
@@ -82,6 +84,11 @@ declare global {
       rawBody?: Buffer;
     }
   }
+}
+
+function humanUsdToBase6(amount: number): bigint {
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error(`Invalid USD amount: ${amount}`);
+  return BigInt(Math.ceil(amount * 1_000_000));
 }
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
@@ -2745,6 +2752,24 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
           maxPrice: body.maxPrice,
         });
       }
+
+      const marketDetail = await getMarketBySlug(env, marketSlug);
+      const limitlessExchange = marketDetail?.venue?.exchange;
+      if (!limitlessExchange) {
+        return res.status(400).json({ ok: false, error: `Market ${marketSlug} has no Limitless exchange address` });
+      }
+      const collateralToken =
+        ((marketDetail as any)?.collateralToken?.address as string | undefined) ?? env.BASE_USDC_ADDRESS;
+      const allowance = await ensureVaultErc20Allowance(
+        env,
+        { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined },
+        {
+          token: collateralToken,
+          spender: limitlessExchange,
+          minAllowance: humanUsdToBase6(body.amountUsd),
+        }
+      );
+      logger.info({ poolId: body.poolId, marketSlug, allowance }, "limitless bet: collateral allowance ready");
 
       const orderResult = await postLimitlessOrder(env, {
         marketSlug,

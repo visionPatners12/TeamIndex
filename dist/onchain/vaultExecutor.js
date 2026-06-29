@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getVaultContract = getVaultContract;
 exports.executeWhitelistedCallViaVault = executeWhitelistedCallViaVault;
+exports.ensureVaultErc20Allowance = ensureVaultErc20Allowance;
 exports.adminAddAuthorizedOperator = adminAddAuthorizedOperator;
 exports.adminAddWhitelistedContract = adminAddWhitelistedContract;
 exports.adminPause = adminPause;
@@ -24,6 +25,10 @@ const ethers_1 = require("ethers");
 const usdc4626vault_1 = require("../contracts/usdc4626vault");
 const rpc_1 = require("./rpc");
 const CLUB_VAULT_FACTORY_ABI = ["function getVaultByClub(bytes32 clubId) view returns (address)"];
+const ERC20_ALLOWANCE_APPROVE_ABI = [
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+];
 function computeClubId(clubName) {
     // Vault factory uses `bytes32 clubId` -> vault mapping.
     // MVP convention: clubId = keccak256(abi.encodePacked(clubName)).
@@ -70,6 +75,62 @@ async function executeWhitelistedCallViaVault(env, pool, params) {
     // Note: vault contract expects `uint256` args as BigInt compatible.
     const tx = await vault.executeWhitelistedCall(params.target, params.data, params.value, params.assetAmount, params.minReturn, params.isTrustedRequired);
     return tx;
+}
+async function ensureVaultErc20Allowance(env, pool, params) {
+    const provider = (0, rpc_1.getBaseProvider)(env);
+    const vault = await getVaultContract(env, provider, pool);
+    const vaultAddress = (vault.target ?? vault.address);
+    const token = new ethers_1.ethers.Contract(params.token, ERC20_ALLOWANCE_APPROVE_ABI, provider);
+    const currentAllowance = (await token.allowance(vaultAddress, params.spender));
+    if (currentAllowance >= params.minAllowance) {
+        return {
+            approved: false,
+            whitelisted: await isWhitelistedContract(env, pool, params.token).catch(() => false),
+            vaultAddress,
+            token: params.token,
+            spender: params.spender,
+            allowance: currentAllowance.toString(),
+            required: params.minAllowance.toString(),
+        };
+    }
+    let whitelisted = await isWhitelistedContract(env, pool, params.token).catch(() => false);
+    let whitelistTxHash = null;
+    if (!whitelisted) {
+        const tx = await adminAddWhitelistedContract(env, pool, params.token);
+        whitelistTxHash = tx?.hash ?? null;
+        if (typeof tx?.wait === "function")
+            await tx.wait();
+        whitelisted = await isWhitelistedContract(env, pool, params.token);
+    }
+    const iface = new ethers_1.ethers.Interface(ERC20_ALLOWANCE_APPROVE_ABI);
+    const approveAmount = params.approveAmount ?? ethers_1.ethers.MaxUint256;
+    const data = iface.encodeFunctionData("approve", [params.spender, approveAmount]);
+    const approveTx = await executeWhitelistedCallViaVault(env, pool, {
+        target: params.token,
+        data,
+        value: 0n,
+        assetAmount: 0n,
+        minReturn: 0n,
+        isTrustedRequired: false,
+    });
+    if (typeof approveTx?.wait === "function")
+        await approveTx.wait();
+    const allowance = (await token.allowance(vaultAddress, params.spender));
+    if (allowance < params.minAllowance) {
+        throw new Error(`Vault allowance still too low after approve: ${allowance.toString()} < ${params.minAllowance.toString()}`);
+    }
+    return {
+        approved: true,
+        whitelisted,
+        vaultAddress,
+        token: params.token,
+        spender: params.spender,
+        required: params.minAllowance.toString(),
+        allowance: allowance.toString(),
+        approveAmount: approveAmount.toString(),
+        whitelistTxHash,
+        approveTxHash: approveTx?.hash ?? null,
+    };
 }
 async function adminAddAuthorizedOperator(env, pool, params) {
     const vault = await getVaultContract(env, undefined, pool);
