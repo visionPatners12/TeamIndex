@@ -57,6 +57,7 @@ import {
   isAcceptedOrderResult,
   isLimitlessTradingReady,
   postLimitlessOrder,
+  quoteLimitlessOrderAmounts,
 } from "../limitless/limitlessOrderClient";
 import { getMarketBySlug } from "../limitless/limitlessClient";
 import {
@@ -84,11 +85,6 @@ declare global {
       rawBody?: Buffer;
     }
   }
-}
-
-function humanUsdToBase6(amount: number): bigint {
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error(`Invalid USD amount: ${amount}`);
-  return BigInt(Math.ceil(amount * 1_000_000));
 }
 
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
@@ -2760,16 +2756,30 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       }
       const collateralToken =
         ((marketDetail as any)?.collateralToken?.address as string | undefined) ?? env.BASE_USDC_ADDRESS;
+      const orderQuote = quoteLimitlessOrderAmounts(bestAsk, body.amountUsd, "BUY");
       const allowance = await ensureVaultErc20Allowance(
         env,
         { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined },
         {
           token: collateralToken,
           spender: limitlessExchange,
-          minAllowance: humanUsdToBase6(body.amountUsd),
+          minAllowance: orderQuote.makerAmount,
+          minBalance: orderQuote.makerAmount,
         }
       );
-      logger.info({ poolId: body.poolId, marketSlug, allowance }, "limitless bet: collateral allowance ready");
+      logger.info(
+        {
+          poolId: body.poolId,
+          marketSlug,
+          orderQuote: {
+            price: orderQuote.price,
+            makerAmount: orderQuote.makerAmount.toString(),
+            takerAmount: orderQuote.takerAmount.toString(),
+          },
+          allowance,
+        },
+        "limitless bet: collateral allowance ready"
+      );
 
       const orderResult = await postLimitlessOrder(env, {
         marketSlug,

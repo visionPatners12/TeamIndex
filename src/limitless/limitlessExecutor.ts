@@ -23,6 +23,7 @@ import {
   isAcceptedOrderResult,
   getOrderRejectMessage,
   isLimitlessTradingReady,
+  quoteLimitlessOrderAmounts,
 } from "./limitlessOrderClient";
 import { getMarketBySlug, getOrderBook } from "./limitlessClient";
 import { decodeLimitlessTokenId } from "./limitlessDiscoveryService";
@@ -44,11 +45,6 @@ function decToNumber(d: unknown): number {
   if (typeof d === "string") return Number(d);
   if (d && typeof (d as any).toString === "function") return Number((d as any).toString());
   return 0;
-}
-
-function humanUsdToBase6(amount: number): bigint {
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error(`Invalid USD amount: ${amount}`);
-  return BigInt(Math.ceil(amount * 1_000_000));
 }
 
 function getRiskPerMatchPct(poolRiskParams: unknown, fallback: number): number {
@@ -295,13 +291,15 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
     }
     const collateralToken =
       ((marketDetail as any)?.collateralToken?.address as string | undefined) ?? env.BASE_USDC_ADDRESS;
+    const orderQuote = quoteLimitlessOrderAmounts(bestAsk, trancheStakeUsd, "BUY");
     await ensureVaultErc20Allowance(
       env,
       { clubName: pool.clubName, vaultAddress: pool.vaultAddress },
       {
         token: collateralToken,
         spender: limitlessExchange,
-        minAllowance: humanUsdToBase6(trancheStakeUsd),
+        minAllowance: orderQuote.makerAmount,
+        minBalance: orderQuote.makerAmount,
       }
     );
 

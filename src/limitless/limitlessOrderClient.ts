@@ -338,6 +338,18 @@ function computeAmounts(
   }
 }
 
+export function quoteLimitlessOrderAmounts(
+  price: number,
+  size: number,
+  side: LimitlessOrderSide
+): { price: number; makerAmount: bigint; takerAmount: bigint } {
+  const clampedPrice = clampOrderPrice(price);
+  return {
+    price: clampedPrice,
+    ...computeAmounts(clampedPrice, size, side),
+  };
+}
+
 /**
  * Post a GTC limit order to Limitless Exchange.
  *
@@ -369,8 +381,11 @@ export async function postLimitlessOrder(
   const verifyingContract = market.venue.exchange;
 
   // ── Compute amounts ───────────────────────────────────────────────────────
-  const price = clampOrderPrice(params.price);
-  const { makerAmount, takerAmount } = computeAmounts(price, params.size, params.side);
+  const { price, makerAmount, takerAmount } = quoteLimitlessOrderAmounts(
+    params.price,
+    params.size,
+    params.side
+  );
 
   // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
   const ownerId = params.ownerId ?? (await getOwnerId(env));

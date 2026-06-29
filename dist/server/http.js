@@ -30,11 +30,6 @@ const partnerAccounts_1 = require("../limitless/partnerAccounts");
 const limitlessPortfolio_1 = require("../limitless/limitlessPortfolio");
 const limitlessTeams_1 = require("../sportsData/limitlessTeams");
 const rpc_1 = require("../onchain/rpc");
-function humanUsdToBase6(amount) {
-    if (!Number.isFinite(amount) || amount <= 0)
-        throw new Error(`Invalid USD amount: ${amount}`);
-    return BigInt(Math.ceil(amount * 1_000_000));
-}
 function startHttpServer({ env, logger }) {
     const app = (0, express_1.default)();
     app.set("etag", false);
@@ -2503,12 +2498,23 @@ function startHttpServer({ env, logger }) {
                 return res.status(400).json({ ok: false, error: `Market ${marketSlug} has no Limitless exchange address` });
             }
             const collateralToken = marketDetail?.collateralToken?.address ?? env.BASE_USDC_ADDRESS;
+            const orderQuote = (0, limitlessOrderClient_1.quoteLimitlessOrderAmounts)(bestAsk, body.amountUsd, "BUY");
             const allowance = await (0, vaultExecutor_1.ensureVaultErc20Allowance)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined }, {
                 token: collateralToken,
                 spender: limitlessExchange,
-                minAllowance: humanUsdToBase6(body.amountUsd),
+                minAllowance: orderQuote.makerAmount,
+                minBalance: orderQuote.makerAmount,
             });
-            logger.info({ poolId: body.poolId, marketSlug, allowance }, "limitless bet: collateral allowance ready");
+            logger.info({
+                poolId: body.poolId,
+                marketSlug,
+                orderQuote: {
+                    price: orderQuote.price,
+                    makerAmount: orderQuote.makerAmount.toString(),
+                    takerAmount: orderQuote.takerAmount.toString(),
+                },
+                allowance,
+            }, "limitless bet: collateral allowance ready");
             const orderResult = await (0, limitlessOrderClient_1.postLimitlessOrder)(env, {
                 marketSlug,
                 outcome: body.outcome,

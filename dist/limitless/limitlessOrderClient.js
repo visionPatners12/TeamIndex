@@ -60,6 +60,7 @@ exports.estimateSlippage = estimateSlippage;
 exports.getSpread = getSpread;
 exports.getMidpoint = getMidpoint;
 exports.extractExpectedExchangeAddress = extractExpectedExchangeAddress;
+exports.quoteLimitlessOrderAmounts = quoteLimitlessOrderAmounts;
 exports.postLimitlessOrder = postLimitlessOrder;
 exports.getLimitlessOrder = getLimitlessOrder;
 exports.isAcceptedOrderResult = isAcceptedOrderResult;
@@ -281,6 +282,13 @@ function computeAmounts(price, size, side) {
         return { makerAmount: sharesBig, takerAmount: collateralBig_floor };
     }
 }
+function quoteLimitlessOrderAmounts(price, size, side) {
+    const clampedPrice = clampOrderPrice(price);
+    return {
+        price: clampedPrice,
+        ...computeAmounts(clampedPrice, size, side),
+    };
+}
 /**
  * Post a GTC limit order to Limitless Exchange.
  *
@@ -309,8 +317,7 @@ async function postLimitlessOrder(env, params) {
     const tokenId = params.outcome === "yes" ? market.tokens.yes : market.tokens.no;
     const verifyingContract = market.venue.exchange;
     // ── Compute amounts ───────────────────────────────────────────────────────
-    const price = clampOrderPrice(params.price);
-    const { makerAmount, takerAmount } = computeAmounts(price, params.size, params.side);
+    const { price, makerAmount, takerAmount } = quoteLimitlessOrderAmounts(params.price, params.size, params.side);
     // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
     const ownerId = params.ownerId ?? (await getOwnerId(env));
     const onBehalfOf = params.onBehalfOf ?? params.ownerId;

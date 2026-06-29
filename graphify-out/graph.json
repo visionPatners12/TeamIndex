@@ -81,7 +81,7 @@
       "source_file": "package.json",
       "source_location": "L1",
       "id": "package",
-      "community": 4,
+      "community": 15,
       "norm_label": "package.json"
     },
     {
@@ -90,7 +90,7 @@
       "source_file": "package.json",
       "source_location": "L2",
       "id": "package_name",
-      "community": 4,
+      "community": 15,
       "norm_label": "name"
     },
     {
@@ -99,7 +99,7 @@
       "source_file": "package.json",
       "source_location": "L3",
       "id": "package_version",
-      "community": 4,
+      "community": 15,
       "norm_label": "version"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "package.json",
       "source_location": "L4",
       "id": "package_private",
-      "community": 4,
+      "community": 15,
       "norm_label": "private"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "package.json",
       "source_location": "L5",
       "id": "package_type",
-      "community": 4,
+      "community": 15,
       "norm_label": "type"
     },
     {
@@ -270,7 +270,7 @@
       "source_file": "package.json",
       "source_location": "L23",
       "id": "package_prisma",
-      "community": 4,
+      "community": 15,
       "norm_label": "prisma"
     },
     {
@@ -279,7 +279,7 @@
       "source_file": "package.json",
       "source_location": "L24",
       "id": "package_prisma_seed",
-      "community": 4,
+      "community": 15,
       "norm_label": "seed"
     },
     {
@@ -423,7 +423,7 @@
       "source_file": "package.json",
       "source_location": "L42",
       "id": "package_devdependencies",
-      "community": 4,
+      "community": 14,
       "norm_label": "devdependencies"
     },
     {
@@ -432,7 +432,7 @@
       "source_file": "package.json",
       "source_location": "L43",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
-      "community": 4,
+      "community": 14,
       "norm_label": "@nomicfoundation/hardhat-ethers"
     },
     {
@@ -441,7 +441,7 @@
       "source_file": "package.json",
       "source_location": "L44",
       "id": "package_devdependencies_openzeppelin_contracts",
-      "community": 4,
+      "community": 14,
       "norm_label": "@openzeppelin/contracts"
     },
     {
@@ -450,7 +450,7 @@
       "source_file": "package.json",
       "source_location": "L45",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
-      "community": 4,
+      "community": 14,
       "norm_label": "@openzeppelin/contracts-upgradeable"
     },
     {
@@ -459,7 +459,7 @@
       "source_file": "package.json",
       "source_location": "L46",
       "id": "package_devdependencies_types_chai",
-      "community": 4,
+      "community": 14,
       "norm_label": "@types/chai"
     },
     {
@@ -468,7 +468,7 @@
       "source_file": "package.json",
       "source_location": "L47",
       "id": "package_devdependencies_types_express",
-      "community": 4,
+      "community": 14,
       "norm_label": "@types/express"
     },
     {
@@ -477,7 +477,7 @@
       "source_file": "package.json",
       "source_location": "L48",
       "id": "package_devdependencies_types_mocha",
-      "community": 4,
+      "community": 14,
       "norm_label": "@types/mocha"
     },
     {
@@ -486,7 +486,7 @@
       "source_file": "package.json",
       "source_location": "L49",
       "id": "package_devdependencies_types_node",
-      "community": 4,
+      "community": 14,
       "norm_label": "@types/node"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "package.json",
       "source_location": "L50",
       "id": "package_devdependencies_types_swagger_ui_express",
-      "community": 4,
+      "community": 14,
       "norm_label": "@types/swagger-ui-express"
     },
     {
@@ -504,7 +504,7 @@
       "source_file": "package.json",
       "source_location": "L51",
       "id": "package_devdependencies_chai",
-      "community": 4,
+      "community": 14,
       "norm_label": "chai"
     },
     {
@@ -513,7 +513,7 @@
       "source_file": "package.json",
       "source_location": "L52",
       "id": "package_devdependencies_hardhat",
-      "community": 4,
+      "community": 14,
       "norm_label": "hardhat"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "package.json",
       "source_location": "L53",
       "id": "package_devdependencies_prisma",
-      "community": 4,
+      "community": 14,
       "norm_label": "prisma"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "package.json",
       "source_location": "L54",
       "id": "package_devdependencies_ts_node",
-      "community": 4,
+      "community": 14,
       "norm_label": "ts-node"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "package.json",
       "source_location": "L55",
       "id": "package_devdependencies_tsc_watch",
-      "community": 4,
+      "community": 14,
       "norm_label": "tsc-watch"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "package.json",
       "source_location": "L56",
       "id": "package_devdependencies_typescript",
-      "community": 4,
+      "community": 14,
       "norm_label": "typescript"
     },
     {
@@ -800,7 +800,7 @@
       "source_file": "src/contracts/erc20.ts",
       "source_location": "L1",
       "id": "contracts_erc20",
-      "community": 7,
+      "community": 5,
       "norm_label": "erc20.ts"
     },
     {
@@ -809,7 +809,7 @@
       "source_file": "src/contracts/erc20.ts",
       "source_location": "L1",
       "id": "contracts_erc20_erc20",
-      "community": 7,
+      "community": 5,
       "norm_label": "erc20"
     },
     {
@@ -818,7 +818,7 @@
       "source_file": "src/contracts/usdc4626vault.ts",
       "source_location": "L1",
       "id": "contracts_usdc4626vault",
-      "community": 7,
+      "community": 5,
       "norm_label": "usdc4626vault.ts"
     },
     {
@@ -827,7 +827,7 @@
       "source_file": "src/contracts/usdc4626vault.ts",
       "source_location": "L4",
       "id": "contracts_usdc4626vault_usdc4626vault",
-      "community": 7,
+      "community": 5,
       "norm_label": "usdc4626vault"
     },
     {
@@ -899,7 +899,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L1",
       "id": "db_prisma",
-      "community": 14,
+      "community": 0,
       "norm_label": "prisma.ts"
     },
     {
@@ -908,7 +908,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L4",
       "id": "db_prisma_globalforprisma",
-      "community": 14,
+      "community": 0,
       "norm_label": "globalforprisma"
     },
     {
@@ -1214,7 +1214,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L1",
       "id": "limitless_limitlessdiscoveryservice",
-      "community": 1,
+      "community": 0,
       "norm_label": "limitlessdiscoveryservice.ts"
     },
     {
@@ -1223,7 +1223,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L15",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessinputs",
-      "community": 1,
+      "community": 0,
       "norm_label": "discoverlimitlessinputs"
     },
     {
@@ -1232,7 +1232,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 1,
+      "community": 0,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -1257,7 +1257,7 @@
       "label": "ExecuteLimitlessParams",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L33",
+      "source_location": "L34",
       "id": "limitless_limitlessexecutor_executelimitlessparams",
       "community": 0,
       "norm_label": "executelimitlessparams"
@@ -1266,25 +1266,16 @@
       "label": "decToNumber()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L42",
+      "source_location": "L43",
       "id": "limitless_limitlessexecutor_dectonumber",
       "community": 0,
       "norm_label": "dectonumber()"
     },
     {
-      "label": "humanUsdToBase6()",
-      "file_type": "code",
-      "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L49",
-      "id": "limitless_limitlessexecutor_humanusdtobase6",
-      "community": 0,
-      "norm_label": "humanusdtobase6()"
-    },
-    {
       "label": "getRiskPerMatchPct()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L54",
+      "source_location": "L50",
       "id": "limitless_limitlessexecutor_getriskpermatchpct",
       "community": 0,
       "norm_label": "getriskpermatchpct()"
@@ -1293,7 +1284,7 @@
       "label": "getLiquidityMinUsd()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L61",
+      "source_location": "L57",
       "id": "limitless_limitlessexecutor_getliquidityminusd",
       "community": 0,
       "norm_label": "getliquidityminusd()"
@@ -1302,7 +1293,7 @@
       "label": "queueLookup()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L70",
+      "source_location": "L66",
       "id": "limitless_limitlessexecutor_queuelookup",
       "community": 0,
       "norm_label": "queuelookup()"
@@ -1311,7 +1302,7 @@
       "label": "claimQueue()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L85",
+      "source_location": "L81",
       "id": "limitless_limitlessexecutor_claimqueue",
       "community": 0,
       "norm_label": "claimqueue()"
@@ -1320,7 +1311,7 @@
       "label": "finishQueue()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L114",
+      "source_location": "L110",
       "id": "limitless_limitlessexecutor_finishqueue",
       "community": 0,
       "norm_label": "finishqueue()"
@@ -1329,7 +1320,7 @@
       "label": "executeLimitlessTranche()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L133",
+      "source_location": "L129",
       "id": "limitless_limitlessexecutor_executelimitlesstranche",
       "community": 0,
       "norm_label": "executelimitlesstranche()"
@@ -1587,10 +1578,19 @@
       "norm_label": "computeamounts()"
     },
     {
+      "label": "quoteLimitlessOrderAmounts()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessOrderClient.ts",
+      "source_location": "L341",
+      "id": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "community": 0,
+      "norm_label": "quotelimitlessorderamounts()"
+    },
+    {
       "label": "postLimitlessOrder()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L350",
+      "source_location": "L362",
       "id": "limitless_limitlessorderclient_postlimitlessorder",
       "community": 0,
       "norm_label": "postlimitlessorder()"
@@ -1599,7 +1599,7 @@
       "label": "getLimitlessOrder()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L630",
+      "source_location": "L645",
       "id": "limitless_limitlessorderclient_getlimitlessorder",
       "community": 0,
       "norm_label": "getlimitlessorder()"
@@ -1608,7 +1608,7 @@
       "label": "isAcceptedOrderResult()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L650",
+      "source_location": "L665",
       "id": "limitless_limitlessorderclient_isacceptedorderresult",
       "community": 0,
       "norm_label": "isacceptedorderresult()"
@@ -1617,7 +1617,7 @@
       "label": "getOrderRejectMessage()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L657",
+      "source_location": "L672",
       "id": "limitless_limitlessorderclient_getorderrejectmessage",
       "community": 0,
       "norm_label": "getorderrejectmessage()"
@@ -1626,7 +1626,7 @@
       "label": "getLimitlessOrderSignerPrivateKey()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L666",
+      "source_location": "L681",
       "id": "limitless_limitlessorderclient_getlimitlessordersignerprivatekey",
       "community": 0,
       "norm_label": "getlimitlessordersignerprivatekey()"
@@ -1635,7 +1635,7 @@
       "label": "assertLimitlessTradingConfig()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L670",
+      "source_location": "L685",
       "id": "limitless_limitlessorderclient_assertlimitlesstradingconfig",
       "community": 0,
       "norm_label": "assertlimitlesstradingconfig()"
@@ -1644,7 +1644,7 @@
       "label": "isLimitlessTradingReady()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L682",
+      "source_location": "L697",
       "id": "limitless_limitlessorderclient_islimitlesstradingready",
       "community": 0,
       "norm_label": "islimitlesstradingready()"
@@ -2132,7 +2132,7 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L202",
       "id": "limitless_partneraccounts_resolveprofileidforaddress",
-      "community": 0,
+      "community": 12,
       "norm_label": "resolveprofileidforaddress()"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 5,
+      "community": 7,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 5,
+      "community": 7,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 5,
+      "community": 7,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2168,7 +2168,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 5,
+      "community": 7,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2177,7 +2177,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 5,
+      "community": 7,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2186,7 +2186,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 5,
+      "community": 7,
       "norm_label": "assertaddress()"
     },
     {
@@ -2195,7 +2195,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 5,
+      "community": 7,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2204,7 +2204,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 5,
+      "community": 7,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2249,7 +2249,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L1",
       "id": "onchain_etherslogchunks",
-      "community": 5,
+      "community": 7,
       "norm_label": "etherslogchunks.ts"
     },
     {
@@ -2258,7 +2258,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L3",
       "id": "onchain_etherslogchunks_logretrylogger",
-      "community": 5,
+      "community": 7,
       "norm_label": "logretrylogger"
     },
     {
@@ -2267,7 +2267,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L7",
       "id": "onchain_etherslogchunks_queryfilterinblockchunksoptions",
-      "community": 5,
+      "community": 7,
       "norm_label": "queryfilterinblockchunksoptions"
     },
     {
@@ -2276,7 +2276,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L24",
       "id": "onchain_etherslogchunks_getlogsblockchunksize",
-      "community": 5,
+      "community": 7,
       "norm_label": "getlogsblockchunksize()"
     },
     {
@@ -2285,7 +2285,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L31",
       "id": "onchain_etherslogchunks_positiveintfromenv",
-      "community": 5,
+      "community": 7,
       "norm_label": "positiveintfromenv()"
     },
     {
@@ -2294,7 +2294,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L38",
       "id": "onchain_etherslogchunks_sleep",
-      "community": 5,
+      "community": 7,
       "norm_label": "sleep()"
     },
     {
@@ -2303,7 +2303,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L43",
       "id": "onchain_etherslogchunks_errortext",
-      "community": 5,
+      "community": 7,
       "norm_label": "errortext()"
     },
     {
@@ -2312,7 +2312,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L68",
       "id": "onchain_etherslogchunks_compactrpcerror",
-      "community": 5,
+      "community": 7,
       "norm_label": "compactrpcerror()"
     },
     {
@@ -2330,7 +2330,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L88",
       "id": "onchain_etherslogchunks_getrpcratelimitcooldownuntil",
-      "community": 5,
+      "community": 7,
       "norm_label": "getrpcratelimitcooldownuntil()"
     },
     {
@@ -2339,7 +2339,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L93",
       "id": "onchain_etherslogchunks_normalizeoptions",
-      "community": 5,
+      "community": 7,
       "norm_label": "normalizeoptions()"
     },
     {
@@ -2348,7 +2348,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L121",
       "id": "onchain_etherslogchunks_queryfilterwithratelimitretry",
-      "community": 5,
+      "community": 7,
       "norm_label": "queryfilterwithratelimitretry()"
     },
     {
@@ -2357,7 +2357,7 @@
       "source_file": "src/onchain/ethersLogChunks.ts",
       "source_location": "L155",
       "id": "onchain_etherslogchunks_queryfilterinblockchunks",
-      "community": 5,
+      "community": 7,
       "norm_label": "queryfilterinblockchunks()"
     },
     {
@@ -2402,7 +2402,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 5,
+      "community": 7,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2483,7 +2483,7 @@
       "source_file": "src/onchain/rpc.ts",
       "source_location": "L11",
       "id": "onchain_rpc_baserpcerror",
-      "community": 5,
+      "community": 7,
       "norm_label": "baserpcerror"
     },
     {
@@ -2492,7 +2492,7 @@
       "source_file": "src/onchain/rpc.ts",
       "source_location": "L15",
       "id": "onchain_rpc_baserpcerror_constructor",
-      "community": 5,
+      "community": 7,
       "norm_label": ".constructor()"
     },
     {
@@ -2600,7 +2600,7 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L1",
       "id": "onchain_vaultexecutor",
-      "community": 7,
+      "community": 5,
       "norm_label": "vaultexecutor.ts"
     },
     {
@@ -2609,7 +2609,7 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L6",
       "id": "onchain_vaultexecutor_club_vault_factory_abi",
-      "community": 7,
+      "community": 5,
       "norm_label": "club_vault_factory_abi"
     },
     {
@@ -2618,223 +2618,223 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L7",
       "id": "onchain_vaultexecutor_erc20_allowance_approve_abi",
-      "community": 7,
+      "community": 5,
       "norm_label": "erc20_allowance_approve_abi"
     },
     {
       "label": "PoolIdentity",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L12",
+      "source_location": "L13",
       "id": "onchain_vaultexecutor_poolidentity",
-      "community": 7,
+      "community": 5,
       "norm_label": "poolidentity"
     },
     {
       "label": "computeClubId()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L18",
+      "source_location": "L19",
       "id": "onchain_vaultexecutor_computeclubid",
-      "community": 7,
+      "community": 5,
       "norm_label": "computeclubid()"
     },
     {
       "label": "resolveVaultAddressFromFactory()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L24",
+      "source_location": "L25",
       "id": "onchain_vaultexecutor_resolvevaultaddressfromfactory",
-      "community": 7,
+      "community": 5,
       "norm_label": "resolvevaultaddressfromfactory()"
     },
     {
       "label": "getVaultContract()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L33",
+      "source_location": "L34",
       "id": "onchain_vaultexecutor_getvaultcontract",
-      "community": 7,
+      "community": 5,
       "norm_label": "getvaultcontract()"
     },
     {
       "label": "executeWhitelistedCallViaVault()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L66",
+      "source_location": "L67",
       "id": "onchain_vaultexecutor_executewhitelistedcallviavault",
-      "community": 7,
+      "community": 5,
       "norm_label": "executewhitelistedcallviavault()"
     },
     {
       "label": "ensureVaultErc20Allowance()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L95",
+      "source_location": "L96",
       "id": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "community": 7,
+      "community": 5,
       "norm_label": "ensurevaulterc20allowance()"
     },
     {
       "label": "adminAddAuthorizedOperator()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L166",
+      "source_location": "L177",
       "id": "onchain_vaultexecutor_adminaddauthorizedoperator",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminaddauthorizedoperator()"
     },
     {
       "label": "adminAddWhitelistedContract()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L175",
+      "source_location": "L186",
       "id": "onchain_vaultexecutor_adminaddwhitelistedcontract",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminaddwhitelistedcontract()"
     },
     {
       "label": "adminPause()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L180",
+      "source_location": "L191",
       "id": "onchain_vaultexecutor_adminpause",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminpause()"
     },
     {
       "label": "adminUnpause()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L185",
+      "source_location": "L196",
       "id": "onchain_vaultexecutor_adminunpause",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminunpause()"
     },
     {
       "label": "adminRemoveAuthorizedOperator()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L190",
+      "source_location": "L201",
       "id": "onchain_vaultexecutor_adminremoveauthorizedoperator",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminremoveauthorizedoperator()"
     },
     {
       "label": "adminSetOperatorAllocation()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L195",
+      "source_location": "L206",
       "id": "onchain_vaultexecutor_adminsetoperatorallocation",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminsetoperatorallocation()"
     },
     {
       "label": "adminSetOperatorTransactionCap()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L204",
+      "source_location": "L215",
       "id": "onchain_vaultexecutor_adminsetoperatortransactioncap",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminsetoperatortransactioncap()"
     },
     {
       "label": "adminRemoveWhitelistedContract()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L213",
+      "source_location": "L224",
       "id": "onchain_vaultexecutor_adminremovewhitelistedcontract",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminremovewhitelistedcontract()"
     },
     {
       "label": "isWhitelistedContract()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L218",
+      "source_location": "L229",
       "id": "onchain_vaultexecutor_iswhitelistedcontract",
-      "community": 7,
+      "community": 5,
       "norm_label": "iswhitelistedcontract()"
     },
     {
       "label": "adminAddTrustedStrategy()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L224",
+      "source_location": "L235",
       "id": "onchain_vaultexecutor_adminaddtrustedstrategy",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminaddtrustedstrategy()"
     },
     {
       "label": "adminRemoveTrustedStrategy()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L229",
+      "source_location": "L240",
       "id": "onchain_vaultexecutor_adminremovetrustedstrategy",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminremovetrustedstrategy()"
     },
     {
       "label": "isTrustedStrategy()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L234",
+      "source_location": "L245",
       "id": "onchain_vaultexecutor_istrustedstrategy",
-      "community": 7,
+      "community": 5,
       "norm_label": "istrustedstrategy()"
     },
     {
       "label": "adminSetOrderSigner()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L240",
+      "source_location": "L251",
       "id": "onchain_vaultexecutor_adminsetordersigner",
-      "community": 7,
+      "community": 5,
       "norm_label": "adminsetordersigner()"
     },
     {
       "label": "isOrderSigner()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L249",
+      "source_location": "L260",
       "id": "onchain_vaultexecutor_isordersigner",
-      "community": 7,
+      "community": 5,
       "norm_label": "isordersigner()"
     },
     {
       "label": "getAllOperators()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L255",
+      "source_location": "L266",
       "id": "onchain_vaultexecutor_getalloperators",
-      "community": 7,
+      "community": 5,
       "norm_label": "getalloperators()"
     },
     {
       "label": "getOperatorInfo()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L260",
+      "source_location": "L271",
       "id": "onchain_vaultexecutor_getoperatorinfo",
-      "community": 7,
+      "community": 5,
       "norm_label": "getoperatorinfo()"
     },
     {
       "label": "getWhitelistedContracts()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L270",
+      "source_location": "L281",
       "id": "onchain_vaultexecutor_getwhitelistedcontracts",
-      "community": 7,
+      "community": 5,
       "norm_label": "getwhitelistedcontracts()"
     },
     {
       "label": "getTrustedStrategies()",
       "file_type": "code",
       "source_file": "src/onchain/vaultExecutor.ts",
-      "source_location": "L275",
+      "source_location": "L286",
       "id": "onchain_vaultexecutor_gettrustedstrategies",
-      "community": 7,
+      "community": 5,
       "norm_label": "gettrustedstrategies()"
     },
     {
@@ -3311,32 +3311,23 @@
       "source_file": "src/server/http.ts",
       "source_location": "L1",
       "id": "server_http",
-      "community": 7,
+      "community": 5,
       "norm_label": "http.ts"
     },
     {
       "label": "Request",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L83",
+      "source_location": "L84",
       "id": "server_http_request",
-      "community": 7,
+      "community": 5,
       "norm_label": "request"
-    },
-    {
-      "label": "humanUsdToBase6()",
-      "file_type": "code",
-      "source_file": "src/server/http.ts",
-      "source_location": "L89",
-      "id": "server_http_humanusdtobase6",
-      "community": 7,
-      "norm_label": "humanusdtobase6()"
     },
     {
       "label": "startHttpServer()",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L94",
+      "source_location": "L90",
       "id": "server_http_starthttpserver",
       "community": 3,
       "norm_label": "starthttpserver()"
@@ -3347,7 +3338,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L1",
       "id": "server_swagger",
-      "community": 7,
+      "community": 5,
       "norm_label": "swagger.ts"
     },
     {
@@ -3356,7 +3347,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L3",
       "id": "server_swagger_swaggerspec",
-      "community": 7,
+      "community": 5,
       "norm_label": "swaggerspec"
     },
     {
@@ -3365,7 +3356,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L560",
       "id": "server_swagger_registerswagger",
-      "community": 7,
+      "community": 5,
       "norm_label": "registerswagger()"
     },
     {
@@ -3779,7 +3770,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L1",
       "id": "workers_chaineventcursor",
-      "community": 14,
+      "community": 7,
       "norm_label": "chaineventcursor.ts"
     },
     {
@@ -3788,7 +3779,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L3",
       "id": "workers_chaineventcursor_cursoridentity",
-      "community": 14,
+      "community": 7,
       "norm_label": "cursoridentity"
     },
     {
@@ -3797,7 +3788,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L11",
       "id": "workers_chaineventcursor_cursorrow",
-      "community": 14,
+      "community": 7,
       "norm_label": "cursorrow"
     },
     {
@@ -3806,7 +3797,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L16",
       "id": "workers_chaineventcursor_chaineventcursorsmodel",
-      "community": 14,
+      "community": 7,
       "norm_label": "chaineventcursorsmodel()"
     },
     {
@@ -3815,7 +3806,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L20",
       "id": "workers_chaineventcursor_lockstalebefore",
-      "community": 14,
+      "community": 7,
       "norm_label": "lockstalebefore()"
     },
     {
@@ -3824,7 +3815,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L27",
       "id": "workers_chaineventcursor_truncateerror",
-      "community": 14,
+      "community": 7,
       "norm_label": "truncateerror()"
     },
     {
@@ -3833,7 +3824,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L33",
       "id": "workers_chaineventcursor_makecursorworkerid",
-      "community": 14,
+      "community": 7,
       "norm_label": "makecursorworkerid()"
     },
     {
@@ -3842,7 +3833,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L37",
       "id": "workers_chaineventcursor_cursorblocknumber",
-      "community": 14,
+      "community": 7,
       "norm_label": "cursorblocknumber()"
     },
     {
@@ -3851,7 +3842,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L43",
       "id": "workers_chaineventcursor_claimchaineventcursor",
-      "community": 14,
+      "community": 7,
       "norm_label": "claimchaineventcursor()"
     },
     {
@@ -3860,7 +3851,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L89",
       "id": "workers_chaineventcursor_completechaineventcursor",
-      "community": 14,
+      "community": 7,
       "norm_label": "completechaineventcursor()"
     },
     {
@@ -3869,7 +3860,7 @@
       "source_file": "src/workers/chainEventCursor.ts",
       "source_location": "L106",
       "id": "workers_chaineventcursor_failchaineventcursor",
-      "community": 14,
+      "community": 7,
       "norm_label": "failchaineventcursor()"
     },
     {
@@ -4429,6 +4420,24 @@
       "id": "readme_notes",
       "community": 27,
       "norm_label": "notes"
+    },
+    {
+      "label": "humanUsdToBase6()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L49",
+      "community": 0,
+      "norm_label": "humanusdtobase6()",
+      "id": "limitless_limitlessexecutor_humanusdtobase6"
+    },
+    {
+      "label": "humanUsdToBase6()",
+      "file_type": "code",
+      "source_file": "src/server/http.ts",
+      "source_location": "L89",
+      "community": 5,
+      "norm_label": "humanusdtobase6()",
+      "id": "server_http_humanusdtobase6"
     },
     {
       "label": "vaultRegistrationMessage()",
@@ -7334,9 +7343,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "limitless_limitlessclient",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessclient"
     },
     {
       "relation": "imports",
@@ -7444,9 +7453,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "limitless_limitlessclient_getmarketbyslug",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessclient_getmarketbyslug"
     },
     {
       "relation": "calls",
@@ -7488,9 +7497,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "limitless_limitlessclient_getmarketbyslug",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessclient_getmarketbyslug"
     },
     {
       "relation": "imports",
@@ -7884,9 +7893,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L49",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "limitless_limitlessexecutor_humanusdtobase6",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_humanusdtobase6"
     },
     {
       "relation": "contains",
@@ -7965,6 +7974,17 @@
       "target": "limitless_limitlessorderclient_postlimitlessorder"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor",
+      "target": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -8004,9 +8024,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "onchain_vaultexecutor",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor"
     },
     {
       "relation": "imports",
@@ -8015,9 +8035,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_ensurevaulterc20allowance"
     },
     {
       "relation": "imports_from",
@@ -8079,17 +8099,6 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L304",
-      "weight": 1.0,
-      "source": "limitless_limitlessexecutor_executelimitlesstranche",
-      "target": "limitless_limitlessexecutor_humanusdtobase6",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L192",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8139,6 +8148,17 @@
       "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor_executelimitlesstranche",
       "target": "limitless_limitlessexecutor_finishqueue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L304",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_limitlessexecutor_executelimitlesstranche",
+      "target": "limitless_limitlessexecutor_humanusdtobase6"
     },
     {
       "relation": "calls",
@@ -8194,6 +8214,17 @@
       "weight": 1.0,
       "source": "limitless_limitlessexecutor_executelimitlesstranche",
       "target": "limitless_limitlessorderclient_postlimitlessorder"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L294",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor_executelimitlesstranche",
+      "target": "limitless_limitlessorderclient_quotelimitlessorderamounts"
     },
     {
       "relation": "calls",
@@ -8821,6 +8852,16 @@
       "target": "limitless_limitlessorderclient_postlimitlessorderparams"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessOrderClient.ts",
+      "source_location": "L341",
+      "weight": 1.0,
+      "source": "limitless_limitlessorderclient",
+      "target": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -9023,6 +9064,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/limitlessOrderClient.ts",
+      "source_location": "L346",
+      "weight": 1.0,
+      "source": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "target": "limitless_limitlessorderclient_clamporderprice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L473",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -9072,6 +9124,39 @@
       "confidence_score": 1.0,
       "source": "limitless_limitlessorderclient_postlimitlessorder",
       "target": "limitless_limitlessorderclient_computeamounts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessOrderClient.ts",
+      "source_location": "L349",
+      "weight": 1.0,
+      "source": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "target": "limitless_limitlessorderclient_computeamounts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessOrderClient.ts",
+      "source_location": "L384",
+      "weight": 1.0,
+      "source": "limitless_limitlessorderclient_postlimitlessorder",
+      "target": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "server_http",
+      "target": "limitless_limitlessorderclient_quotelimitlessorderamounts",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -12327,9 +12412,9 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L95",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "onchain_vaultexecutor",
-      "target": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_ensurevaulterc20allowance"
     },
     {
       "relation": "contains",
@@ -12337,9 +12422,9 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "onchain_vaultexecutor",
-      "target": "onchain_vaultexecutor_erc20_allowance_approve_abi",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_erc20_allowance_approve_abi"
     },
     {
       "relation": "contains",
@@ -12634,9 +12719,9 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L106",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "target": "onchain_vaultexecutor_getvaultcontract",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_getvaultcontract"
     },
     {
       "relation": "calls",
@@ -12777,9 +12862,9 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L135",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "target": "onchain_vaultexecutor_executewhitelistedcallviavault",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_executewhitelistedcallviavault"
     },
     {
       "relation": "imports",
@@ -12799,9 +12884,9 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "target": "onchain_vaultexecutor_adminaddwhitelistedcontract",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_adminaddwhitelistedcontract"
     },
     {
       "relation": "calls",
@@ -12810,9 +12895,9 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L114",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "target": "onchain_vaultexecutor_iswhitelistedcontract",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_iswhitelistedcontract"
     },
     {
       "relation": "imports",
@@ -12821,9 +12906,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "onchain_vaultexecutor_ensurevaulterc20allowance",
-      "confidence_score": 1.0
+      "target": "onchain_vaultexecutor_ensurevaulterc20allowance"
     },
     {
       "relation": "imports",
@@ -14201,9 +14286,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L89",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "server_http_humanusdtobase6",
-      "confidence_score": 1.0
+      "target": "server_http_humanusdtobase6"
     },
     {
       "relation": "contains",
@@ -16430,5 +16515,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "de0509b8e7ed86f569dc21a9bb51226d8027030d"
+  "built_at_commit": "39ad001c00803c5b1f8289f4301061339740eba2"
 }

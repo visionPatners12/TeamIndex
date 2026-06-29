@@ -27,6 +27,7 @@ const rpc_1 = require("./rpc");
 const CLUB_VAULT_FACTORY_ABI = ["function getVaultByClub(bytes32 clubId) view returns (address)"];
 const ERC20_ALLOWANCE_APPROVE_ABI = [
     "function allowance(address owner, address spender) view returns (uint256)",
+    "function balanceOf(address account) view returns (uint256)",
     "function approve(address spender, uint256 amount) returns (bool)",
 ];
 function computeClubId(clubName) {
@@ -81,6 +82,10 @@ async function ensureVaultErc20Allowance(env, pool, params) {
     const vault = await getVaultContract(env, provider, pool);
     const vaultAddress = (vault.target ?? vault.address);
     const token = new ethers_1.ethers.Contract(params.token, ERC20_ALLOWANCE_APPROVE_ABI, provider);
+    const balance = (await token.balanceOf(vaultAddress));
+    if (params.minBalance !== undefined && balance < params.minBalance) {
+        throw new Error(`Vault token balance too low for Limitless order: balance=${balance.toString()} required=${params.minBalance.toString()} token=${params.token} vault=${vaultAddress}`);
+    }
     const currentAllowance = (await token.allowance(vaultAddress, params.spender));
     if (currentAllowance >= params.minAllowance) {
         return {
@@ -89,6 +94,7 @@ async function ensureVaultErc20Allowance(env, pool, params) {
             vaultAddress,
             token: params.token,
             spender: params.spender,
+            balance: balance.toString(),
             allowance: currentAllowance.toString(),
             required: params.minAllowance.toString(),
         };
@@ -125,6 +131,7 @@ async function ensureVaultErc20Allowance(env, pool, params) {
         vaultAddress,
         token: params.token,
         spender: params.spender,
+        balance: balance.toString(),
         required: params.minAllowance.toString(),
         allowance: allowance.toString(),
         approveAmount: approveAmount.toString(),

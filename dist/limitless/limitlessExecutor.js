@@ -33,11 +33,6 @@ function decToNumber(d) {
         return Number(d.toString());
     return 0;
 }
-function humanUsdToBase6(amount) {
-    if (!Number.isFinite(amount) || amount <= 0)
-        throw new Error(`Invalid USD amount: ${amount}`);
-    return BigInt(Math.ceil(amount * 1_000_000));
-}
 function getRiskPerMatchPct(poolRiskParams, fallback) {
     const p = poolRiskParams;
     const v = p?.maxPerMatchPct ?? p?.riskPerMatchPct ?? p?.perMatchPct;
@@ -250,10 +245,12 @@ async function executeLimitlessTranche(params) {
             return { skipped: true, reason: "missing_limitless_exchange" };
         }
         const collateralToken = marketDetail?.collateralToken?.address ?? env.BASE_USDC_ADDRESS;
+        const orderQuote = (0, limitlessOrderClient_1.quoteLimitlessOrderAmounts)(bestAsk, trancheStakeUsd, "BUY");
         await (0, vaultExecutor_1.ensureVaultErc20Allowance)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress }, {
             token: collateralToken,
             spender: limitlessExchange,
-            minAllowance: humanUsdToBase6(trancheStakeUsd),
+            minAllowance: orderQuote.makerAmount,
+            minBalance: orderQuote.makerAmount,
         });
         // ── Post the order via Limitless order API ────────────────────────────
         let orderResult;
