@@ -170,8 +170,8 @@
     "semantic_hash": ""
   },
   "src/limitless/limitlessOrderClient.ts": {
-    "mtime": 1782710088.3003652,
-    "ast_hash": "bcaf23a243f6f9b11d794323e50f3cbf",
+    "mtime": 1782710497.0915084,
+    "ast_hash": "435ba355294c8e6f758e072eedb30ab4",
     "semantic_hash": ""
   },
   "src/limitless/limitlessPositionSync.ts": {
@@ -362,6 +362,11 @@
   "test/limitless/websocket.test.ts": {
     "mtime": 1782354258.346432,
     "ast_hash": "1882b3416542949d6a4b15638ba5db19",
+    "semantic_hash": ""
+  },
+  "test/limitless/orderClient.test.ts": {
+    "mtime": 1782710507.781769,
+    "ast_hash": "f9d775cf8fa10cf144159d68155da233",
     "semantic_hash": ""
   }
 }

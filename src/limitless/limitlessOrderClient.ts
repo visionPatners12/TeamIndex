@@ -228,6 +228,11 @@ function clampOrderPrice(price: number): number {
   return Math.min(0.99, Math.max(0.01, price));
 }
 
+export function extractExpectedExchangeAddress(errorMessage: string): string | null {
+  const match = errorMessage.match(/Exchange address for this market:\s*(0x[a-fA-F0-9]{40})/i);
+  return match?.[1] ?? null;
+}
+
 /**
  * Build EIP-712 typed-data for a Limitless GTC limit order.
  *
@@ -382,78 +387,119 @@ export async function postLimitlessOrder(
   const signatureType =
     params.signatureType ?? (params.makerAddress ? erc1271SignatureType(env) : SIGNATURE_TYPE_EOA);
 
-  log.info(
-    {
-      marketSlug: params.marketSlug,
-      outcome: params.outcome,
-      side: params.side,
-      ownerId,
-      onBehalfOf,
+  async function signAndPost(exchangeAddress: string, exchangeSource: "market" | "api-retry") {
+    log.info(
+      {
+        marketSlug: params.marketSlug,
+        outcome: params.outcome,
+        side: params.side,
+        ownerId,
+        onBehalfOf,
+        maker: makerAddress,
+        signerEoa: wallet.address,
+        signatureType,
+        verifyingContract: exchangeAddress,
+        exchangeSource,
+        tokenId: String(tokenId),
+        price,
+        sizeUsd: params.size,
+        makerAmount: String(makerAmount),
+        takerAmount: String(takerAmount),
+        feeRateBps,
+      },
+      "limitless order: building + signing"
+    );
+
+    const { domain, types, order, salt } = buildEip712Order({
       maker: makerAddress,
-      signerEoa: wallet.address,
-      signatureType,
-      verifyingContract,
-      tokenId: String(tokenId),
-      price,
-      sizeUsd: params.size,
-      makerAmount: String(makerAmount),
-      takerAmount: String(takerAmount),
-      feeRateBps,
-    },
-    "limitless order: building + signing"
-  );
-
-  const { domain, types, order, salt } = buildEip712Order({
-    maker: makerAddress,
-    tokenId,
-    makerAmount,
-    takerAmount,
-    side: sideInt,
-    expiration,
-    nonce,
-    feeRateBps,
-    signatureType,
-    verifyingContract,
-    chainId,
-  });
-
-  const signature = await wallet.signTypedData(domain, types, order);
-
-  // ── POST /orders ──────────────────────────────────────────────────────────
-  const requestBody = {
-    ownerId,
-    ...(onBehalfOf !== undefined ? { onBehalfOf } : {}),
-    orderType: params.orderType ?? "GTC",
-    marketSlug: params.marketSlug,
-    order: {
-      // Limitless expects: salt/tokenId/expiration as strings, but
-      // makerAmount/takerAmount/nonce/feeRateBps as NUMBERS. The EIP-712 signature is
-      // over the numeric values, so the JSON representation just has to match them.
-      salt: String(salt),
-      maker: makerAddress,
-      signer: makerAddress,
-      taker: "0x0000000000000000000000000000000000000000",
-      tokenId: String(tokenId),
-      makerAmount: Number(makerAmount),
-      takerAmount: Number(takerAmount),
-      expiration: String(expiration),
-      nonce: nonce,
-      price,
-      feeRateBps: feeRateBps,
+      tokenId,
+      makerAmount,
+      takerAmount,
       side: sideInt,
+      expiration,
+      nonce,
+      feeRateBps,
       signatureType,
-      signature,
-    },
-  };
+      verifyingContract: exchangeAddress,
+      chainId,
+    });
 
-  try {
+    const signature = await wallet.signTypedData(domain, types, order);
+
+    const requestBody = {
+      ownerId,
+      ...(onBehalfOf !== undefined ? { onBehalfOf } : {}),
+      orderType: params.orderType ?? "GTC",
+      marketSlug: params.marketSlug,
+      order: {
+        // Limitless expects: salt/tokenId/expiration as strings, but
+        // makerAmount/takerAmount/nonce/feeRateBps as NUMBERS. The EIP-712 signature is
+        // over the numeric values, so the JSON representation just has to match them.
+        salt: String(salt),
+        maker: makerAddress,
+        signer: makerAddress,
+        taker: "0x0000000000000000000000000000000000000000",
+        tokenId: String(tokenId),
+        makerAmount: Number(makerAmount),
+        takerAmount: Number(takerAmount),
+        expiration: String(expiration),
+        nonce: nonce,
+        price,
+        feeRateBps: feeRateBps,
+        side: sideInt,
+        signatureType,
+        signature,
+      },
+    };
+
     const result = await postJson<LimitlessOrderResult>(env, "/orders", requestBody);
     log.info(
-      { marketSlug: params.marketSlug, ownerId, status: result?.status, orderId: result?.orderId ?? result?.id },
+      {
+        marketSlug: params.marketSlug,
+        ownerId,
+        verifyingContract: exchangeAddress,
+        exchangeSource,
+        status: result?.status,
+        orderId: result?.orderId ?? result?.id,
+      },
       "limitless order: posted"
     );
     return result;
+  }
+
+  try {
+    return await signAndPost(verifyingContract, "market");
   } catch (e: any) {
+    const expectedExchange = extractExpectedExchangeAddress(String(e?.message ?? e));
+    if (expectedExchange && expectedExchange.toLowerCase() !== verifyingContract.toLowerCase()) {
+      log.warn(
+        {
+          marketSlug: params.marketSlug,
+          ownerId,
+          maker: makerAddress,
+          venueExchange: verifyingContract,
+          expectedExchange,
+          err: e?.message ?? String(e),
+        },
+        "limitless order: retrying with exchange address returned by API"
+      );
+      try {
+        return await signAndPost(expectedExchange, "api-retry");
+      } catch (retryErr: any) {
+        log.error(
+          {
+            marketSlug: params.marketSlug,
+            ownerId,
+            maker: makerAddress,
+            venueExchange: verifyingContract,
+            expectedExchange,
+            err: retryErr?.message ?? String(retryErr),
+          },
+          "limitless order: retry with API exchange failed"
+        );
+        throw retryErr;
+      }
+    }
     log.error(
       { marketSlug: params.marketSlug, ownerId, maker: makerAddress, err: e?.message ?? String(e) },
       "limitless order: POST /orders failed"
