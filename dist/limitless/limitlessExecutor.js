@@ -45,6 +45,72 @@ function getLiquidityMinUsd(poolRiskParams, fallback) {
     const n = Number(v);
     return Number.isFinite(n) ? n : fallback;
 }
+async function ensurePoolLimitlessServerWallet(env, pool) {
+    const existing = await prisma_1.prisma.pool_limitless_accounts.findUnique({
+        where: { poolId: pool.id },
+    });
+    if (existing?.serverWallet && existing?.limitlessProfileId && existing?.accountAddress) {
+        const walletAddress = String(existing.accountAddress);
+        if (pool.vaultAddress) {
+            const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress };
+            const linked = await (0, vaultExecutor_1.isTradingWallet)(env, vaultRef, walletAddress);
+            if (!linked) {
+                const tx = await (0, vaultExecutor_1.adminSetTradingWallet)(env, vaultRef, { wallet: walletAddress, allowed: true });
+                if (typeof tx?.wait === "function")
+                    await tx.wait();
+            }
+        }
+        return {
+            account: existing,
+            created: false,
+            ownerId: Number(existing.limitlessProfileId),
+            walletAddress,
+        };
+    }
+    const displayName = existing?.displayName ??
+        `pool-${String(pool.symbol ?? pool.clubName ?? pool.id).trim().toLowerCase().slice(0, 24)}-${String(pool.id).slice(-6)}`;
+    const created = await (0, partnerAccounts_1.createPartnerServerAccount)(env, displayName);
+    if (!created.limitlessProfileId || !created.accountAddress) {
+        throw new Error(`Limitless server wallet creation did not return profileId/accountAddress: ${JSON.stringify(created.rawJson)}`);
+    }
+    const account = await prisma_1.prisma.pool_limitless_accounts.upsert({
+        where: { poolId: pool.id },
+        update: {
+            limitlessProfileId: created.limitlessProfileId,
+            accountAddress: created.accountAddress,
+            displayName: created.displayName,
+            serverWallet: true,
+            allowanceStatus: "PENDING",
+            status: "ACTIVE",
+            rawJson: created.rawJson,
+        },
+        create: {
+            poolId: pool.id,
+            limitlessProfileId: created.limitlessProfileId,
+            accountAddress: created.accountAddress,
+            displayName: created.displayName,
+            serverWallet: true,
+            allowanceStatus: "PENDING",
+            status: "ACTIVE",
+            rawJson: created.rawJson,
+        },
+    });
+    if (pool.vaultAddress) {
+        const vaultRef = { clubName: pool.clubName, vaultAddress: pool.vaultAddress };
+        const linked = await (0, vaultExecutor_1.isTradingWallet)(env, vaultRef, created.accountAddress);
+        if (!linked) {
+            const tx = await (0, vaultExecutor_1.adminSetTradingWallet)(env, vaultRef, { wallet: created.accountAddress, allowed: true });
+            if (typeof tx?.wait === "function")
+                await tx.wait();
+        }
+    }
+    return {
+        account,
+        created: true,
+        ownerId: Number(created.limitlessProfileId),
+        walletAddress: created.accountAddress,
+    };
+}
 // ─── Queue claim / release helpers ───────────────────────────────────────────
 function queueLookup(params) {
     if (params.queueId) {
@@ -187,56 +253,15 @@ async function executeLimitlessTranche(params) {
         if (!Number.isFinite(trancheStakeUsd) || trancheStakeUsd <= 0) {
             throw new Error("Invalid trancheStakeUsd");
         }
-        // ── Resolve the vault's Limitless ownerId ──────────────────────────────
-        // Since the order maker is the vault, ownerId must belong to that vault's
-        // Limitless partner sub-account, not the global API profile/server wallet.
-        const storedLimitlessAccount = await prisma_1.prisma.pool_limitless_accounts.findUnique({
-            where: { poolId },
-        });
-        let vaultProfileId = null;
-        if (storedLimitlessAccount?.limitlessProfileId &&
-            (0, partnerAccounts_1.sameAddress)(storedLimitlessAccount.accountAddress, pool.vaultAddress)) {
-            vaultProfileId = String(storedLimitlessAccount.limitlessProfileId);
-        }
-        else {
-            vaultProfileId = await (0, partnerAccounts_1.resolveProfileIdForAddress)(env, pool.vaultAddress);
-        }
-        if (!vaultProfileId) {
-            const lastError = `No Limitless profile is registered for the vault ${pool.vaultAddress}. ` +
-                "Register the vault as a Limitless partner sub-account before betting.";
-            await finishQueue(queue.id, "FAILED", lastError);
-            return { skipped: true, reason: "missing_vault_limitless_profile" };
-        }
-        const ownerId = Number(vaultProfileId);
+        // ── Resolve the pool's Limitless server wallet ─────────────────────────
+        const serverWallet = await ensurePoolLimitlessServerWallet(env, pool);
+        const ownerId = Number(serverWallet.ownerId);
         if (!Number.isFinite(ownerId) || ownerId <= 0) {
-            const lastError = `Invalid Limitless profileId for vault ${pool.vaultAddress}: ${vaultProfileId}`;
+            const lastError = `Invalid Limitless server-wallet profileId for pool ${poolId}: ${serverWallet.ownerId}`;
             await finishQueue(queue.id, "FAILED", lastError);
-            return { skipped: true, reason: "invalid_vault_limitless_profile" };
+            return { skipped: true, reason: "invalid_server_wallet_profile" };
         }
-        try {
-            await prisma_1.prisma.pool_limitless_accounts.upsert({
-                where: { poolId },
-                update: {
-                    limitlessProfileId: vaultProfileId,
-                    accountAddress: pool.vaultAddress,
-                    serverWallet: false,
-                    status: "ACTIVE",
-                },
-                create: {
-                    poolId,
-                    limitlessProfileId: vaultProfileId,
-                    accountAddress: pool.vaultAddress,
-                    displayName: `pool-${String(poolId).slice(-6)}`,
-                    serverWallet: false,
-                    allowanceStatus: "PENDING",
-                    status: "ACTIVE",
-                },
-            });
-        }
-        catch {
-            // A cache write should not block an otherwise valid order attempt.
-        }
-        // ── Ensure the vault has allowed Limitless to pull collateral ───────────
+        // ── Fund the Limitless server wallet from the pool vault ────────────────
         const marketDetail = await (0, limitlessClient_1.getMarketBySlug)(env, marketSlug);
         const limitlessExchange = marketDetail?.venue?.exchange;
         if (!limitlessExchange) {
@@ -246,12 +271,13 @@ async function executeLimitlessTranche(params) {
         }
         const collateralToken = marketDetail?.collateralToken?.address ?? env.BASE_USDC_ADDRESS;
         const orderQuote = (0, limitlessOrderClient_1.quoteLimitlessOrderAmounts)(bestAsk, trancheStakeUsd, "BUY");
-        await (0, vaultExecutor_1.ensureVaultErc20Allowance)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress }, {
-            token: collateralToken,
-            spender: limitlessExchange,
-            minAllowance: orderQuote.makerAmount,
-            minBalance: orderQuote.makerAmount,
+        const serverWalletBalance = await (0, vaultExecutor_1.getErc20Balance)(env, collateralToken, serverWallet.walletAddress);
+        const fundingNeeded = serverWalletBalance < orderQuote.makerAmount ? orderQuote.makerAmount - serverWalletBalance : 0n;
+        await (0, vaultExecutor_1.fundTradingWalletFromVault)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress }, {
+            wallet: serverWallet.walletAddress,
+            amount: fundingNeeded,
         });
+        await (0, partnerAccounts_1.ensurePartnerAccountAllowances)(env, String(ownerId)).catch(() => null);
         // ── Post the order via Limitless order API ────────────────────────────
         let orderResult;
         try {
@@ -262,8 +288,7 @@ async function executeLimitlessTranche(params) {
                 size: trancheStakeUsd,
                 side: "BUY",
                 orderType: "GTC",
-                makerAddress: pool.vaultAddress,
-                ownerId,
+                signingMode: "server-wallet",
                 onBehalfOf: ownerId,
             });
         }

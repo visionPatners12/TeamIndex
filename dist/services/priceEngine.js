@@ -60,6 +60,10 @@ function onchainNavPushIntervalMs(env) {
     const n = Number(env.ONCHAIN_NAV_PUSH_INTERVAL_MS);
     return Number.isFinite(n) && n > 0 ? n : 3_600_000;
 }
+function onchainNavPushEnabled(env) {
+    const raw = String(env.ONCHAIN_NAV_PUSH_ENABLED ?? "true").trim().toLowerCase();
+    return !["0", "false", "no", "off"].includes(raw);
+}
 async function recalculateOfficialPrices(env) {
     const pools = await prisma_1.prisma.club_pools.findMany({ where: { status: "ACTIVE" } });
     for (const pool of pools) {
@@ -117,7 +121,7 @@ async function recalculateOfficialPrices(env) {
         const lastPushed = lastOnchainNavValue.get(pool.id);
         const navChanged = !lastPushed || lastPushed.pos !== posBase || lastPushed.pnl !== rPnLBase;
         const navPushDue = Date.now() - (lastOnchainNavPushAt.get(pool.id) ?? 0) >= onchainNavPushIntervalMs(env);
-        if (env.BASE_EXECUTOR_PRIVATE_KEY && navPushDue && navChanged) {
+        if (onchainNavPushEnabled(env) && env.BASE_EXECUTOR_PRIVATE_KEY && navPushDue && navChanged) {
             try {
                 await (0, rpc_1.withBaseRpcRetry)(env, async (provider) => {
                     const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {

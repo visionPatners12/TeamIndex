@@ -6,6 +6,7 @@ exports.encodeLimitlessSigningMessage = encodeLimitlessSigningMessage;
 exports.createPartnerServerAccount = createPartnerServerAccount;
 exports.checkPartnerAccountAllowances = checkPartnerAccountAllowances;
 exports.retryPartnerAccountAllowances = retryPartnerAccountAllowances;
+exports.ensurePartnerAccountAllowances = ensurePartnerAccountAllowances;
 exports.partnerAccountCreationEnabled = partnerAccountCreationEnabled;
 exports.registerVaultPartnerAccount = registerVaultPartnerAccount;
 exports.resolveProfileIdForAddress = resolveProfileIdForAddress;
@@ -87,6 +88,25 @@ async function checkPartnerAccountAllowances(env, profileIdOrAccount) {
 }
 async function retryPartnerAccountAllowances(env, profileIdOrAccount) {
     return limitlessJson(env, "POST", `/profiles/partner-accounts/${encodeURIComponent(profileIdOrAccount)}/allowances/retry`, {});
+}
+function hasRetryableAllowanceIssue(value) {
+    if (!value || typeof value !== "object")
+        return false;
+    if (Array.isArray(value))
+        return value.some(hasRetryableAllowanceIssue);
+    const record = value;
+    const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
+    if (record.retryable === true && (status === "missing" || status === "failed"))
+        return true;
+    return Object.values(record).some(hasRetryableAllowanceIssue);
+}
+async function ensurePartnerAccountAllowances(env, profileIdOrAccount) {
+    const checked = await checkPartnerAccountAllowances(env, profileIdOrAccount);
+    if (!hasRetryableAllowanceIssue(checked))
+        return { checked, retried: false };
+    const retryResult = await retryPartnerAccountAllowances(env, profileIdOrAccount);
+    const final = await checkPartnerAccountAllowances(env, profileIdOrAccount);
+    return { checked, retried: true, retryResult, final };
 }
 function partnerAccountCreationEnabled(env) {
     return String(env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED ?? "false").toLowerCase() === "true";

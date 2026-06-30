@@ -3,6 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getVaultContract = getVaultContract;
 exports.executeWhitelistedCallViaVault = executeWhitelistedCallViaVault;
 exports.ensureVaultErc20Allowance = ensureVaultErc20Allowance;
+exports.getErc20Balance = getErc20Balance;
+exports.adminSetTradingWallet = adminSetTradingWallet;
+exports.isTradingWallet = isTradingWallet;
+exports.fundTradingWalletFromVault = fundTradingWalletFromVault;
 exports.adminAddAuthorizedOperator = adminAddAuthorizedOperator;
 exports.adminAddWhitelistedContract = adminAddWhitelistedContract;
 exports.adminPause = adminPause;
@@ -137,6 +141,44 @@ async function ensureVaultErc20Allowance(env, pool, params) {
         approveAmount: approveAmount.toString(),
         whitelistTxHash,
         approveTxHash: approveTx?.hash ?? null,
+    };
+}
+async function getErc20Balance(env, tokenAddress, accountAddress) {
+    const provider = (0, rpc_1.getBaseProvider)(env);
+    const token = new ethers_1.ethers.Contract(tokenAddress, ERC20_ALLOWANCE_APPROVE_ABI, provider);
+    return (await token.balanceOf(accountAddress));
+}
+async function adminSetTradingWallet(env, pool, params) {
+    const vault = await getVaultContract(env, undefined, pool);
+    return vault.setTradingWallet(params.wallet, params.allowed);
+}
+async function isTradingWallet(env, pool, wallet) {
+    const vault = await getVaultContract(env, undefined, pool);
+    if (!("isTradingWallet" in vault))
+        throw new Error("Vault missing isTradingWallet");
+    return (await vault.isTradingWallet(wallet));
+}
+async function fundTradingWalletFromVault(env, pool, params) {
+    if (params.amount <= 0n) {
+        return {
+            funded: false,
+            wallet: params.wallet,
+            amount: params.amount.toString(),
+            txHash: null,
+        };
+    }
+    const vault = await getVaultContract(env, undefined, pool);
+    if (!("fundTradingWallet" in vault)) {
+        throw new Error("Vault does not support linked trading wallets. Redeploy the pool vault with the current USDC4626Vault before server-wallet betting.");
+    }
+    const tx = await vault.fundTradingWallet(params.wallet, params.amount);
+    if (typeof tx?.wait === "function")
+        await tx.wait();
+    return {
+        funded: true,
+        wallet: params.wallet,
+        amount: params.amount.toString(),
+        txHash: tx?.hash ?? null,
     };
 }
 async function adminAddAuthorizedOperator(env, pool, params) {

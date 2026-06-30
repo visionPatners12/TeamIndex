@@ -84,6 +84,10 @@ contract USDC4626Vault is
     /// @notice EOAs allowed to sign off-chain orders where this vault is the maker.
     mapping(address => bool) private orderSigners;
 
+    /// @notice External trading wallets allowed to receive vault capital for off-chain venues.
+    mapping(address => bool) private tradingWallets;
+    address[] private tradingWalletList;
+
     // ─── Events ───────────────────────────────────────────────────────────────
 
     event OperatorAdded(address indexed operator, uint256 allocation, uint256 transactionCap);
@@ -121,6 +125,13 @@ contract USDC4626Vault is
     event DepositCapUpdated(uint256 newCap);
     event ValuatorUpdated(address indexed oldValuator, address indexed newValuator);
     event OrderSignerUpdated(address indexed signer, bool allowed);
+    event TradingWalletUpdated(address indexed wallet, bool allowed);
+    event TradingWalletFunded(
+        address indexed operator,
+        address indexed wallet,
+        address indexed asset,
+        uint256 amount
+    );
 
     // ─── Construction / Initialization ────────────────────────────────────────
 
@@ -352,6 +363,52 @@ contract USDC4626Vault is
             return ERC1271_MAGICVALUE;
         }
         return ERC1271_INVALID;
+    }
+
+    // ─── External trading wallets ────────────────────────────────────────────
+
+    /// @notice Allows or revokes an external venue wallet that may receive vault capital.
+    /// @dev Used for Limitless server wallets: the vault remains the treasury, while the
+    ///      linked trading wallet holds venue collateral and positions.
+    function setTradingWallet(address wallet, bool allowed) external onlyOwner {
+        require(wallet != address(0), "Vault: zero trading wallet");
+        if (allowed && !tradingWallets[wallet]) {
+            tradingWalletList.push(wallet);
+        } else if (!allowed && tradingWallets[wallet]) {
+            _removeAddress(tradingWalletList, wallet);
+        }
+        tradingWallets[wallet] = allowed;
+        emit TradingWalletUpdated(wallet, allowed);
+    }
+
+    function isTradingWallet(address wallet) external view returns (bool) {
+        return tradingWallets[wallet];
+    }
+
+    function getTradingWallets() external view returns (address[] memory) {
+        return tradingWalletList;
+    }
+
+    /// @notice Sends underlying asset from the vault to a registered trading wallet.
+    /// @dev `assetAmount` allocation accounting is enforced for operators just like
+    ///      `executeWhitelistedCall`, but the recipient must be explicitly linked on-chain.
+    function fundTradingWallet(address wallet, uint256 amount)
+        external
+        whenNotPaused
+        nonReentrant
+        onlyAuthorizedOperatorOrOwner
+    {
+        require(tradingWallets[wallet], "Vault: trading wallet not linked");
+
+        if (msg.sender != owner() && amount > 0) {
+            OperatorInfo storage info = operators[msg.sender];
+            if (info.txCap > 0) require(amount <= info.txCap, "Vault: tx cap exceeded");
+            if (info.totalAlloc > 0) require(info.currentAlloc + amount <= info.totalAlloc, "Vault: allocation exceeded");
+            info.currentAlloc += amount;
+        }
+
+        SafeERC20.safeTransfer(IERC20(asset()), wallet, amount);
+        emit TradingWalletFunded(msg.sender, wallet, asset(), amount);
     }
 
     // ─── Operator management ──────────────────────────────────────────────────

@@ -20,6 +20,12 @@ function positiveIntFromEnv(name, fallback) {
         return fallback;
     return Math.floor(n);
 }
+function booleanFromEnv(name, fallback) {
+    const raw = process.env[name];
+    if (raw === undefined || raw === "")
+        return fallback;
+    return !["0", "false", "no", "off"].includes(raw.trim().toLowerCase());
+}
 function nonNegativeIntFromEnv(name) {
     const raw = process.env[name];
     if (!raw)
@@ -30,15 +36,33 @@ function nonNegativeIntFromEnv(name) {
     return Math.floor(n);
 }
 function startVaultSyncTicker({ env, logger }) {
+    if (!booleanFromEnv("VAULT_SYNC_ENABLED", String(env.VAULT_SYNC_ENABLED ?? "true") !== "false")) {
+        logger.warn("Vault sync ticker disabled by VAULT_SYNC_ENABLED=false");
+        return;
+    }
     const intervalMs = Number(process.env.VAULT_SYNC_INTERVAL_MS || 60_000);
     const configuredStartBlock = nonNegativeIntFromEnv("VAULT_SYNC_START_BLOCK");
     const maxBlocksPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_BLOCKS_PER_TICK", 100);
+    const maxLogRequestsPerTick = positiveIntFromEnv("VAULT_SYNC_MAX_LOG_REQUESTS_PER_TICK", 40);
     const poolsPerTick = positiveIntFromEnv("VAULT_SYNC_POOLS_PER_TICK", 1);
+    const logChunkSize = (0, ethersLogChunks_1.getLogsBlockChunkSize)("BASE_GETLOGS_BLOCK_CHUNK");
+    const eventLogFiltersPerSync = 4;
+    const maxBlocksByRpcBudget = Math.max(1, Math.floor(maxLogRequestsPerTick / eventLogFiltersPerSync) * logChunkSize);
+    const effectiveMaxBlocksPerTick = Math.min(maxBlocksPerTick, maxBlocksByRpcBudget);
+    const estimatedLogRequestsPerPool = eventLogFiltersPerSync * Math.ceil(effectiveMaxBlocksPerTick / logChunkSize);
     if ((0, rpc_1.getBaseRpcUrls)(env).length === 0) {
         logger.warn("VAULT_SYNC skipped: RPC_URL missing");
         return;
     }
-    logger.info({ intervalMs }, "Vault sync ticker started");
+    logger.info({
+        intervalMs,
+        maxBlocksPerTick,
+        effectiveMaxBlocksPerTick,
+        poolsPerTick,
+        logChunkSize,
+        maxLogRequestsPerTick,
+        estimatedLogRequestsPerPool,
+    }, "Vault sync ticker started");
     let isTicking = false;
     async function tick() {
         if (isTicking) {
@@ -91,7 +115,7 @@ function startVaultSyncTicker({ env, logger }) {
                     continue;
                 }
                 const fromBlock = lastProcessedBlock + 1;
-                const toBlock = Math.min(latest, lastProcessedBlock + maxBlocksPerTick);
+                const toBlock = Math.min(latest, lastProcessedBlock + effectiveMaxBlocksPerTick);
                 try {
                     await (0, poolSync_1.syncVaultEventsToDb)({
                         env,
@@ -105,7 +129,7 @@ function startVaultSyncTicker({ env, logger }) {
                         fromBlock,
                         toBlock,
                         logger,
-                        chunkSizeEnv: "POLYGON_GETLOGS_BLOCK_CHUNK",
+                        chunkSizeEnv: "BASE_GETLOGS_BLOCK_CHUNK",
                         logContext: {
                             chain: "polygon",
                             cursorKey,

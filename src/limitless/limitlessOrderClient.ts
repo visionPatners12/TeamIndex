@@ -59,14 +59,15 @@ export interface PostLimitlessOrderParams {
   /** Optional smart-contract maker. When set, orders use ERC-1271 signatureType=2 by default. */
   makerAddress?: string;
   /**
-   * Limitless profile id that owns the order. For pool vaults this must be the
-   * pool's partner-account profileId (pool_limitless_accounts.limitlessProfileId).
-   * Falls back to the global /profiles/me id when omitted.
+   * "signed" keeps the local EIP-712 / ERC-1271 flow.
+   * "server-wallet" uses Limitless delegated signing for a Privy server wallet sub-account.
    */
+  signingMode?: "signed" | "server-wallet";
+  /** Limitless profile id that owns the order. Falls back to /profiles/me in signed mode. */
   ownerId?: number;
   /**
-   * Partner/delegated profile id the HMAC API token is acting for. For signed
-   * partner orders this should match ownerId.
+   * Partner/delegated profile id the HMAC API token is acting for.
+   * Required in server-wallet mode.
    */
   onBehalfOf?: number;
   /** Override the signatureType (defaults: maker set → ERC-1271, else EOA). */
@@ -365,11 +366,7 @@ export async function postLimitlessOrder(
 ): Promise<LimitlessOrderResult> {
   const log = params.log ?? noopLogger;
   assertLimitlessTradingConfig(env);
-
-  const { Wallet, verifyTypedData } = await import("ethers");
-  const privateKey = getLimitlessOrderSignerPrivateKey(env);
-  if (!privateKey) throw new Error("Limitless order signer private key missing");
-  const wallet = new Wallet(privateKey);
+  const signingMode = params.signingMode ?? "signed";
 
   // ── Resolve market venue + tokenId ───────────────────────────────────────
   const market = await getMarketBySlug(env, params.marketSlug);
@@ -387,10 +384,6 @@ export async function postLimitlessOrder(
     params.side
   );
 
-  // ── Resolve ownerId (per-pool partner account preferred) ──────────────────
-  const ownerId = params.ownerId ?? (await getOwnerId(env));
-  const onBehalfOf = params.onBehalfOf ?? params.ownerId;
-
   // ── Build + sign ──────────────────────────────────────────────────────────
   // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
   const expiration = 0;
@@ -400,6 +393,86 @@ export async function postLimitlessOrder(
     throw new Error(`Invalid Limitless feeRateBps: ${feeRateBps}`);
   }
   const sideInt: 0 | 1 = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
+
+  if (signingMode === "server-wallet") {
+    const onBehalfOf = params.onBehalfOf ?? params.ownerId;
+    if (!onBehalfOf || !Number.isFinite(onBehalfOf) || onBehalfOf <= 0) {
+      throw new Error("Limitless server-wallet mode requires onBehalfOf/profileId");
+    }
+
+    const salt = Math.floor(Math.random() * 1e15);
+    const requestBody = {
+      onBehalfOf,
+      orderType: params.orderType ?? "GTC",
+      marketSlug: params.marketSlug,
+      order: {
+        salt: String(salt),
+        taker: "0x0000000000000000000000000000000000000000",
+        tokenId: String(tokenId),
+        makerAmount: Number(makerAmount),
+        takerAmount: Number(takerAmount),
+        expiration: String(expiration),
+        nonce,
+        price,
+        feeRateBps,
+        side: sideInt,
+      },
+    };
+
+    log.info(
+      {
+        marketSlug: params.marketSlug,
+        outcome: params.outcome,
+        side: params.side,
+        onBehalfOf,
+        signingMode,
+        tokenId: String(tokenId),
+        price,
+        sizeUsd: params.size,
+        makerAmount: String(makerAmount),
+        takerAmount: String(takerAmount),
+        feeRateBps,
+      },
+      "limitless order: posting delegated server-wallet order"
+    );
+
+    try {
+      const result = await postJson<LimitlessOrderResult>(env, "/orders", requestBody);
+      log.info(
+        {
+          marketSlug: params.marketSlug,
+          onBehalfOf,
+          signingMode,
+          status: result?.status,
+          orderId: result?.orderId ?? result?.id,
+        },
+        "limitless order: delegated server-wallet order posted"
+      );
+      return result;
+    } catch (e: any) {
+      const baseMessage = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        `${baseMessage} | orderPostAttempts=${JSON.stringify([
+          {
+            signingMode,
+            onBehalfOf,
+            tokenId: String(tokenId),
+            price,
+            makerAmount: String(makerAmount),
+            takerAmount: String(takerAmount),
+            error: e?.message ?? String(e),
+          },
+        ])}`
+      );
+    }
+  }
+
+  const { Wallet, verifyTypedData } = await import("ethers");
+  const privateKey = getLimitlessOrderSignerPrivateKey(env);
+  if (!privateKey) throw new Error("Limitless order signer private key missing");
+  const wallet = new Wallet(privateKey);
+  const ownerId = params.ownerId ?? (await getOwnerId(env));
+  const onBehalfOf = params.onBehalfOf ?? params.ownerId;
 
   const chainId = Number((env as any).LIMITLESS_CHAIN_ID ?? BASE_CHAIN_ID);
   const makerAddress = params.makerAddress ?? wallet.address;

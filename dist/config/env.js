@@ -27,12 +27,15 @@ const EnvSchema = zod_1.z.object({
     ETH_GETLOGS_COOLDOWN_MS: zod_1.z.string().optional().default("60000"),
     CHAIN_EVENT_CURSOR_LOCK_STALE_MS: zod_1.z.string().optional().default("120000"),
     BASE_GETLOGS_BLOCK_CHUNK: zod_1.z.string().optional().default("10"),
+    VAULT_SYNC_ENABLED: zod_1.z.string().optional().default("true"),
     VAULT_SYNC_START_BLOCK: zod_1.z.string().optional(),
     VAULT_SYNC_MAX_BLOCKS_PER_TICK: zod_1.z.string().optional().default("100"),
+    VAULT_SYNC_MAX_LOG_REQUESTS_PER_TICK: zod_1.z.string().optional().default("40"),
     VAULT_SYNC_POOLS_PER_TICK: zod_1.z.string().optional().default("1"),
     // Min delay between on-chain NAV pushes (setPoolValuation) per pool. The DB/snapshot
     // is refreshed every price-recalc cycle (real-time); the on-chain write is throttled
     // to this interval. Default 1h.
+    ONCHAIN_NAV_PUSH_ENABLED: zod_1.z.string().optional().default("true"),
     ONCHAIN_NAV_PUSH_INTERVAL_MS: zod_1.z.string().optional().default("3600000"),
     // ─── Limitless Exchange (market data + trading, Base chain) ──────────────
     LIMITLESS_BASE_URL: zod_1.z.string().optional().default("https://api.limitless.exchange"),
@@ -89,9 +92,12 @@ function loadEnv() {
         ETH_GETLOGS_COOLDOWN_MS: process.env.ETH_GETLOGS_COOLDOWN_MS,
         CHAIN_EVENT_CURSOR_LOCK_STALE_MS: process.env.CHAIN_EVENT_CURSOR_LOCK_STALE_MS,
         BASE_GETLOGS_BLOCK_CHUNK: process.env.BASE_GETLOGS_BLOCK_CHUNK,
+        VAULT_SYNC_ENABLED: process.env.VAULT_SYNC_ENABLED,
         VAULT_SYNC_START_BLOCK: process.env.VAULT_SYNC_START_BLOCK,
         VAULT_SYNC_MAX_BLOCKS_PER_TICK: process.env.VAULT_SYNC_MAX_BLOCKS_PER_TICK,
+        VAULT_SYNC_MAX_LOG_REQUESTS_PER_TICK: process.env.VAULT_SYNC_MAX_LOG_REQUESTS_PER_TICK,
         VAULT_SYNC_POOLS_PER_TICK: process.env.VAULT_SYNC_POOLS_PER_TICK,
+        ONCHAIN_NAV_PUSH_ENABLED: process.env.ONCHAIN_NAV_PUSH_ENABLED,
         ONCHAIN_NAV_PUSH_INTERVAL_MS: process.env.ONCHAIN_NAV_PUSH_INTERVAL_MS,
         LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
         LIMITLESS_API_KEY: process.env.LIMITLESS_API_KEY,

@@ -174,6 +174,69 @@ export async function ensureVaultErc20Allowance(
   };
 }
 
+export async function getErc20Balance(
+  env: Env,
+  tokenAddress: string,
+  accountAddress: string
+): Promise<bigint> {
+  const provider = getBaseProvider(env);
+  const token = new ethers.Contract(tokenAddress, ERC20_ALLOWANCE_APPROVE_ABI, provider);
+  return (await (token as any).balanceOf(accountAddress)) as bigint;
+}
+
+export async function adminSetTradingWallet(
+  env: Env,
+  pool: PoolIdentity | undefined,
+  params: { wallet: string; allowed: boolean }
+) {
+  const vault = await getVaultContract(env, undefined, pool);
+  return (vault as any).setTradingWallet(params.wallet, params.allowed);
+}
+
+export async function isTradingWallet(
+  env: Env,
+  pool: PoolIdentity | undefined,
+  wallet: string
+): Promise<boolean> {
+  const vault = await getVaultContract(env, undefined, pool);
+  if (!("isTradingWallet" in vault)) throw new Error("Vault missing isTradingWallet");
+  return (await (vault as any).isTradingWallet(wallet)) as boolean;
+}
+
+export async function fundTradingWalletFromVault(
+  env: Env,
+  pool: PoolIdentity | undefined,
+  params: {
+    wallet: string;
+    amount: bigint;
+  }
+) {
+  if (params.amount <= 0n) {
+    return {
+      funded: false,
+      wallet: params.wallet,
+      amount: params.amount.toString(),
+      txHash: null,
+    };
+  }
+
+  const vault = await getVaultContract(env, undefined, pool);
+  if (!("fundTradingWallet" in vault)) {
+    throw new Error(
+      "Vault does not support linked trading wallets. Redeploy the pool vault with the current USDC4626Vault before server-wallet betting."
+    );
+  }
+
+  const tx = await (vault as any).fundTradingWallet(params.wallet, params.amount);
+  if (typeof (tx as any)?.wait === "function") await (tx as any).wait();
+  return {
+    funded: true,
+    wallet: params.wallet,
+    amount: params.amount.toString(),
+    txHash: (tx as any)?.hash ?? null,
+  };
+}
+
 export async function adminAddAuthorizedOperator(env: Env, pool: PoolIdentity | undefined, params: {
   operator: string;
   allocation: bigint;

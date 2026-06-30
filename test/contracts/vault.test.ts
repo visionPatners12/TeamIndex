@@ -228,6 +228,37 @@ describe("USDC4626Vault", function () {
     assert.equal(await vault.isValidSignature(digest, validSignature), invalidValue);
   });
 
+  it("links trading wallets on-chain and funds only linked wallets", async function () {
+    const { owner, user, operator, usdc, vault } = await fixture();
+    await vault.connect(user).deposit(500_000n, user.address);
+
+    await expectRevert(
+      vault.connect(owner).fundTradingWallet(operator.address, 100_000n),
+      "trading wallet not linked"
+    );
+
+    await vault.connect(owner).setTradingWallet(operator.address, true);
+    assert.equal(await vault.isTradingWallet(operator.address), true);
+    assert.deepEqual(Array.from(await vault.getTradingWallets()), [operator.address]);
+
+    const tx = await vault.connect(owner).fundTradingWallet(operator.address, 100_000n);
+    const receipt = await tx.wait();
+    const fundedLog = receipt!.logs
+      .map((l: any) => {
+        try { return vault.interface.parseLog(l); } catch { return null; }
+      })
+      .find((p: any) => p && p.name === "TradingWalletFunded");
+
+    assert.ok(fundedLog, "TradingWalletFunded event missing");
+    assert.equal(fundedLog.args.wallet, operator.address);
+    assert.equal((await usdc.balanceOf(operator.address)).toString(), "100000");
+    assert.equal((await vault.totalCash()).toString(), "400000");
+
+    await vault.connect(owner).setTradingWallet(operator.address, false);
+    assert.equal(await vault.isTradingWallet(operator.address), false);
+    assert.deepEqual(Array.from(await vault.getTradingWallets()), []);
+  });
+
   it("rejects fee config above the hard cap", async function () {
     const { owner, treasury, vault } = await fixture();
     await expectRevert(vault.connect(owner).setFeeConfig(501n, 0n, treasury.address), "entry fee too high");

@@ -120,6 +120,27 @@ export async function retryPartnerAccountAllowances(
   );
 }
 
+function hasRetryableAllowanceIssue(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some(hasRetryableAllowanceIssue);
+  const record = value as JsonRecord;
+  const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
+  if (record.retryable === true && (status === "missing" || status === "failed")) return true;
+  return Object.values(record).some(hasRetryableAllowanceIssue);
+}
+
+export async function ensurePartnerAccountAllowances(
+  env: Env,
+  profileIdOrAccount: string
+): Promise<{ checked: JsonRecord; retried: boolean; retryResult?: JsonRecord; final?: JsonRecord }> {
+  const checked = await checkPartnerAccountAllowances(env, profileIdOrAccount);
+  if (!hasRetryableAllowanceIssue(checked)) return { checked, retried: false };
+
+  const retryResult = await retryPartnerAccountAllowances(env, profileIdOrAccount);
+  const final = await checkPartnerAccountAllowances(env, profileIdOrAccount);
+  return { checked, retried: true, retryResult, final };
+}
+
 export function partnerAccountCreationEnabled(env: Env) {
   return String((env as any).LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED ?? "false").toLowerCase() === "true";
 }

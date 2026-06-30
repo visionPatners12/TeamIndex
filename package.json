@@ -15,6 +15,7 @@
     "contracts:deploy:polygon": "hardhat run scripts/deployPolygon.ts --network polygon",
     "contracts:transfer-ownership:polygon": "hardhat run scripts/transferFactoryOwnership.ts --network polygon",
     "contracts:deploy:base": "hardhat run scripts/deployBase.ts --network base",
+    "contracts:deploy:base:vault-factory": "hardhat run scripts/deployBaseVaultFactory.ts --network base",
     "contracts:deploy:chiliz": "hardhat run scripts/deployChiliz.ts --network chiliz",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",

@@ -29,6 +29,11 @@ exports.USDC4626VAULT = {
         "function setOrderSigner(address signer, bool allowed) external",
         "function isOrderSigner(address signer) external view returns (bool)",
         "function isValidSignature(bytes32 hash, bytes signature) external view returns (bytes4)",
+        // Linked external trading wallets (e.g. Limitless server wallet)
+        "function setTradingWallet(address wallet, bool allowed) external",
+        "function isTradingWallet(address wallet) external view returns (bool)",
+        "function getTradingWallets() external view returns (address[])",
+        "function fundTradingWallet(address wallet, uint256 amount) external",
         "function pause() external",
         "function unpause() external",
         "function paused() external view returns (bool)",
@@ -68,6 +73,8 @@ exports.USDC4626VAULT = {
         "event VaultFeeCharged(address indexed payer, address indexed treasury, uint256 grossAssets, uint256 feeAssets, uint256 netAssets)",
         "event PoolValuationUpdated(uint256 openPositionsValue, int256 realizedPnl)",
         "event ValuatorUpdated(address indexed oldValuator, address indexed newValuator)",
-        "event OrderSignerUpdated(address indexed signer, bool allowed)"
+        "event OrderSignerUpdated(address indexed signer, bool allowed)",
+        "event TradingWalletUpdated(address indexed wallet, bool allowed)",
+        "event TradingWalletFunded(address indexed operator, address indexed wallet, address indexed asset, uint256 amount)"
     ]
 };
