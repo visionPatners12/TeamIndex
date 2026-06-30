@@ -232,10 +232,18 @@ async function syncLimitlessPortfolioForPool(env, poolId) {
     const accountId = account?.limitlessProfileId ?? account?.accountAddress;
     if (!accountId)
         throw new Error(`Pool ${poolId} has no Limitless account address/profile id`);
+    const fetchStep = async (step, fn) => {
+        try {
+            return await fn();
+        }
+        catch (cause) {
+            throw new Error(`Limitless portfolio ${step} sync failed for pool ${poolId} account ${accountId}`, { cause });
+        }
+    };
     const [positionsRaw, historyRaw, pnlRaw] = await Promise.all([
-        fetchPortfolioPositions(env, accountId),
-        fetchPortfolioHistory(env, accountId),
-        fetchPortfolioPnlChart(env, accountId),
+        fetchStep("positions", () => fetchPortfolioPositions(env, accountId)),
+        fetchStep("history", () => fetchPortfolioHistory(env, accountId)),
+        fetchStep("pnl", () => fetchPortfolioPnlChart(env, accountId)),
     ]);
     const positions = normalizePortfolioPositions(positionsRaw);
     const trades = asArray(historyRaw);

@@ -3,16 +3,19 @@ import { ethers } from "hardhat";
 /**
  * Transfers ownership of the ClubVaultFactory to a new address.
  *
- * Usage:
+ * Usage (Base):
  *   NEW_OWNER=0xE32eB47aaad68dE59A92B8fdE0D0BcC61B7741e3 \
- *   FACTORY_ADDRESS=0x0faD74DB543f446106719735D141Fae6BE523Dda \
- *   npx hardhat run scripts/transferFactoryOwnership.ts --network polygon
+ *   npm run contracts:transfer-ownership:base
  *
- * Run as the CURRENT factory owner (EXECUTOR_PRIVATE_KEY in .env must be that wallet).
+ * You can override the factory with FACTORY_ADDRESS=0x...
+ *
+ * Run as the CURRENT factory owner:
+ *   - base: BASE_EXECUTOR_PRIVATE_KEY must be the current owner wallet
+ *   - polygon: EXECUTOR_PRIVATE_KEY must be the current owner wallet
  */
 async function main() {
   const newOwner = process.env.NEW_OWNER;
-  const factoryAddress = process.env.FACTORY_ADDRESS;
+  const factoryAddress = process.env.FACTORY_ADDRESS ?? process.env.CLUB_VAULT_FACTORY_ADDRESS;
 
   if (!newOwner) throw new Error("NEW_OWNER env var is required");
   if (!factoryAddress) throw new Error("FACTORY_ADDRESS env var is required");
@@ -33,7 +36,9 @@ async function main() {
   console.log("─────────────────────────────────────────────");
 
   if (currentOwner.toLowerCase() !== signerAddress.toLowerCase()) {
-    throw new Error(`Signer is not the current owner. Set EXECUTOR_PRIVATE_KEY to the wallet matching ${currentOwner}.`);
+    throw new Error(
+      `Signer is not the current owner. Set the network private key env var to the wallet matching ${currentOwner}.`
+    );
   }
   if (currentOwner.toLowerCase() === newOwner.toLowerCase()) {
     console.log("✅ New owner is already the current owner. Nothing to do.");

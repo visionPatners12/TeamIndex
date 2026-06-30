@@ -238,10 +238,19 @@
       "norm_label": "contracts:deploy:base:vault-factory"
     },
     {
-      "label": "contracts:deploy:chiliz",
+      "label": "contracts:transfer-ownership:base",
       "file_type": "code",
       "source_file": "package.json",
       "source_location": "L19",
+      "id": "package_scripts_contracts_transfer_ownership_base",
+      "community": 8,
+      "norm_label": "contracts:transfer-ownership:base"
+    },
+    {
+      "label": "contracts:deploy:chiliz",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L20",
       "id": "package_scripts_contracts_deploy_chiliz",
       "community": 8,
       "norm_label": "contracts:deploy:chiliz"
@@ -250,7 +259,7 @@
       "label": "prisma:migrate",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "id": "package_scripts_prisma_migrate",
       "community": 8,
       "norm_label": "prisma:migrate"
@@ -259,7 +268,7 @@
       "label": "prisma:generate",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "id": "package_scripts_prisma_generate",
       "community": 8,
       "norm_label": "prisma:generate"
@@ -268,7 +277,7 @@
       "label": "db:seed",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "id": "package_scripts_db_seed",
       "community": 8,
       "norm_label": "db:seed"
@@ -277,7 +286,7 @@
       "label": "prisma",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "id": "package_prisma",
       "community": 15,
       "norm_label": "prisma"
@@ -286,7 +295,7 @@
       "label": "seed",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "id": "package_prisma_seed",
       "community": 15,
       "norm_label": "seed"
@@ -295,7 +304,7 @@
       "label": "dependencies",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "id": "package_dependencies",
       "community": 4,
       "norm_label": "dependencies"
@@ -304,7 +313,7 @@
       "label": "@polymarket/builder-relayer-client",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "id": "package_dependencies_polymarket_builder_relayer_client",
       "community": 4,
       "norm_label": "@polymarket/builder-relayer-client"
@@ -313,7 +322,7 @@
       "label": "@polymarket/builder-signing-sdk",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "id": "package_dependencies_polymarket_builder_signing_sdk",
       "community": 4,
       "norm_label": "@polymarket/builder-signing-sdk"
@@ -322,7 +331,7 @@
       "label": "@polymarket/clob-client-v2",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "id": "package_dependencies_polymarket_clob_client_v2",
       "community": 4,
       "norm_label": "@polymarket/clob-client-v2"
@@ -331,7 +340,7 @@
       "label": "@prisma/client",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "id": "package_dependencies_prisma_client",
       "community": 4,
       "norm_label": "@prisma/client"
@@ -340,7 +349,7 @@
       "label": "bullmq",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "id": "package_dependencies_bullmq",
       "community": 4,
       "norm_label": "bullmq"
@@ -349,7 +358,7 @@
       "label": "dotenv",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "id": "package_dependencies_dotenv",
       "community": 4,
       "norm_label": "dotenv"
@@ -358,7 +367,7 @@
       "label": "ethers",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "id": "package_dependencies_ethers",
       "community": 4,
       "norm_label": "ethers"
@@ -367,7 +376,7 @@
       "label": "express",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "id": "package_dependencies_express",
       "community": 4,
       "norm_label": "express"
@@ -376,7 +385,7 @@
       "label": "ioredis",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "id": "package_dependencies_ioredis",
       "community": 4,
       "norm_label": "ioredis"
@@ -385,7 +394,7 @@
       "label": "pino",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "id": "package_dependencies_pino",
       "community": 4,
       "norm_label": "pino"
@@ -394,7 +403,7 @@
       "label": "socket.io-client",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "id": "package_dependencies_socket_io_client",
       "community": 4,
       "norm_label": "socket.io-client"
@@ -403,7 +412,7 @@
       "label": "swagger-ui-express",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L39",
+      "source_location": "L40",
       "id": "package_dependencies_swagger_ui_express",
       "community": 4,
       "norm_label": "swagger-ui-express"
@@ -412,7 +421,7 @@
       "label": "viem",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L40",
+      "source_location": "L41",
       "id": "package_dependencies_viem",
       "community": 4,
       "norm_label": "viem"
@@ -421,7 +430,7 @@
       "label": "zod",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L41",
+      "source_location": "L42",
       "id": "package_dependencies_zod",
       "community": 4,
       "norm_label": "zod"
@@ -430,7 +439,7 @@
       "label": "devDependencies",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L43",
+      "source_location": "L44",
       "id": "package_devdependencies",
       "community": 14,
       "norm_label": "devdependencies"
@@ -439,7 +448,7 @@
       "label": "@nomicfoundation/hardhat-ethers",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L44",
+      "source_location": "L45",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
       "community": 14,
       "norm_label": "@nomicfoundation/hardhat-ethers"
@@ -448,7 +457,7 @@
       "label": "@openzeppelin/contracts",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L45",
+      "source_location": "L46",
       "id": "package_devdependencies_openzeppelin_contracts",
       "community": 14,
       "norm_label": "@openzeppelin/contracts"
@@ -457,7 +466,7 @@
       "label": "@openzeppelin/contracts-upgradeable",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L46",
+      "source_location": "L47",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
       "community": 14,
       "norm_label": "@openzeppelin/contracts-upgradeable"
@@ -466,7 +475,7 @@
       "label": "@types/chai",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L47",
+      "source_location": "L48",
       "id": "package_devdependencies_types_chai",
       "community": 14,
       "norm_label": "@types/chai"
@@ -475,7 +484,7 @@
       "label": "@types/express",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L48",
+      "source_location": "L49",
       "id": "package_devdependencies_types_express",
       "community": 14,
       "norm_label": "@types/express"
@@ -484,7 +493,7 @@
       "label": "@types/mocha",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L49",
+      "source_location": "L50",
       "id": "package_devdependencies_types_mocha",
       "community": 14,
       "norm_label": "@types/mocha"
@@ -493,7 +502,7 @@
       "label": "@types/node",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L50",
+      "source_location": "L51",
       "id": "package_devdependencies_types_node",
       "community": 14,
       "norm_label": "@types/node"
@@ -502,7 +511,7 @@
       "label": "@types/swagger-ui-express",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L51",
+      "source_location": "L52",
       "id": "package_devdependencies_types_swagger_ui_express",
       "community": 14,
       "norm_label": "@types/swagger-ui-express"
@@ -511,7 +520,7 @@
       "label": "chai",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L52",
+      "source_location": "L53",
       "id": "package_devdependencies_chai",
       "community": 14,
       "norm_label": "chai"
@@ -520,7 +529,7 @@
       "label": "hardhat",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L53",
+      "source_location": "L54",
       "id": "package_devdependencies_hardhat",
       "community": 14,
       "norm_label": "hardhat"
@@ -529,7 +538,7 @@
       "label": "prisma",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L54",
+      "source_location": "L55",
       "id": "package_devdependencies_prisma",
       "community": 14,
       "norm_label": "prisma"
@@ -538,7 +547,7 @@
       "label": "ts-node",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L55",
+      "source_location": "L56",
       "id": "package_devdependencies_ts_node",
       "community": 14,
       "norm_label": "ts-node"
@@ -547,7 +556,7 @@
       "label": "tsc-watch",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L56",
+      "source_location": "L57",
       "id": "package_devdependencies_tsc_watch",
       "community": 14,
       "norm_label": "tsc-watch"
@@ -556,7 +565,7 @@
       "label": "typescript",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L57",
+      "source_location": "L58",
       "id": "package_devdependencies_typescript",
       "community": 14,
       "norm_label": "typescript"
@@ -762,7 +771,7 @@
       "label": "main()",
       "file_type": "code",
       "source_file": "scripts/transferFactoryOwnership.ts",
-      "source_location": "L13",
+      "source_location": "L16",
       "id": "scripts_transferfactoryownership_main",
       "community": 44,
       "norm_label": "main()"
@@ -831,10 +840,28 @@
       "norm_label": "log.ts"
     },
     {
-      "label": "createLogger()",
+      "label": "SerializedError",
       "file_type": "code",
       "source_file": "src/config/log.ts",
       "source_location": "L3",
+      "id": "config_log_serializederror",
+      "community": 3,
+      "norm_label": "serializederror"
+    },
+    {
+      "label": "serializeError()",
+      "file_type": "code",
+      "source_file": "src/config/log.ts",
+      "source_location": "L11",
+      "id": "config_log_serializeerror",
+      "community": 11,
+      "norm_label": "serializeerror()"
+    },
+    {
+      "label": "createLogger()",
+      "file_type": "code",
+      "source_file": "src/config/log.ts",
+      "source_location": "L25",
       "id": "config_log_createlogger",
       "community": 3,
       "norm_label": "createlogger()"
@@ -998,7 +1025,7 @@
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L8",
       "id": "limitless_limitlessauth_limitlesswsbase",
-      "community": 11,
+      "community": 12,
       "norm_label": "limitlesswsbase()"
     },
     {
@@ -1007,7 +1034,7 @@
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L12",
       "id": "limitless_limitlessauth_haslimitlesshmacconfig",
-      "community": 11,
+      "community": 12,
       "norm_label": "haslimitlesshmacconfig()"
     },
     {
@@ -1259,7 +1286,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L1",
       "id": "limitless_limitlessdiscoveryservice",
-      "community": 1,
+      "community": 3,
       "norm_label": "limitlessdiscoveryservice.ts"
     },
     {
@@ -1268,7 +1295,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L15",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessinputs",
-      "community": 1,
+      "community": 3,
       "norm_label": "discoverlimitlessinputs"
     },
     {
@@ -1277,7 +1304,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 1,
+      "community": 3,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -2141,7 +2168,7 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L100",
       "id": "limitless_partneraccounts_checkpartneraccountallowances",
-      "community": 12,
+      "community": 0,
       "norm_label": "checkpartneraccountallowances()"
     },
     {
@@ -2168,7 +2195,7 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L132",
       "id": "limitless_partneraccounts_ensurepartneraccountallowances",
-      "community": 12,
+      "community": 0,
       "norm_label": "ensurepartneraccountallowances()"
     },
     {
@@ -3993,7 +4020,7 @@
       "label": "Logger",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L17",
+      "source_location": "L18",
       "id": "workers_limitlesswebsocketticker_logger",
       "community": 11,
       "norm_label": "logger"
@@ -4002,7 +4029,7 @@
       "label": "JsonRecord",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L23",
+      "source_location": "L24",
       "id": "workers_limitlesswebsocketticker_jsonrecord",
       "community": 11,
       "norm_label": "jsonrecord"
@@ -4011,7 +4038,7 @@
       "label": "PoolContext",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L25",
+      "source_location": "L26",
       "id": "workers_limitlesswebsocketticker_poolcontext",
       "community": 11,
       "norm_label": "poolcontext"
@@ -4020,7 +4047,7 @@
       "label": "WsContext",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L31",
+      "source_location": "L32",
       "id": "workers_limitlesswebsocketticker_wscontext",
       "community": 11,
       "norm_label": "wscontext"
@@ -4029,7 +4056,7 @@
       "label": "num()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L38",
+      "source_location": "L39",
       "id": "workers_limitlesswebsocketticker_num",
       "community": 11,
       "norm_label": "num()"
@@ -4038,7 +4065,7 @@
       "label": "str()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L43",
+      "source_location": "L44",
       "id": "workers_limitlesswebsocketticker_str",
       "community": 11,
       "norm_label": "str()"
@@ -4047,7 +4074,7 @@
       "label": "isFinancialSettlementEvent()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L47",
+      "source_location": "L48",
       "id": "workers_limitlesswebsocketticker_isfinancialsettlementevent",
       "community": 11,
       "norm_label": "isfinancialsettlementevent()"
@@ -4056,7 +4083,7 @@
       "label": "isIgnoredProvisionalEvent()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L52",
+      "source_location": "L53",
       "id": "workers_limitlesswebsocketticker_isignoredprovisionalevent",
       "community": 11,
       "norm_label": "isignoredprovisionalevent()"
@@ -4065,7 +4092,7 @@
       "label": "orderEventFinancialAction()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L57",
+      "source_location": "L58",
       "id": "workers_limitlesswebsocketticker_ordereventfinancialaction",
       "community": 11,
       "norm_label": "ordereventfinancialaction()"
@@ -4074,7 +4101,7 @@
       "label": "loadWsContext()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L65",
+      "source_location": "L66",
       "id": "workers_limitlesswebsocketticker_loadwscontext",
       "community": 11,
       "norm_label": "loadwscontext()"
@@ -4083,7 +4110,7 @@
       "label": "subscribe()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L103",
+      "source_location": "L104",
       "id": "workers_limitlesswebsocketticker_subscribe",
       "community": 11,
       "norm_label": "subscribe()"
@@ -4092,7 +4119,7 @@
       "label": "syncPools()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L116",
+      "source_location": "L117",
       "id": "workers_limitlesswebsocketticker_syncpools",
       "community": 11,
       "norm_label": "syncpools()"
@@ -4101,7 +4128,7 @@
       "label": "resolveOutcomeIndexForToken()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L131",
+      "source_location": "L132",
       "id": "workers_limitlesswebsocketticker_resolveoutcomeindexfortoken",
       "community": 11,
       "norm_label": "resolveoutcomeindexfortoken()"
@@ -4110,7 +4137,7 @@
       "label": "poolIdForEvent()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L148",
+      "source_location": "L149",
       "id": "workers_limitlesswebsocketticker_poolidforevent",
       "community": 11,
       "norm_label": "poolidforevent()"
@@ -4119,7 +4146,7 @@
       "label": "handlePositionEvent()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L172",
+      "source_location": "L173",
       "id": "workers_limitlesswebsocketticker_handlepositionevent",
       "community": 11,
       "norm_label": "handlepositionevent()"
@@ -4128,7 +4155,7 @@
       "label": "upsertWsTrade()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L213",
+      "source_location": "L214",
       "id": "workers_limitlesswebsocketticker_upsertwstrade",
       "community": 11,
       "norm_label": "upsertwstrade()"
@@ -4137,7 +4164,7 @@
       "label": "handleOrderEvent()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L245",
+      "source_location": "L246",
       "id": "workers_limitlesswebsocketticker_handleorderevent",
       "community": 11,
       "norm_label": "handleorderevent()"
@@ -4146,7 +4173,7 @@
       "label": "handleMarketResolved()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L306",
+      "source_location": "L307",
       "id": "workers_limitlesswebsocketticker_handlemarketresolved",
       "community": 11,
       "norm_label": "handlemarketresolved()"
@@ -4155,9 +4182,9 @@
       "label": "startLimitlessWebsocketTicker()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L320",
+      "source_location": "L321",
       "id": "workers_limitlesswebsocketticker_startlimitlesswebsocketticker",
-      "community": 11,
+      "community": 12,
       "norm_label": "startlimitlesswebsocketticker()"
     },
     {
@@ -4402,6 +4429,15 @@
       "id": "limitless_orderclient_test",
       "community": 0,
       "norm_label": "orderclient.test.ts"
+    },
+    {
+      "label": "partnerAccounts.test.ts",
+      "file_type": "code",
+      "source_file": "test/limitless/partnerAccounts.test.ts",
+      "source_location": "L1",
+      "id": "limitless_partneraccounts_test",
+      "community": 12,
+      "norm_label": "partneraccounts.test.ts"
     },
     {
       "label": "portfolio.test.ts",
@@ -5119,6 +5155,16 @@
       "confidence_score": 1.0,
       "source": "package_scripts",
       "target": "package_scripts_contracts_test"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_scripts",
+      "target": "package_scripts_contracts_transfer_ownership_base"
     },
     {
       "relation": "contains",
@@ -6212,6 +6258,26 @@
       "target": "config_log_createlogger"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config/log.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "config_log",
+      "target": "config_log_serializederror"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config/log.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "config_log",
+      "target": "config_log_serializeerror"
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -6243,6 +6309,50 @@
       "confidence_score": 1.0,
       "source": "src_index_ts_src_index",
       "target": "config_log"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessWebsocketTicker.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlesswebsocketticker",
+      "target": "config_log"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "server_http",
+      "target": "config_log_serializeerror"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessWebsocketTicker.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlesswebsocketticker",
+      "target": "config_log_serializeerror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessWebsocketTicker.ts",
+      "source_location": "L122",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlesswebsocketticker_syncpools",
+      "target": "config_log_serializeerror"
     },
     {
       "relation": "imports",
@@ -11004,6 +11114,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "test/limitless/partnerAccounts.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts_test",
+      "target": "limitless_partneraccounts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/server/http.ts",
       "source_location": "L50",
       "weight": 1.0,
@@ -11164,6 +11285,17 @@
       "confidence_score": 1.0,
       "source": "limitless_partneraccounts_registervaultpartneraccount",
       "target": "limitless_partneraccounts_fetchlimitlesssigningmessage"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/limitless/partnerAccounts.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts_test",
+      "target": "limitless_partneraccounts_createpartnerserveraccount"
     },
     {
       "relation": "imports",
@@ -16813,9 +16945,9 @@
       "source_file": "supabase/.temp/linked-project.json",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "temp_linked_project",
-      "target": "temp_linked_project_name",
-      "confidence_score": 1.0
+      "target": "temp_linked_project_name"
     },
     {
       "relation": "contains",
@@ -16823,9 +16955,9 @@
       "source_file": "supabase/.temp/linked-project.json",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "temp_linked_project",
-      "target": "temp_linked_project_organization_id",
-      "confidence_score": 1.0
+      "target": "temp_linked_project_organization_id"
     },
     {
       "relation": "contains",
@@ -16833,9 +16965,9 @@
       "source_file": "supabase/.temp/linked-project.json",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "temp_linked_project",
-      "target": "temp_linked_project_organization_slug",
-      "confidence_score": 1.0
+      "target": "temp_linked_project_organization_slug"
     },
     {
       "relation": "contains",
@@ -16843,9 +16975,9 @@
       "source_file": "supabase/.temp/linked-project.json",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "temp_linked_project",
-      "target": "temp_linked_project_ref",
-      "confidence_score": 1.0
+      "target": "temp_linked_project_ref"
     },
     {
       "relation": "contains",
@@ -17294,5 +17426,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0e53e679dd3265f4d904b49a29ff130cc975bc18"
+  "built_at_commit": "2135f8ba99b35df0f2eb660e775bc53e564f2f2c"
 }

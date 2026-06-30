@@ -2,7 +2,7 @@ import express from "express";
 import { createHmac, timingSafeEqual } from "crypto";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { createLogger } from "../config/log";
+import { createLogger, serializeError } from "../config/log";
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { scheduleMatchTranches } from "../services/scheduler";
@@ -968,47 +968,37 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       .optional()
   });
 
-  // Returns unsigned tx for admin's MetaMask to sign — no backend private key used.
+  // Deploys via the backend owner wallet. ClubVaultFactory.createClubVault is onlyOwner,
+  // so returning an unsigned tx for a random MetaMask account causes OwnableUnauthorizedAccount.
   app.post("/admin/pools/tx/deploy-vault", requireAdmin, async (req, res) => {
-    const body = z.object({
-      clubName: z.string().min(1),
-      symbol: z.string().min(1),
-      depositCap: z.coerce.bigint().optional().default(0n),
-    }).parse(req.body);
+    try {
+      const body = z.object({
+        clubName: z.string().min(1),
+        symbol: z.string().min(1),
+        depositCap: z.coerce.bigint().optional().default(0n),
+      }).parse(req.body);
 
-    if (!env.CLUB_VAULT_FACTORY_ADDRESS) {
-      return res.status(400).json({ error: "CLUB_VAULT_FACTORY_ADDRESS not set in backend .env" });
+      const clubId = ethers.solidityPackedKeccak256(["string"], [body.clubName]);
+      const deployment = await ensureClubVaultExists({
+        env,
+        clubName: body.clubName,
+        symbol: body.symbol,
+        depositCap: body.depositCap,
+      });
+
+      return res.json({
+        ok: true,
+        backendSigned: true,
+        alreadyDeployed: true,
+        vaultAddress: deployment.vaultAddress,
+        vaultDeployment: deployment,
+        factoryAddress: env.CLUB_VAULT_FACTORY_ADDRESS,
+        clubId,
+      });
+    } catch (e: any) {
+      logger.error({ err: e }, "admin/pools/tx/deploy-vault failed");
+      return res.status(500).json({ ok: false, error: e?.message ?? "deploy_vault_error" });
     }
-    const provider = getBaseProvider(env);
-    const FACTORY_ABI = [
-      "function getVaultByClub(bytes32) view returns (address)",
-      "function createClubVault(bytes32, string, string, uint256) returns (address)"
-    ];
-    const factory = new ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, FACTORY_ABI, provider);
-
-    const clubId = ethers.solidityPackedKeccak256(["string"], [body.clubName]);
-
-    // Check if already deployed
-    const existing = await (factory as any).getVaultByClub(clubId) as string;
-    if (existing && existing !== ethers.ZeroAddress) {
-      return res.json({ ok: true, alreadyDeployed: true, vaultAddress: existing });
-    }
-
-    // Build unsigned tx — admin wallet will sign this via MetaMask
-    const tx: TransactionRequest = await (factory as any).createClubVault.populateTransaction(
-      clubId,
-      body.clubName,
-      body.symbol,
-      body.depositCap
-    );
-
-    return res.json({
-      ok: true,
-      alreadyDeployed: false,
-      tx: { to: tx.to, data: tx.data },
-      factoryAddress: env.CLUB_VAULT_FACTORY_ADDRESS,
-      clubId,
-    });
   });
 
   /**
@@ -2712,7 +2702,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
             action: linked.created ? "created-server-wallet" : "already-linked",
           });
         } catch (e: any) {
-          logger.error({ poolId: pool.id, err: e?.message ?? String(e) }, "server-wallet account creation failed");
+          logger.error({ poolId: pool.id, err: serializeError(e) }, "server-wallet account creation failed");
           results.push({ poolId: pool.id, error: e?.message ?? String(e) });
         }
       }

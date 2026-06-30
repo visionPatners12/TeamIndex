@@ -79,7 +79,7 @@ async function createPartnerServerAccount(env, displayName) {
     let accountAddress = null;
     for (const c of containers) {
         limitlessProfileId = limitlessProfileId ?? pickIdString(c, ["profileId", "id"]);
-        accountAddress = accountAddress ?? pickString(c, ["accountAddress", "address", "walletAddress"]);
+        accountAddress = accountAddress ?? pickString(c, ["accountAddress", "account", "address", "walletAddress"]);
     }
     return { limitlessProfileId, accountAddress, displayName, rawJson: raw };
 }

@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-30)
 
 ## Corpus Check
-- 77 files · ~53,372 words
+- 78 files · ~53,596 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 543 nodes · 1170 edges · 37 communities (30 shown, 7 thin omitted)
+- 547 nodes · 1179 edges · 37 communities (30 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0e53e679`
+- Built from commit: `2135f8ba`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,7 +45,7 @@
 1. `getVaultContract()` - 34 edges
 2. `executeLimitlessTranche()` - 28 edges
 3. `Env` - 24 edges
-4. `scripts` - 17 edges
+4. `scripts` - 18 edges
 5. `syncLimitlessPortfolioForPool()` - 17 edges
 6. `getBaseProvider()` - 17 edges
 7. `runAllocationEngine()` - 17 edges
@@ -60,10 +60,10 @@
   src/index.ts → src/workers/limitlessWebsocketTicker.ts
 - `main()` --calls--> `startVaultSyncTicker()`  [EXTRACTED]
   src/index.ts → src/workers/vaultSyncTicker.ts
-- `startLimitlessWebsocketTicker()` --calls--> `limitlessWebsocketAuthHeaders()`  [EXTRACTED]
-  src/workers/limitlessWebsocketTicker.ts → src/limitless/limitlessAuth.ts
 - `getJson()` --calls--> `limitlessGetJson()`  [EXTRACTED]
   src/limitless/limitlessOrderClient.ts → src/limitless/limitlessAuth.ts
+- `fetchPortfolioHistory()` --calls--> `limitlessGetJson()`  [EXTRACTED]
+  src/limitless/limitlessPortfolio.ts → src/limitless/limitlessAuth.ts
 
 ## Import Cycles
 - None detected.
@@ -72,19 +72,19 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
-Nodes (49): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ensurePoolLimitlessServerWallet(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+41 more)
+Nodes (51): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ensurePoolLimitlessServerWallet(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+43 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.13
-Nodes (27): discoverLimitlessClubCandidates(), DiscoverLimitlessInputs, assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getEntityLinkedLimitlessMarketsForTeam(), getLegacyLimitlessTeamCounts(), getLimitlessMarketsForTeam() (+19 more)
+Cohesion: 0.15
+Nodes (25): assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getEntityLinkedLimitlessMarketsForTeam(), getLegacyLimitlessTeamCounts(), getLimitlessMarketsForTeam(), getLimitlessTeamCountsFromEntityLinks(), getSportsDataTeamName() (+17 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
 Nodes (41): alignedLogitReturnCorr(), blendedCorr(), buildCovariance(), chosenSideSeries(), clamp(), computeEdge(), computeTsFeatures(), Edge (+33 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.11
-Nodes (31): Env, EnvSchema, loadEnv(), createLogger(), assertRequiredTablesExist(), baselineMigrations, commandErrorOutput(), initDb() (+23 more)
+Cohesion: 0.10
+Nodes (34): Env, EnvSchema, loadEnv(), createLogger(), SerializedError, assertRequiredTablesExist(), baselineMigrations, commandErrorOutput() (+26 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.13
@@ -103,20 +103,20 @@ Cohesion: 0.07
 Nodes (48): compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions(), positiveIntFromEnv() (+40 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.12
-Nodes (17): scripts, build, contracts:check-balance, contracts:compile, contracts:deploy:base, contracts:deploy:base:vault-factory, contracts:deploy:chiliz, contracts:deploy:polygon (+9 more)
+Cohesion: 0.11
+Nodes (18): scripts, build, contracts:check-balance, contracts:compile, contracts:deploy:base, contracts:deploy:base:vault-factory, contracts:deploy:chiliz, contracts:deploy:polygon (+10 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
 Nodes (16): `artifacts/api-server` (`@workspace/api-server`), `artifacts/team-index` (`@workspace/team-index`), Environment Variables, `lib/api-client-react` (`@workspace/api-client-react`), `lib/api-spec` (`@workspace/api-spec`), `lib/api-zod` (`@workspace/api-zod`), `lib/db` (`@workspace/db`), Overview (+8 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.09
-Nodes (41): hasLimitlessHmacConfig(), limitlessWsBase(), applyNormalizedPortfolioPositions(), asArray(), authHeaders(), extractRealizedPnl(), fetchPortfolioHistory(), fetchPortfolioPnlChart() (+33 more)
+Cohesion: 0.10
+Nodes (39): serializeError(), applyNormalizedPortfolioPositions(), asArray(), authHeaders(), extractRealizedPnl(), fetchPortfolioHistory(), fetchPortfolioPnlChart(), fetchPortfolioPositions() (+31 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.12
-Nodes (31): buildPathWithQuery(), limitlessBase(), limitlessGetJson(), limitlessRequestJson(), limitlessRestAuthHeaders(), limitlessWebsocketAuthHeaders(), requireLimitlessHmacConfig(), signLimitlessMessage() (+23 more)
+Cohesion: 0.11
+Nodes (32): buildPathWithQuery(), hasLimitlessHmacConfig(), limitlessBase(), limitlessGetJson(), limitlessRequestJson(), limitlessRestAuthHeaders(), limitlessWebsocketAuthHeaders(), limitlessWsBase() (+24 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.15
@@ -143,24 +143,24 @@ Cohesion: 0.50
 Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 
 ## Knowledge Gaps
-- **143 isolated node(s):** `allow`, `PreToolUse`, `config`, `name`, `version` (+138 more)
+- **145 isolated node(s):** `allow`, `PreToolUse`, `config`, `name`, `version` (+140 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Env` connect `Community 3` to `Community 0`, `Community 1`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`, `Community 16`?**
+- **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`, `Community 16`?**
   _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
-  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Why does `syncLimitlessPortfolioForPool()` connect `Community 11` to `Community 5`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
-  _143 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _145 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.08245981830887492 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07987012987012987 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.12903225806451613 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1455026455026455 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09191919191919191 - nodes in this community are weakly interconnected._

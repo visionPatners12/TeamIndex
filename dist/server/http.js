@@ -8,6 +8,7 @@ const express_1 = __importDefault(require("express"));
 const crypto_1 = require("crypto");
 const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
+const log_1 = require("../config/log");
 const prisma_1 = require("../db/prisma");
 const scheduler_1 = require("../services/scheduler");
 const priceEngine_1 = require("../services/priceEngine");
@@ -836,37 +837,36 @@ function startHttpServer({ env, logger }) {
         })
             .optional()
     });
-    // Returns unsigned tx for admin's MetaMask to sign — no backend private key used.
+    // Deploys via the backend owner wallet. ClubVaultFactory.createClubVault is onlyOwner,
+    // so returning an unsigned tx for a random MetaMask account causes OwnableUnauthorizedAccount.
     app.post("/admin/pools/tx/deploy-vault", requireAdmin, async (req, res) => {
-        const body = zod_1.z.object({
-            clubName: zod_1.z.string().min(1),
-            symbol: zod_1.z.string().min(1),
-            depositCap: zod_1.z.coerce.bigint().optional().default(0n),
-        }).parse(req.body);
-        if (!env.CLUB_VAULT_FACTORY_ADDRESS) {
-            return res.status(400).json({ error: "CLUB_VAULT_FACTORY_ADDRESS not set in backend .env" });
+        try {
+            const body = zod_1.z.object({
+                clubName: zod_1.z.string().min(1),
+                symbol: zod_1.z.string().min(1),
+                depositCap: zod_1.z.coerce.bigint().optional().default(0n),
+            }).parse(req.body);
+            const clubId = ethers_1.ethers.solidityPackedKeccak256(["string"], [body.clubName]);
+            const deployment = await (0, clubVaultFactoryExecutor_1.ensureClubVaultExists)({
+                env,
+                clubName: body.clubName,
+                symbol: body.symbol,
+                depositCap: body.depositCap,
+            });
+            return res.json({
+                ok: true,
+                backendSigned: true,
+                alreadyDeployed: true,
+                vaultAddress: deployment.vaultAddress,
+                vaultDeployment: deployment,
+                factoryAddress: env.CLUB_VAULT_FACTORY_ADDRESS,
+                clubId,
+            });
         }
-        const provider = (0, rpc_1.getBaseProvider)(env);
-        const FACTORY_ABI = [
-            "function getVaultByClub(bytes32) view returns (address)",
-            "function createClubVault(bytes32, string, string, uint256) returns (address)"
-        ];
-        const factory = new ethers_1.ethers.Contract(env.CLUB_VAULT_FACTORY_ADDRESS, FACTORY_ABI, provider);
-        const clubId = ethers_1.ethers.solidityPackedKeccak256(["string"], [body.clubName]);
-        // Check if already deployed
-        const existing = await factory.getVaultByClub(clubId);
-        if (existing && existing !== ethers_1.ethers.ZeroAddress) {
-            return res.json({ ok: true, alreadyDeployed: true, vaultAddress: existing });
+        catch (e) {
+            logger.error({ err: e }, "admin/pools/tx/deploy-vault failed");
+            return res.status(500).json({ ok: false, error: e?.message ?? "deploy_vault_error" });
         }
-        // Build unsigned tx — admin wallet will sign this via MetaMask
-        const tx = await factory.createClubVault.populateTransaction(clubId, body.clubName, body.symbol, body.depositCap);
-        return res.json({
-            ok: true,
-            alreadyDeployed: false,
-            tx: { to: tx.to, data: tx.data },
-            factoryAddress: env.CLUB_VAULT_FACTORY_ADDRESS,
-            clubId,
-        });
     });
     /**
      * POST /admin/pools/:poolId/redeploy-vault
@@ -2448,7 +2448,7 @@ function startHttpServer({ env, logger }) {
                     });
                 }
                 catch (e) {
-                    logger.error({ poolId: pool.id, err: e?.message ?? String(e) }, "server-wallet account creation failed");
+                    logger.error({ poolId: pool.id, err: (0, log_1.serializeError)(e) }, "server-wallet account creation failed");
                     results.push({ poolId: pool.id, error: e?.message ?? String(e) });
                 }
             }

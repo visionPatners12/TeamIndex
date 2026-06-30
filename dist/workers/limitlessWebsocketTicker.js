@@ -5,6 +5,7 @@ exports.isIgnoredProvisionalEvent = isIgnoredProvisionalEvent;
 exports.orderEventFinancialAction = orderEventFinancialAction;
 exports.startLimitlessWebsocketTicker = startLimitlessWebsocketTicker;
 const socket_io_client_1 = require("socket.io-client");
+const log_1 = require("../config/log");
 const prisma_1 = require("../db/prisma");
 const limitlessAuth_1 = require("../limitless/limitlessAuth");
 const limitlessPortfolio_1 = require("../limitless/limitlessPortfolio");
@@ -84,14 +85,14 @@ async function syncPools(env, logger, poolIds) {
             await (0, limitlessPortfolio_1.syncLimitlessPortfolioForPool)(env, poolId);
         }
         catch (err) {
-            logger.warn({ err, poolId }, "Limitless REST reconciliation failed");
+            logger.warn({ err: (0, log_1.serializeError)(err), poolId }, "Limitless REST reconciliation failed");
         }
     }
     try {
         await (0, priceEngine_1.recalculateOfficialPrices)(env);
     }
     catch (err) {
-        logger.warn({ err }, "Limitless websocket NAV recalculation failed");
+        logger.warn({ err: (0, log_1.serializeError)(err) }, "Limitless websocket NAV recalculation failed");
     }
 }
 async function resolveOutcomeIndexForToken(marketSlug, tokenId) {
@@ -303,22 +304,22 @@ function startLimitlessWebsocketTicker({ env, logger }) {
     };
     refresh()
         .then((ctx) => syncPools(env, logger, ctx.pools.map((pool) => pool.poolId)))
-        .catch((err) => logger.error({ err }, "Limitless websocket initial sync failed"));
+        .catch((err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless websocket initial sync failed"));
     socket.on("connect", () => {
-        refresh().catch((err) => logger.error({ err }, "Limitless websocket subscribe failed"));
+        refresh().catch((err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless websocket subscribe failed"));
     });
     socket.on("disconnect", (reason) => logger.warn({ reason }, "Limitless websocket disconnected"));
-    socket.on("connect_error", (err) => logger.error({ err }, "Limitless websocket connect error"));
-    socket.on("exception", (err) => logger.error({ err }, "Limitless websocket exception"));
-    socket.on("positions", (data) => handlePositionEvent(env, context, logger, data).catch((err) => logger.error({ err }, "Limitless position event failed")));
-    socket.on("orderEvent", (data) => handleOrderEvent(env, context, logger, data).catch((err) => logger.error({ err }, "Limitless order event failed")));
-    socket.on("marketResolved", (data) => handleMarketResolved(env, context, logger, data).catch((err) => logger.error({ err }, "Limitless market resolution event failed")));
+    socket.on("connect_error", (err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless websocket connect error"));
+    socket.on("exception", (err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless websocket exception"));
+    socket.on("positions", (data) => handlePositionEvent(env, context, logger, data).catch((err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless position event failed")));
+    socket.on("orderEvent", (data) => handleOrderEvent(env, context, logger, data).catch((err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless order event failed")));
+    socket.on("marketResolved", (data) => handleMarketResolved(env, context, logger, data).catch((err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless market resolution event failed")));
     socket.on("system", (data) => logger.info({ data }, "Limitless websocket system event"));
     socket.on("authenticated", (data) => logger.info({ data }, "Limitless websocket authenticated"));
     setInterval(() => {
         refresh()
             .then((ctx) => syncPools(env, logger, ctx.pools.map((pool) => pool.poolId)))
-            .catch((err) => logger.error({ err }, "Limitless websocket fallback sync failed"));
+            .catch((err) => logger.error({ err: (0, log_1.serializeError)(err) }, "Limitless websocket fallback sync failed"));
     }, reconcileIntervalMs);
     logger.info({ reconcileIntervalMs }, "Limitless websocket ticker started");
 }
