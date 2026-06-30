@@ -816,7 +816,7 @@
       "label": "Env",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L81",
+      "source_location": "L82",
       "id": "config_env_env",
       "community": 3,
       "norm_label": "env"
@@ -825,7 +825,7 @@
       "label": "loadEnv()",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L83",
+      "source_location": "L84",
       "id": "config_env_loadenv",
       "community": 3,
       "norm_label": "loadenv()"
@@ -1029,10 +1029,28 @@
       "norm_label": "limitlesswsbase()"
     },
     {
-      "label": "hasLimitlessHmacConfig()",
+      "label": "limitlessRequestTimeoutMs()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L12",
+      "id": "limitless_limitlessauth_limitlessrequesttimeoutms",
+      "community": 12,
+      "norm_label": "limitlessrequesttimeoutms()"
+    },
+    {
+      "label": "limitlessFetch()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L17",
+      "id": "limitless_limitlessauth_limitlessfetch",
+      "community": 12,
+      "norm_label": "limitlessfetch()"
+    },
+    {
+      "label": "hasLimitlessHmacConfig()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L36",
       "id": "limitless_limitlessauth_haslimitlesshmacconfig",
       "community": 12,
       "norm_label": "haslimitlesshmacconfig()"
@@ -1041,7 +1059,7 @@
       "label": "requireLimitlessHmacConfig()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L16",
+      "source_location": "L40",
       "id": "limitless_limitlessauth_requirelimitlesshmacconfig",
       "community": 12,
       "norm_label": "requirelimitlesshmacconfig()"
@@ -1050,7 +1068,7 @@
       "label": "signLimitlessMessage()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L25",
+      "source_location": "L49",
       "id": "limitless_limitlessauth_signlimitlessmessage",
       "community": 12,
       "norm_label": "signlimitlessmessage()"
@@ -1059,7 +1077,7 @@
       "label": "buildPathWithQuery()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L31",
+      "source_location": "L55",
       "id": "limitless_limitlessauth_buildpathwithquery",
       "community": 12,
       "norm_label": "buildpathwithquery()"
@@ -1068,7 +1086,7 @@
       "label": "limitlessRestAuthHeaders()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L39",
+      "source_location": "L63",
       "id": "limitless_limitlessauth_limitlessrestauthheaders",
       "community": 12,
       "norm_label": "limitlessrestauthheaders()"
@@ -1077,7 +1095,7 @@
       "label": "limitlessWebsocketAuthHeaders()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L55",
+      "source_location": "L79",
       "id": "limitless_limitlessauth_limitlesswebsocketauthheaders",
       "community": 12,
       "norm_label": "limitlesswebsocketauthheaders()"
@@ -1086,7 +1104,7 @@
       "label": "limitlessGetJson()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L67",
+      "source_location": "L91",
       "id": "limitless_limitlessauth_limitlessgetjson",
       "community": 12,
       "norm_label": "limitlessgetjson()"
@@ -1095,7 +1113,7 @@
       "label": "limitlessRequestJson()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessAuth.ts",
-      "source_location": "L86",
+      "source_location": "L110",
       "id": "limitless_limitlessauth_limitlessrequestjson",
       "community": 12,
       "norm_label": "limitlessrequestjson()"
@@ -1304,7 +1322,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 3,
+      "community": 1,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -1592,7 +1610,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L183",
       "id": "limitless_limitlessorderclient_getmidpoint",
-      "community": 3,
+      "community": 0,
       "norm_label": "getmidpoint()"
     },
     {
@@ -2190,19 +2208,37 @@
       "norm_label": "hasretryableallowanceissue()"
     },
     {
-      "label": "ensurePartnerAccountAllowances()",
+      "label": "collectAllowanceStatuses()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L132",
+      "id": "limitless_partneraccounts_collectallowancestatuses",
+      "community": 12,
+      "norm_label": "collectallowancestatuses()"
+    },
+    {
+      "label": "ensurePartnerAccountAllowances()",
+      "file_type": "code",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L147",
       "id": "limitless_partneraccounts_ensurepartneraccountallowances",
       "community": 0,
       "norm_label": "ensurepartneraccountallowances()"
     },
     {
+      "label": "partnerAccountAllowanceReady()",
+      "file_type": "code",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L159",
+      "id": "limitless_partneraccounts_partneraccountallowanceready",
+      "community": 12,
+      "norm_label": "partneraccountallowanceready()"
+    },
+    {
       "label": "partnerAccountCreationEnabled()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L144",
+      "source_location": "L168",
       "id": "limitless_partneraccounts_partneraccountcreationenabled",
       "community": 12,
       "norm_label": "partneraccountcreationenabled()"
@@ -2211,7 +2247,7 @@
       "label": "extractProfileId()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L149",
+      "source_location": "L173",
       "id": "limitless_partneraccounts_extractprofileid",
       "community": 12,
       "norm_label": "extractprofileid()"
@@ -2220,7 +2256,7 @@
       "label": "registerVaultPartnerAccount()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L174",
+      "source_location": "L198",
       "id": "limitless_partneraccounts_registervaultpartneraccount",
       "community": 12,
       "norm_label": "registervaultpartneraccount()"
@@ -2229,7 +2265,7 @@
       "label": "resolveProfileIdForAddress()",
       "file_type": "code",
       "source_file": "src/limitless/partnerAccounts.ts",
-      "source_location": "L223",
+      "source_location": "L247",
       "id": "limitless_partneraccounts_resolveprofileidforaddress",
       "community": 0,
       "norm_label": "resolveprofileidforaddress()"
@@ -2240,7 +2276,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 16,
+      "community": 7,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2249,7 +2285,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 16,
+      "community": 7,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2258,7 +2294,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 16,
+      "community": 7,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2267,7 +2303,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 16,
+      "community": 7,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2276,7 +2312,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 16,
+      "community": 7,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2285,7 +2321,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 16,
+      "community": 7,
       "norm_label": "assertaddress()"
     },
     {
@@ -2294,7 +2330,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 16,
+      "community": 7,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2303,7 +2339,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 16,
+      "community": 7,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2465,7 +2501,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 16,
+      "community": 7,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2474,7 +2510,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 16,
+      "community": 7,
       "norm_label": "syncinputs"
     },
     {
@@ -2483,7 +2519,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 16,
+      "community": 7,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2492,7 +2528,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 16,
+      "community": 7,
       "norm_label": "dectostr()"
     },
     {
@@ -2501,7 +2537,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 16,
+      "community": 7,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2510,7 +2546,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 16,
+      "community": 7,
       "norm_label": "transferposition()"
     },
     {
@@ -2519,7 +2555,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 16,
+      "community": 7,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2528,7 +2564,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 16,
+      "community": 7,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2537,7 +2573,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 16,
+      "community": 7,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2546,7 +2582,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 5,
+      "community": 7,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -3453,7 +3489,7 @@
       "label": "Request",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L88",
+      "source_location": "L89",
       "id": "server_http_request",
       "community": 5,
       "norm_label": "request"
@@ -3462,7 +3498,7 @@
       "label": "startHttpServer()",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L94",
+      "source_location": "L95",
       "id": "server_http_starthttpserver",
       "community": 3,
       "norm_label": "starthttpserver()"
@@ -7004,6 +7040,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_limitlessauth",
+      "target": "limitless_limitlessauth_limitlessfetch"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L67",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -7019,6 +7065,16 @@
       "confidence_score": 1.0,
       "source": "limitless_limitlessauth",
       "target": "limitless_limitlessauth_limitlessrequestjson"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_limitlessauth",
+      "target": "limitless_limitlessauth_limitlessrequesttimeoutms"
     },
     {
       "relation": "contains",
@@ -7179,6 +7235,61 @@
       "weight": 1.0,
       "source": "workers_limitlesswebsocketticker_startlimitlesswebsocketticker",
       "target": "limitless_limitlessauth_limitlesswsbase"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_limitlessauth_limitlessfetch",
+      "target": "limitless_limitlessauth_limitlessrequesttimeoutms"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L98",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_limitlessauth_limitlessgetjson",
+      "target": "limitless_limitlessauth_limitlessfetch"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessAuth.ts",
+      "source_location": "L118",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_limitlessauth_limitlessrequestjson",
+      "target": "limitless_limitlessauth_limitlessfetch"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts",
+      "target": "limitless_limitlessauth_limitlessfetch"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L64",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts_fetchlimitlesssigningmessage",
+      "target": "limitless_limitlessauth_limitlessfetch"
     },
     {
       "relation": "imports",
@@ -7388,6 +7499,17 @@
       "weight": 1.0,
       "source": "limitless_limitlessportfolio_fetchportfoliopositions",
       "target": "limitless_limitlessauth_limitlessgetjson"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/limitless/auth.test.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_auth_test",
+      "target": "limitless_limitlessauth_limitlessrequestjson"
     },
     {
       "relation": "imports",
@@ -10894,6 +11016,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts",
+      "target": "limitless_partneraccounts_collectallowancestatuses",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L74",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -10999,6 +11131,16 @@
       "confidence_score": 1.0,
       "source": "limitless_partneraccounts",
       "target": "limitless_partneraccounts_normalizeaddress"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L144",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts",
+      "target": "limitless_partneraccounts_partneraccountallowanceready"
     },
     {
       "relation": "contains",
@@ -11364,6 +11506,28 @@
       "target": "limitless_partneraccounts_hasretryableallowanceissue"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L145",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "limitless_partneraccounts_partneraccountallowanceready",
+      "target": "limitless_partneraccounts_hasretryableallowanceissue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/partnerAccounts.ts",
+      "source_location": "L161",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts_partneraccountallowanceready",
+      "target": "limitless_partneraccounts_collectallowancestatuses",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -11373,6 +11537,28 @@
       "confidence_score": 1.0,
       "source": "server_http",
       "target": "limitless_partneraccounts_ensurepartneraccountallowances"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/limitless/partnerAccounts.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "limitless_partneraccounts_test",
+      "target": "limitless_partneraccounts_partneraccountallowanceready",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "server_http",
+      "target": "limitless_partneraccounts_partneraccountallowanceready"
     },
     {
       "relation": "imports",
@@ -17426,5 +17612,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2135f8ba99b35df0f2eb660e775bc53e564f2f2c"
+  "built_at_commit": "a54f294340f9df2e7fd3bc2baf7466bd235c3dee"
 }

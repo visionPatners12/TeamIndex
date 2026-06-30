@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createPartnerServerAccount } from "../../src/limitless/partnerAccounts";
+import { createPartnerServerAccount, partnerAccountAllowanceReady } from "../../src/limitless/partnerAccounts";
 
 describe("Limitless partner accounts", () => {
   const originalFetch = globalThis.fetch;
@@ -33,5 +33,15 @@ describe("Limitless partner accounts", () => {
     expect(created.limitlessProfileId).to.equal("1424201");
     expect(created.accountAddress).to.equal("0x4157A8f849199Dd076865E24C9d967f4244657b2");
     expect(requests[0].url).to.equal("https://limitless.test/profiles/partner-accounts");
+  });
+
+  it("keeps allowance pending while Limitless reports pending/missing statuses", () => {
+    expect(partnerAccountAllowanceReady({ allowances: [{ status: "PENDING" }] })).to.equal(false);
+    expect(partnerAccountAllowanceReady({ allowances: [{ status: "missing", retryable: true }] })).to.equal(false);
+  });
+
+  it("marks allowance ready only for ready statuses", () => {
+    expect(partnerAccountAllowanceReady({ allowances: [{ status: "approved" }, { allowanceStatus: "ACTIVE" }] }))
+      .to.equal(true);
   });
 });

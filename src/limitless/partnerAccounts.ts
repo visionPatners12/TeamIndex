@@ -1,6 +1,6 @@
 import { Wallet, hexlify, toUtf8Bytes } from "ethers";
 import type { Env } from "../config/env";
-import { limitlessBase, limitlessRequestJson } from "./limitlessAuth";
+import { limitlessBase, limitlessFetch, limitlessRequestJson } from "./limitlessAuth";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -61,7 +61,7 @@ export function encodeLimitlessSigningMessage(message: string): string {
 }
 
 async function fetchLimitlessSigningMessage(env: Env): Promise<string> {
-  const res = await fetch(`${limitlessBase(env)}/auth/signing-message`, {
+  const res = await limitlessFetch(env, `${limitlessBase(env)}/auth/signing-message`, {
     headers: { Accept: "text/plain" },
   });
   const text = await res.text();
@@ -129,6 +129,21 @@ function hasRetryableAllowanceIssue(value: unknown): boolean {
   return Object.values(record).some(hasRetryableAllowanceIssue);
 }
 
+function collectAllowanceStatuses(value: unknown, statuses: string[] = []): string[] {
+  if (!value || typeof value !== "object") return statuses;
+  if (Array.isArray(value)) {
+    for (const item of value) collectAllowanceStatuses(item, statuses);
+    return statuses;
+  }
+  const record = value as JsonRecord;
+  for (const key of ["status", "allowanceStatus"]) {
+    const status = record[key];
+    if (typeof status === "string" && status.trim()) statuses.push(status.trim().toLowerCase());
+  }
+  for (const nested of Object.values(record)) collectAllowanceStatuses(nested, statuses);
+  return statuses;
+}
+
 export async function ensurePartnerAccountAllowances(
   env: Env,
   profileIdOrAccount: string
@@ -139,6 +154,15 @@ export async function ensurePartnerAccountAllowances(
   const retryResult = await retryPartnerAccountAllowances(env, profileIdOrAccount);
   const final = await checkPartnerAccountAllowances(env, profileIdOrAccount);
   return { checked, retried: true, retryResult, final };
+}
+
+export function partnerAccountAllowanceReady(value: unknown): boolean {
+  if (hasRetryableAllowanceIssue(value)) return false;
+  const statuses = collectAllowanceStatuses(value);
+  if (statuses.length === 0) return true;
+  const ready = new Set(["active", "approved", "complete", "completed", "ok", "ready", "success", "valid"]);
+  const pending = new Set(["error", "failed", "missing", "pending", "required", "unapproved"]);
+  return statuses.every((status) => ready.has(status) || (!pending.has(status) && status.includes("success")));
 }
 
 export function partnerAccountCreationEnabled(env: Env) {

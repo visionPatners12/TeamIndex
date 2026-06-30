@@ -39,6 +39,7 @@ const EnvSchema = zod_1.z.object({
     ONCHAIN_NAV_PUSH_INTERVAL_MS: zod_1.z.string().optional().default("3600000"),
     // ─── Limitless Exchange (market data + trading, Base chain) ──────────────
     LIMITLESS_BASE_URL: zod_1.z.string().optional().default("https://api.limitless.exchange"),
+    LIMITLESS_REQUEST_TIMEOUT_MS: zod_1.z.string().optional().default("15000"),
     // Legacy REST auth header — existing API-key users only.
     LIMITLESS_API_KEY: zod_1.z.string().optional(),
     // Scoped HMAC token used for partner accounts and delegated signing.
@@ -100,6 +101,7 @@ function loadEnv() {
         ONCHAIN_NAV_PUSH_ENABLED: process.env.ONCHAIN_NAV_PUSH_ENABLED,
         ONCHAIN_NAV_PUSH_INTERVAL_MS: process.env.ONCHAIN_NAV_PUSH_INTERVAL_MS,
         LIMITLESS_BASE_URL: process.env.LIMITLESS_BASE_URL,
+        LIMITLESS_REQUEST_TIMEOUT_MS: process.env.LIMITLESS_REQUEST_TIMEOUT_MS,
         LIMITLESS_API_KEY: process.env.LIMITLESS_API_KEY,
         LIMITLESS_API_SECRET: process.env.LIMITLESS_API_SECRET,
         LIMITLESS_WS_URL: process.env.LIMITLESS_WS_URL,

@@ -7,6 +7,7 @@ exports.createPartnerServerAccount = createPartnerServerAccount;
 exports.checkPartnerAccountAllowances = checkPartnerAccountAllowances;
 exports.retryPartnerAccountAllowances = retryPartnerAccountAllowances;
 exports.ensurePartnerAccountAllowances = ensurePartnerAccountAllowances;
+exports.partnerAccountAllowanceReady = partnerAccountAllowanceReady;
 exports.partnerAccountCreationEnabled = partnerAccountCreationEnabled;
 exports.registerVaultPartnerAccount = registerVaultPartnerAccount;
 exports.resolveProfileIdForAddress = resolveProfileIdForAddress;
@@ -53,7 +54,7 @@ function encodeLimitlessSigningMessage(message) {
     return (0, ethers_1.hexlify)((0, ethers_1.toUtf8Bytes)(message));
 }
 async function fetchLimitlessSigningMessage(env) {
-    const res = await fetch(`${(0, limitlessAuth_1.limitlessBase)(env)}/auth/signing-message`, {
+    const res = await (0, limitlessAuth_1.limitlessFetch)(env, `${(0, limitlessAuth_1.limitlessBase)(env)}/auth/signing-message`, {
         headers: { Accept: "text/plain" },
     });
     const text = await res.text();
@@ -100,6 +101,24 @@ function hasRetryableAllowanceIssue(value) {
         return true;
     return Object.values(record).some(hasRetryableAllowanceIssue);
 }
+function collectAllowanceStatuses(value, statuses = []) {
+    if (!value || typeof value !== "object")
+        return statuses;
+    if (Array.isArray(value)) {
+        for (const item of value)
+            collectAllowanceStatuses(item, statuses);
+        return statuses;
+    }
+    const record = value;
+    for (const key of ["status", "allowanceStatus"]) {
+        const status = record[key];
+        if (typeof status === "string" && status.trim())
+            statuses.push(status.trim().toLowerCase());
+    }
+    for (const nested of Object.values(record))
+        collectAllowanceStatuses(nested, statuses);
+    return statuses;
+}
 async function ensurePartnerAccountAllowances(env, profileIdOrAccount) {
     const checked = await checkPartnerAccountAllowances(env, profileIdOrAccount);
     if (!hasRetryableAllowanceIssue(checked))
@@ -107,6 +126,16 @@ async function ensurePartnerAccountAllowances(env, profileIdOrAccount) {
     const retryResult = await retryPartnerAccountAllowances(env, profileIdOrAccount);
     const final = await checkPartnerAccountAllowances(env, profileIdOrAccount);
     return { checked, retried: true, retryResult, final };
+}
+function partnerAccountAllowanceReady(value) {
+    if (hasRetryableAllowanceIssue(value))
+        return false;
+    const statuses = collectAllowanceStatuses(value);
+    if (statuses.length === 0)
+        return true;
+    const ready = new Set(["active", "approved", "complete", "completed", "ok", "ready", "success", "valid"]);
+    const pending = new Set(["error", "failed", "missing", "pending", "required", "unapproved"]);
+    return statuses.every((status) => ready.has(status) || (!pending.has(status) && status.includes("success")));
 }
 function partnerAccountCreationEnabled(env) {
     return String(env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED ?? "false").toLowerCase() === "true";

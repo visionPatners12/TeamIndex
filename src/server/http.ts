@@ -68,6 +68,7 @@ import {
   partnerAccountCreationEnabled,
   checkPartnerAccountAllowances,
   ensurePartnerAccountAllowances,
+  partnerAccountAllowanceReady,
   retryPartnerAccountAllowances,
   resolveProfileIdForAddress,
   registerVaultPartnerAccount,
@@ -2571,6 +2572,60 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       });
     } catch (e: any) {
       return res.status(500).json({ ok: false, error: e?.message ?? "limitless_account_error" });
+    }
+  });
+
+  /**
+   * POST /admin/pools/:poolId/limitless-account/allowances
+   * Check/retry the Limitless partner-account allowances for a pool and persist
+   * the account status so the admin UI can stop polling once it resolves.
+   */
+  app.post("/admin/pools/:poolId/limitless-account/allowances", requireAdmin, async (req, res) => {
+    try {
+      const account = await (prisma as any).pool_limitless_accounts.findUnique({
+        where: { poolId: req.params.poolId },
+      });
+      if (!account) return res.status(404).json({ ok: false, error: "Limitless account not found" });
+
+      const profileId = account.limitlessProfileId ? String(account.limitlessProfileId) : null;
+      if (!profileId) {
+        const updated = await (prisma as any).pool_limitless_accounts.update({
+          where: { poolId: req.params.poolId },
+          data: { allowanceStatus: "PENDING" },
+        });
+        return res.status(409).json({
+          ok: false,
+          error: "Limitless profileId missing",
+          allowanceStatus: updated.allowanceStatus,
+        });
+      }
+
+      const result = await ensurePartnerAccountAllowances(env, profileId);
+      const latest = result.final ?? result.checked;
+      const allowanceStatus = partnerAccountAllowanceReady(latest) ? "ACTIVE" : "PENDING";
+      const updated = await (prisma as any).pool_limitless_accounts.update({
+        where: { poolId: req.params.poolId },
+        data: { allowanceStatus },
+      });
+
+      return res.json({
+        ok: true,
+        poolId: req.params.poolId,
+        profileId,
+        allowanceStatus: updated.allowanceStatus,
+        allowanceCheck: result,
+      });
+    } catch (e: any) {
+      logger.error({ poolId: req.params.poolId, err: serializeError(e) }, "limitless allowance check failed");
+      try {
+        await (prisma as any).pool_limitless_accounts.update({
+          where: { poolId: req.params.poolId },
+          data: { allowanceStatus: "FAILED" },
+        });
+      } catch {
+        // Preserve the original error response.
+      }
+      return res.status(502).json({ ok: false, allowanceStatus: "FAILED", error: e?.message ?? "allowance_check_error" });
     }
   });
 

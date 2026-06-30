@@ -9,6 +9,30 @@ export function limitlessWsBase(env: Env): string {
   return (env as any).LIMITLESS_WS_URL ?? "wss://ws.limitless.exchange/markets";
 }
 
+function limitlessRequestTimeoutMs(env: Env): number {
+  const parsed = Number((env as any).LIMITLESS_REQUEST_TIMEOUT_MS ?? 15000);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 15000;
+}
+
+export async function limitlessFetch(env: Env, url: string, init: RequestInit = {}): Promise<Response> {
+  const timeoutMs = limitlessRequestTimeoutMs(env);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal ?? controller.signal,
+    });
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new Error(`Limitless API request timed out after ${timeoutMs}ms`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function hasLimitlessHmacConfig(env: Env): boolean {
   return Boolean((env as any).LIMITLESS_API_KEY && (env as any).LIMITLESS_API_SECRET);
 }
@@ -71,7 +95,7 @@ export async function limitlessGetJson<T>(
   extraHeaders?: Record<string, string>
 ): Promise<T> {
   const pathWithQuery = buildPathWithQuery(path, params);
-  const res = await fetch(`${limitlessBase(env)}${pathWithQuery}`, {
+  const res = await limitlessFetch(env, `${limitlessBase(env)}${pathWithQuery}`, {
     headers: {
       Accept: "application/json",
       ...limitlessRestAuthHeaders(env, "GET", pathWithQuery),
@@ -91,7 +115,7 @@ export async function limitlessRequestJson<T>(
   extraHeaders?: Record<string, string>
 ): Promise<T> {
   const body = payload === undefined ? "" : JSON.stringify(payload);
-  const res = await fetch(`${limitlessBase(env)}${path}`, {
+  const res = await limitlessFetch(env, `${limitlessBase(env)}${path}`, {
     method,
     headers: {
       Accept: "application/json",

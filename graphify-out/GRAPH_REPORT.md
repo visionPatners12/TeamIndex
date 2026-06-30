@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-30)
 
 ## Corpus Check
-- 78 files · ~53,596 words
+- 78 files · ~54,176 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 547 nodes · 1179 edges · 37 communities (30 shown, 7 thin omitted)
+- 551 nodes · 1193 edges · 36 communities (29 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2135f8ba`
+- Built from commit: `a54f2943`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,7 +30,6 @@
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
-- [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 19|Community 19]]
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
@@ -68,15 +67,15 @@
 ## Import Cycles
 - None detected.
 
-## Communities (37 total, 7 thin omitted)
+## Communities (36 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
-Nodes (51): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ensurePoolLimitlessServerWallet(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+43 more)
+Nodes (52): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ensurePoolLimitlessServerWallet(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+44 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.15
-Nodes (25): assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getEntityLinkedLimitlessMarketsForTeam(), getLegacyLimitlessTeamCounts(), getLimitlessMarketsForTeam(), getLimitlessTeamCountsFromEntityLinks(), getSportsDataTeamName() (+17 more)
+Cohesion: 0.14
+Nodes (26): discoverLimitlessClubCandidates(), assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getEntityLinkedLimitlessMarketsForTeam(), getLegacyLimitlessTeamCounts(), getLimitlessMarketsForTeam(), getLimitlessTeamCountsFromEntityLinks() (+18 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
@@ -84,7 +83,7 @@ Nodes (41): alignedLogitReturnCorr(), blendedCorr(), buildCovariance(), chosenSi
 
 ### Community 3 - "Community 3"
 Cohesion: 0.10
-Nodes (34): Env, EnvSchema, loadEnv(), createLogger(), SerializedError, assertRequiredTablesExist(), baselineMigrations, commandErrorOutput() (+26 more)
+Nodes (32): Env, EnvSchema, loadEnv(), createLogger(), SerializedError, assertRequiredTablesExist(), baselineMigrations, commandErrorOutput() (+24 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.13
@@ -92,15 +91,15 @@ Nodes (15): dependencies, bullmq, dotenv, ethers, express, ioredis, pino, @polym
 
 ### Community 5 - "Community 5"
 Cohesion: 0.11
-Nodes (40): ERC20, USDC4626VAULT, CLUB_VAULT_FACTORY_ABI, computeClubId(), ensureClubVaultExists(), syncVaultEventsToDb(), getBaseProvider(), adminAddAuthorizedOperator() (+32 more)
+Nodes (39): ERC20, USDC4626VAULT, CLUB_VAULT_FACTORY_ABI, computeClubId(), ensureClubVaultExists(), getBaseProvider(), adminAddAuthorizedOperator(), adminAddTrustedStrategy() (+31 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.12
 Nodes (26): authHeaders(), detectSportHints(), extractPrices(), getHistoricalPrices(), getJson(), limitlessBase(), LimitlessCategory, LimitlessMarket (+18 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.07
-Nodes (48): compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions(), positiveIntFromEnv() (+40 more)
+Cohesion: 0.06
+Nodes (63): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), compactRpcError() (+55 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.11
@@ -116,7 +115,7 @@ Nodes (39): serializeError(), applyNormalizedPortfolioPositions(), asArray(), au
 
 ### Community 12 - "Community 12"
 Cohesion: 0.11
-Nodes (32): buildPathWithQuery(), hasLimitlessHmacConfig(), limitlessBase(), limitlessGetJson(), limitlessRequestJson(), limitlessRestAuthHeaders(), limitlessWebsocketAuthHeaders(), limitlessWsBase() (+24 more)
+Nodes (36): buildPathWithQuery(), hasLimitlessHmacConfig(), limitlessBase(), limitlessFetch(), limitlessGetJson(), limitlessRequestJson(), limitlessRequestTimeoutMs(), limitlessRestAuthHeaders() (+28 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.15
@@ -129,10 +128,6 @@ Nodes (15): devDependencies, chai, hardhat, @nomicfoundation/hardhat-ethers, @op
 ### Community 15 - "Community 15"
 Cohesion: 0.29
 Nodes (6): name, prisma, seed, private, type, version
-
-### Community 16 - "Community 16"
-Cohesion: 0.19
-Nodes (14): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), addTouchedHolder() (+6 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.40
@@ -150,7 +145,7 @@ Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`, `Community 16`?**
+- **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`?**
   _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
@@ -159,8 +154,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
   _145 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07987012987012987 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07894736842105263 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.1455026455026455 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13793103448275862 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09191919191919191 - nodes in this community are weakly interconnected._

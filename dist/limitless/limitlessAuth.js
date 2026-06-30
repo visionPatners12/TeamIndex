@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.limitlessBase = limitlessBase;
 exports.limitlessWsBase = limitlessWsBase;
+exports.limitlessFetch = limitlessFetch;
 exports.hasLimitlessHmacConfig = hasLimitlessHmacConfig;
 exports.requireLimitlessHmacConfig = requireLimitlessHmacConfig;
 exports.signLimitlessMessage = signLimitlessMessage;
@@ -16,6 +17,30 @@ function limitlessBase(env) {
 }
 function limitlessWsBase(env) {
     return env.LIMITLESS_WS_URL ?? "wss://ws.limitless.exchange/markets";
+}
+function limitlessRequestTimeoutMs(env) {
+    const parsed = Number(env.LIMITLESS_REQUEST_TIMEOUT_MS ?? 15000);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 15000;
+}
+async function limitlessFetch(env, url, init = {}) {
+    const timeoutMs = limitlessRequestTimeoutMs(env);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, {
+            ...init,
+            signal: init.signal ?? controller.signal,
+        });
+    }
+    catch (e) {
+        if (e?.name === "AbortError") {
+            throw new Error(`Limitless API request timed out after ${timeoutMs}ms`);
+        }
+        throw e;
+    }
+    finally {
+        clearTimeout(timeout);
+    }
 }
 function hasLimitlessHmacConfig(env) {
     return Boolean(env.LIMITLESS_API_KEY && env.LIMITLESS_API_SECRET);
@@ -64,7 +89,7 @@ function limitlessWebsocketAuthHeaders(env) {
 }
 async function limitlessGetJson(env, path, params, extraHeaders) {
     const pathWithQuery = buildPathWithQuery(path, params);
-    const res = await fetch(`${limitlessBase(env)}${pathWithQuery}`, {
+    const res = await limitlessFetch(env, `${limitlessBase(env)}${pathWithQuery}`, {
         headers: {
             Accept: "application/json",
             ...limitlessRestAuthHeaders(env, "GET", pathWithQuery),
@@ -78,7 +103,7 @@ async function limitlessGetJson(env, path, params, extraHeaders) {
 }
 async function limitlessRequestJson(env, method, path, payload, extraHeaders) {
     const body = payload === undefined ? "" : JSON.stringify(payload);
-    const res = await fetch(`${limitlessBase(env)}${path}`, {
+    const res = await limitlessFetch(env, `${limitlessBase(env)}${path}`, {
         method,
         headers: {
             Accept: "application/json",
