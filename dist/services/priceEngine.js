@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.decToNumber = decToNumber;
 exports.calculatePoolValuation = calculatePoolValuation;
+exports.readPoolBalanceBreakdown = readPoolBalanceBreakdown;
 exports.recalculateOfficialPriceForPool = recalculateOfficialPriceForPool;
 exports.recalculateOfficialPrices = recalculateOfficialPrices;
 const prisma_1 = require("../db/prisma");
@@ -127,6 +128,73 @@ async function readPoolCashBreakdown(env, pool) {
         }
     }
     return { vaultCash, serverWalletCash, readVaultCash };
+}
+async function readPoolBalanceBreakdown(env, pool) {
+    const dbCash = vaultCashDbToHuman(pool.cash);
+    let vaultCash = dbCash;
+    let readVaultCash = false;
+    let vaultCashSource = "db";
+    try {
+        const vaultCashRaw = await (0, rpc_1.withBaseRpcRetry)(env, async (provider) => {
+            const vault = await (0, vaultExecutor_1.getVaultContract)(env, provider, {
+                clubName: pool.clubName,
+                vaultAddress: pool.vaultAddress ?? undefined
+            });
+            return (await vault.totalCash());
+        }, { maxRetriesPerUrl: 1 });
+        vaultCash = Number((0, ethers_1.formatUnits)(vaultCashRaw, 6));
+        readVaultCash = true;
+        vaultCashSource = "onchain";
+    }
+    catch {
+        vaultCash = dbCash;
+    }
+    const account = await prisma_1.prisma.pool_limitless_accounts.findUnique({
+        where: { poolId: pool.id },
+        select: {
+            accountAddress: true,
+            limitlessProfileId: true,
+            status: true,
+            allowanceStatus: true
+        }
+    });
+    const serverWalletAddress = account?.accountAddress ? String(account.accountAddress) : null;
+    const serverWalletProfileId = account?.limitlessProfileId ? String(account.limitlessProfileId) : null;
+    let serverWalletCash = 0;
+    let readServerWalletCash = false;
+    if (env.BASE_USDC_ADDRESS && serverWalletAddress) {
+        try {
+            const serverWalletCashRaw = await (0, vaultExecutor_1.getErc20Balance)(env, env.BASE_USDC_ADDRESS, serverWalletAddress);
+            serverWalletCash = Number((0, ethers_1.formatUnits)(serverWalletCashRaw, 6));
+            readServerWalletCash = true;
+        }
+        catch {
+            serverWalletCash = 0;
+        }
+    }
+    let totalCash = vaultCash;
+    if (readVaultCash) {
+        totalCash = vaultCash + serverWalletCash;
+    }
+    else if (readServerWalletCash) {
+        // DB cash is the last aggregate value written by the price engine. If we can
+        // still read the server wallet, split that aggregate for UI purposes.
+        totalCash = Math.max(dbCash, serverWalletCash);
+        vaultCash = Math.max(0, totalCash - serverWalletCash);
+        vaultCashSource = "db-derived";
+    }
+    return {
+        vaultCash,
+        serverWalletCash,
+        totalCash,
+        readVaultCash,
+        readServerWalletCash,
+        vaultCashSource,
+        serverWalletAddress,
+        serverWalletProfileId,
+        serverWalletStatus: account?.status ? String(account.status) : null,
+        allowanceStatus: account?.allowanceStatus ? String(account.allowanceStatus) : null
+    };
 }
 async function recalculateOfficialPriceForPool(env, poolId, options) {
     const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } });

@@ -49,6 +49,19 @@ type PoolForValuation = {
   totalTokenSupply: any;
 };
 
+export type PoolCashBreakdown = {
+  vaultCash: number;
+  serverWalletCash: number;
+  totalCash: number;
+  readVaultCash: boolean;
+  readServerWalletCash: boolean;
+  vaultCashSource: "onchain" | "db" | "db-derived";
+  serverWalletAddress: string | null;
+  serverWalletProfileId: string | null;
+  serverWalletStatus: string | null;
+  allowanceStatus: string | null;
+};
+
 export type PoolValuationInputs = {
   vaultCash: number;
   serverWalletCash: number;
@@ -155,6 +168,81 @@ async function readPoolCashBreakdown(env: Env, pool: PoolForValuation) {
   }
 
   return { vaultCash, serverWalletCash, readVaultCash };
+}
+
+export async function readPoolBalanceBreakdown(env: Env, pool: PoolForValuation): Promise<PoolCashBreakdown> {
+  const dbCash = vaultCashDbToHuman(pool.cash);
+  let vaultCash = dbCash;
+  let readVaultCash = false;
+  let vaultCashSource: PoolCashBreakdown["vaultCashSource"] = "db";
+
+  try {
+    const vaultCashRaw = await withBaseRpcRetry(
+      env,
+      async (provider) => {
+        const vault = await getVaultContract(env, provider, {
+          clubName: pool.clubName,
+          vaultAddress: pool.vaultAddress ?? undefined
+        });
+        return (await (vault as any).totalCash()) as bigint;
+      },
+      { maxRetriesPerUrl: 1 }
+    );
+    vaultCash = Number(formatUnits(vaultCashRaw, 6));
+    readVaultCash = true;
+    vaultCashSource = "onchain";
+  } catch {
+    vaultCash = dbCash;
+  }
+
+  const account = await (prisma as any).pool_limitless_accounts.findUnique({
+    where: { poolId: pool.id },
+    select: {
+      accountAddress: true,
+      limitlessProfileId: true,
+      status: true,
+      allowanceStatus: true
+    }
+  });
+
+  const serverWalletAddress = account?.accountAddress ? String(account.accountAddress) : null;
+  const serverWalletProfileId = account?.limitlessProfileId ? String(account.limitlessProfileId) : null;
+  let serverWalletCash = 0;
+  let readServerWalletCash = false;
+
+  if (env.BASE_USDC_ADDRESS && serverWalletAddress) {
+    try {
+      const serverWalletCashRaw = await getErc20Balance(env, env.BASE_USDC_ADDRESS, serverWalletAddress);
+      serverWalletCash = Number(formatUnits(serverWalletCashRaw, 6));
+      readServerWalletCash = true;
+    } catch {
+      serverWalletCash = 0;
+    }
+  }
+
+  let totalCash = vaultCash;
+  if (readVaultCash) {
+    totalCash = vaultCash + serverWalletCash;
+  } else if (readServerWalletCash) {
+    // DB cash is the last aggregate value written by the price engine. If we can
+    // still read the server wallet, split that aggregate for UI purposes.
+    totalCash = Math.max(dbCash, serverWalletCash);
+    vaultCash = Math.max(0, totalCash - serverWalletCash);
+    vaultCashSource = "db-derived";
+  }
+
+  return {
+    vaultCash,
+    serverWalletCash,
+    totalCash,
+    readVaultCash,
+    readServerWalletCash,
+    vaultCashSource,
+    serverWalletAddress,
+    serverWalletProfileId,
+    serverWalletStatus: account?.status ? String(account.status) : null,
+    allowanceStatus: account?.allowanceStatus ? String(account.allowanceStatus) : null
+  };
 }
 
 export async function recalculateOfficialPriceForPool(

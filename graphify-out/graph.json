@@ -81,7 +81,7 @@
       "source_file": "package.json",
       "source_location": "L1",
       "id": "package",
-      "community": 4,
+      "community": 16,
       "norm_label": "package.json"
     },
     {
@@ -90,7 +90,7 @@
       "source_file": "package.json",
       "source_location": "L2",
       "id": "package_name",
-      "community": 4,
+      "community": 16,
       "norm_label": "name"
     },
     {
@@ -99,7 +99,7 @@
       "source_file": "package.json",
       "source_location": "L3",
       "id": "package_version",
-      "community": 4,
+      "community": 16,
       "norm_label": "version"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "package.json",
       "source_location": "L4",
       "id": "package_private",
-      "community": 4,
+      "community": 16,
       "norm_label": "private"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "package.json",
       "source_location": "L5",
       "id": "package_type",
-      "community": 4,
+      "community": 16,
       "norm_label": "type"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "package.json",
       "source_location": "L25",
       "id": "package_prisma",
-      "community": 4,
+      "community": 16,
       "norm_label": "prisma"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "package.json",
       "source_location": "L26",
       "id": "package_prisma_seed",
-      "community": 4,
+      "community": 16,
       "norm_label": "seed"
     },
     {
@@ -441,7 +441,7 @@
       "source_file": "package.json",
       "source_location": "L44",
       "id": "package_devdependencies",
-      "community": 4,
+      "community": 15,
       "norm_label": "devdependencies"
     },
     {
@@ -450,7 +450,7 @@
       "source_file": "package.json",
       "source_location": "L45",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
-      "community": 4,
+      "community": 15,
       "norm_label": "@nomicfoundation/hardhat-ethers"
     },
     {
@@ -459,7 +459,7 @@
       "source_file": "package.json",
       "source_location": "L46",
       "id": "package_devdependencies_openzeppelin_contracts",
-      "community": 4,
+      "community": 15,
       "norm_label": "@openzeppelin/contracts"
     },
     {
@@ -468,7 +468,7 @@
       "source_file": "package.json",
       "source_location": "L47",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
-      "community": 4,
+      "community": 15,
       "norm_label": "@openzeppelin/contracts-upgradeable"
     },
     {
@@ -477,7 +477,7 @@
       "source_file": "package.json",
       "source_location": "L48",
       "id": "package_devdependencies_types_chai",
-      "community": 4,
+      "community": 15,
       "norm_label": "@types/chai"
     },
     {
@@ -486,7 +486,7 @@
       "source_file": "package.json",
       "source_location": "L49",
       "id": "package_devdependencies_types_express",
-      "community": 4,
+      "community": 15,
       "norm_label": "@types/express"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "package.json",
       "source_location": "L50",
       "id": "package_devdependencies_types_mocha",
-      "community": 4,
+      "community": 15,
       "norm_label": "@types/mocha"
     },
     {
@@ -504,7 +504,7 @@
       "source_file": "package.json",
       "source_location": "L51",
       "id": "package_devdependencies_types_node",
-      "community": 4,
+      "community": 15,
       "norm_label": "@types/node"
     },
     {
@@ -513,7 +513,7 @@
       "source_file": "package.json",
       "source_location": "L52",
       "id": "package_devdependencies_types_swagger_ui_express",
-      "community": 4,
+      "community": 15,
       "norm_label": "@types/swagger-ui-express"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "package.json",
       "source_location": "L53",
       "id": "package_devdependencies_chai",
-      "community": 4,
+      "community": 15,
       "norm_label": "chai"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "package.json",
       "source_location": "L54",
       "id": "package_devdependencies_hardhat",
-      "community": 4,
+      "community": 15,
       "norm_label": "hardhat"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "package.json",
       "source_location": "L55",
       "id": "package_devdependencies_prisma",
-      "community": 4,
+      "community": 15,
       "norm_label": "prisma"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "package.json",
       "source_location": "L56",
       "id": "package_devdependencies_ts_node",
-      "community": 4,
+      "community": 15,
       "norm_label": "ts-node"
     },
     {
@@ -558,7 +558,7 @@
       "source_file": "package.json",
       "source_location": "L57",
       "id": "package_devdependencies_tsc_watch",
-      "community": 4,
+      "community": 15,
       "norm_label": "tsc-watch"
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "package.json",
       "source_location": "L58",
       "id": "package_devdependencies_typescript",
-      "community": 4,
+      "community": 15,
       "norm_label": "typescript"
     },
     {
@@ -971,7 +971,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L1",
       "id": "db_prisma",
-      "community": 3,
+      "community": 0,
       "norm_label": "prisma.ts"
     },
     {
@@ -980,7 +980,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L4",
       "id": "db_prisma_globalforprisma",
-      "community": 3,
+      "community": 0,
       "norm_label": "globalforprisma"
     },
     {
@@ -1304,7 +1304,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L1",
       "id": "limitless_limitlessdiscoveryservice",
-      "community": 3,
+      "community": 0,
       "norm_label": "limitlessdiscoveryservice.ts"
     },
     {
@@ -1313,7 +1313,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L15",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessinputs",
-      "community": 3,
+      "community": 0,
       "norm_label": "discoverlimitlessinputs"
     },
     {
@@ -1322,7 +1322,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 1,
+      "community": 0,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -1331,7 +1331,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L79",
       "id": "limitless_limitlessdiscoveryservice_decodelimitlesstokenid",
-      "community": 3,
+      "community": 0,
       "norm_label": "decodelimitlesstokenid()"
     },
     {
@@ -1700,7 +1700,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L730",
       "id": "limitless_limitlessorderclient_getlimitlessorder",
-      "community": 3,
+      "community": 0,
       "norm_label": "getlimitlessorder()"
     },
     {
@@ -1925,7 +1925,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L1",
       "id": "limitless_limitlesspositionsync",
-      "community": 3,
+      "community": 0,
       "norm_label": "limitlesspositionsync.ts"
     },
     {
@@ -1934,7 +1934,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L22",
       "id": "limitless_limitlesspositionsync_dectonumber",
-      "community": 3,
+      "community": 0,
       "norm_label": "dectonumber()"
     },
     {
@@ -1943,7 +1943,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L29",
       "id": "limitless_limitlesspositionsync_dectostr",
-      "community": 3,
+      "community": 0,
       "norm_label": "dectostr()"
     },
     {
@@ -1952,7 +1952,7 @@
       "source_file": "src/limitless/limitlessPositionSync.ts",
       "source_location": "L46",
       "id": "limitless_limitlesspositionsync_synclimitlessfillsandsettle",
-      "community": 3,
+      "community": 0,
       "norm_label": "synclimitlessfillsandsettle()"
     },
     {
@@ -2267,7 +2267,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 16,
+      "community": 7,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2276,7 +2276,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 16,
+      "community": 7,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2285,7 +2285,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 16,
+      "community": 7,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2294,7 +2294,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 16,
+      "community": 7,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2303,7 +2303,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 16,
+      "community": 7,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2312,7 +2312,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 16,
+      "community": 7,
       "norm_label": "assertaddress()"
     },
     {
@@ -2321,7 +2321,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 16,
+      "community": 7,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2330,7 +2330,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 16,
+      "community": 7,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2492,7 +2492,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 16,
+      "community": 7,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2501,7 +2501,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 16,
+      "community": 7,
       "norm_label": "syncinputs"
     },
     {
@@ -2510,7 +2510,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 16,
+      "community": 7,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2519,7 +2519,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 16,
+      "community": 7,
       "norm_label": "dectostr()"
     },
     {
@@ -2528,7 +2528,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 16,
+      "community": 7,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2537,7 +2537,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 16,
+      "community": 7,
       "norm_label": "transferposition()"
     },
     {
@@ -2546,7 +2546,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 16,
+      "community": 7,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2555,7 +2555,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 16,
+      "community": 7,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2564,7 +2564,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 16,
+      "community": 7,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2573,7 +2573,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 16,
+      "community": 7,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -2807,7 +2807,7 @@
       "source_file": "src/onchain/vaultExecutor.ts",
       "source_location": "L177",
       "id": "onchain_vaultexecutor_geterc20balance",
-      "community": 5,
+      "community": 14,
       "norm_label": "geterc20balance()"
     },
     {
@@ -3527,7 +3527,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L1",
       "id": "services_priceengine",
-      "community": 7,
+      "community": 14,
       "norm_label": "priceengine.ts"
     },
     {
@@ -3536,7 +3536,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L8",
       "id": "services_priceengine_dectonumber",
-      "community": 7,
+      "community": 14,
       "norm_label": "dectonumber()"
     },
     {
@@ -3545,7 +3545,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L16",
       "id": "services_priceengine_dbstr",
-      "community": 7,
+      "community": 14,
       "norm_label": "dbstr()"
     },
     {
@@ -3554,7 +3554,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L25",
       "id": "services_priceengine_vaultcashdbtohuman",
-      "community": 7,
+      "community": 14,
       "norm_label": "vaultcashdbtohuman()"
     },
     {
@@ -3563,7 +3563,7 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L35",
       "id": "services_priceengine_humanusdtousdcbaseunits",
-      "community": 7,
+      "community": 14,
       "norm_label": "humanusdtousdcbaseunits()"
     },
     {
@@ -3572,97 +3572,115 @@
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L43",
       "id": "services_priceengine_poolforvaluation",
-      "community": 7,
+      "community": 14,
       "norm_label": "poolforvaluation"
+    },
+    {
+      "label": "PoolCashBreakdown",
+      "file_type": "code",
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L52",
+      "id": "services_priceengine_poolcashbreakdown",
+      "community": 14,
+      "norm_label": "poolcashbreakdown"
     },
     {
       "label": "PoolValuationInputs",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L52",
+      "source_location": "L65",
       "id": "services_priceengine_poolvaluationinputs",
-      "community": 7,
+      "community": 14,
       "norm_label": "poolvaluationinputs"
     },
     {
       "label": "PoolValuation",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L60",
+      "source_location": "L73",
       "id": "services_priceengine_poolvaluation",
-      "community": 7,
+      "community": 14,
       "norm_label": "poolvaluation"
     },
     {
       "label": "calculatePoolValuation()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L68",
+      "source_location": "L81",
       "id": "services_priceengine_calculatepoolvaluation",
-      "community": 7,
+      "community": 14,
       "norm_label": "calculatepoolvaluation()"
     },
     {
       "label": "lastOnchainNavPushAt",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L101",
+      "source_location": "L114",
       "id": "services_priceengine_lastonchainnavpushat",
-      "community": 7,
+      "community": 14,
       "norm_label": "lastonchainnavpushat"
     },
     {
       "label": "lastOnchainNavValue",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L104",
+      "source_location": "L117",
       "id": "services_priceengine_lastonchainnavvalue",
-      "community": 7,
+      "community": 14,
       "norm_label": "lastonchainnavvalue"
     },
     {
       "label": "onchainNavPushIntervalMs()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L107",
+      "source_location": "L120",
       "id": "services_priceengine_onchainnavpushintervalms",
-      "community": 7,
+      "community": 14,
       "norm_label": "onchainnavpushintervalms()"
     },
     {
       "label": "onchainNavPushEnabled()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L112",
+      "source_location": "L125",
       "id": "services_priceengine_onchainnavpushenabled",
-      "community": 7,
+      "community": 14,
       "norm_label": "onchainnavpushenabled()"
     },
     {
       "label": "readPoolCashBreakdown()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L117",
+      "source_location": "L130",
       "id": "services_priceengine_readpoolcashbreakdown",
-      "community": 7,
+      "community": 14,
       "norm_label": "readpoolcashbreakdown()"
+    },
+    {
+      "label": "readPoolBalanceBreakdown()",
+      "file_type": "code",
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L173",
+      "id": "services_priceengine_readpoolbalancebreakdown",
+      "community": 14,
+      "norm_label": "readpoolbalancebreakdown()"
     },
     {
       "label": "recalculateOfficialPriceForPool()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L160",
+      "source_location": "L248",
       "id": "services_priceengine_recalculateofficialpriceforpool",
-      "community": 7,
+      "community": 14,
       "norm_label": "recalculateofficialpriceforpool()"
     },
     {
       "label": "recalculateOfficialPrices()",
       "file_type": "code",
       "source_file": "src/services/priceEngine.ts",
-      "source_location": "L273",
+      "source_location": "L361",
       "id": "services_priceengine_recalculateofficialprices",
-      "community": 7,
+      "community": 14,
       "norm_label": "recalculateofficialprices()"
     },
     {
@@ -4544,7 +4562,7 @@
       "source_file": "test/services/priceEngine.test.ts",
       "source_location": "L1",
       "id": "services_priceengine_test",
-      "community": 7,
+      "community": 14,
       "norm_label": "priceengine.test.ts"
     },
     {
@@ -13165,6 +13183,17 @@
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L180",
+      "weight": 1.0,
+      "source": "services_priceengine_readpoolbalancebreakdown",
+      "target": "onchain_rpc_withbaserpcretry"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
       "source_file": "src/services/priceEngine.ts",
       "source_location": "L122",
       "weight": 1.0,
@@ -14008,6 +14037,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "services_priceengine",
+      "target": "onchain_vaultexecutor_geterc20balance"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L215",
+      "weight": 1.0,
+      "source": "services_priceengine_readpoolbalancebreakdown",
       "target": "onchain_vaultexecutor_geterc20balance"
     },
     {
@@ -15527,6 +15567,17 @@
       "source_file": "src/server/http.ts",
       "source_location": "L9",
       "weight": 1.0,
+      "source": "server_http",
+      "target": "services_priceengine_readpoolbalancebreakdown",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L9",
+      "weight": 1.0,
       "confidence_score": 1.0,
       "source": "server_http",
       "target": "services_priceengine_recalculateofficialprices"
@@ -15723,6 +15774,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/priceEngine.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "services_priceengine",
+      "target": "services_priceengine_poolcashbreakdown",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/priceEngine.ts",
       "source_location": "L43",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -15748,6 +15809,16 @@
       "confidence_score": 1.0,
       "source": "services_priceengine",
       "target": "services_priceengine_poolvaluationinputs"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "services_priceengine",
+      "target": "services_priceengine_readpoolbalancebreakdown",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -15865,6 +15936,17 @@
       "confidence_score": 1.0,
       "source": "services_priceengine_vaultcashdbtohuman",
       "target": "services_priceengine_dbstr"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/services/priceEngine.ts",
+      "source_location": "L174",
+      "weight": 1.0,
+      "source": "services_priceengine_readpoolbalancebreakdown",
+      "target": "services_priceengine_vaultcashdbtohuman",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -17944,5 +18026,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0500e81a7a2eb5f79cbd145857e712ea7d9d6eee"
+  "built_at_commit": "61fbf534775d03c3932ffb7463afad0bed0eb4bc"
 }

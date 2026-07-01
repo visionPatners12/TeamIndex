@@ -604,15 +604,18 @@ function startHttpServer({ env, logger }) {
     });
     app.get("/pools/:poolId/positions", async (req, res) => {
         const poolId = req.params.poolId;
-        const [rawPositions, selectedMarkets] = await Promise.all([
+        const [pool, rawPositions, selectedMarkets] = await Promise.all([
+            prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } }),
             prisma_1.prisma.club_pool_positions.findMany({
-                where: { poolId, status: { in: ["OPEN", "SETTLED"] } },
+                where: { poolId, status: { in: ["OPEN", "SETTLED", "CANCELLED"] } },
                 orderBy: { createdAt: "desc" },
             }),
             prisma_1.prisma.pool_selected_markets
                 ? prisma_1.prisma.pool_selected_markets.findMany({ where: { poolId } })
                 : Promise.resolve([]),
         ]);
+        if (!pool)
+            return res.status(404).json({ error: "Pool not found" });
         const metaMap = new Map(selectedMarkets.map((m) => [m.marketId, m]));
         const positions = rawPositions.map((pos) => {
             const meta = metaMap.get(pos.marketId);
@@ -632,11 +635,25 @@ function startHttpServer({ env, logger }) {
                 currentPrice: currentPrice,
                 unrealizedPnl,
                 unrealizedPnlPct,
-                status: pos.status === "OPEN" ? "open" : pos.status === "SETTLED" ? "settled" : "closed",
+                status: pos.status === "OPEN" ? "open" : pos.status === "SETTLED" ? "settled" : "cancelled",
                 endsAt: meta?.endDateIso ?? null,
             };
         });
-        res.json({ ok: true, positions });
+        const balances = await (0, priceEngine_1.readPoolBalanceBreakdown)(env, pool);
+        const openPositionsValue = positions
+            .filter((pos) => pos.status === "open")
+            .reduce((sum, pos) => sum + Number(pos.sizeUsdc ?? 0) + Number(pos.unrealizedPnl ?? 0), 0);
+        const realizedPnl = Number(pool.realizedPnl?.toString?.() ?? pool.realizedPnl ?? 0);
+        const summary = {
+            openPositionsValue,
+            realizedPnl,
+            totalPoolValue: balances.totalCash + openPositionsValue + realizedPnl,
+            positionCount: positions.length,
+            openPositionCount: positions.filter((pos) => pos.status === "open").length,
+            settledPositionCount: positions.filter((pos) => pos.status === "settled").length,
+            cancelledPositionCount: positions.filter((pos) => pos.status === "cancelled").length,
+        };
+        res.json({ ok: true, balances, summary, positions });
     });
     // ─── User holdings across all pools ──────────────────────────────────────────
     // Returns every pool where the given wallet address holds shares, combining
