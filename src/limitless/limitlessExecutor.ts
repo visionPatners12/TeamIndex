@@ -353,6 +353,7 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
         orderType: "GTC",
         signingMode: "server-wallet",
         onBehalfOf: ownerId,
+        makerAddress: serverWallet.walletAddress,
       });
     } catch (err: any) {
       const lastError = `Order posting failed: ${String(err?.message ?? err)}`;

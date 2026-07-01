@@ -1,16 +1,16 @@
 # Graph Report - TeamIndex  (2026-06-30)
 
 ## Corpus Check
-- 78 files · ~54,176 words
+- 78 files · ~54,377 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 551 nodes · 1193 edges · 36 communities (29 shown, 7 thin omitted)
+- 551 nodes · 1194 edges · 37 communities (30 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a54f2943`
+- Built from commit: `f02e4827`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,6 +30,7 @@
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 19|Community 19]]
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
@@ -45,10 +46,10 @@
 2. `executeLimitlessTranche()` - 28 edges
 3. `Env` - 24 edges
 4. `scripts` - 18 edges
-5. `syncLimitlessPortfolioForPool()` - 17 edges
-6. `getBaseProvider()` - 17 edges
-7. `runAllocationEngine()` - 17 edges
-8. `postLimitlessOrder()` - 16 edges
+5. `postLimitlessOrder()` - 17 edges
+6. `syncLimitlessPortfolioForPool()` - 17 edges
+7. `getBaseProvider()` - 17 edges
+8. `runAllocationEngine()` - 17 edges
 9. `recalculateOfficialPrices()` - 15 edges
 10. `withBaseRpcRetry()` - 13 edges
 
@@ -67,7 +68,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (36 total, 7 thin omitted)
+## Communities (37 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
@@ -98,8 +99,8 @@ Cohesion: 0.12
 Nodes (26): authHeaders(), detectSportHints(), extractPrices(), getHistoricalPrices(), getJson(), limitlessBase(), LimitlessCategory, LimitlessMarket (+18 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.06
-Nodes (63): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), compactRpcError() (+55 more)
+Cohesion: 0.07
+Nodes (48): compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions(), positiveIntFromEnv() (+40 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.11
@@ -129,6 +130,10 @@ Nodes (15): devDependencies, chai, hardhat, @nomicfoundation/hardhat-ethers, @op
 Cohesion: 0.29
 Nodes (6): name, prisma, seed, private, type, version
 
+### Community 16 - "Community 16"
+Cohesion: 0.19
+Nodes (15): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), addTouchedHolder() (+7 more)
+
 ### Community 19 - "Community 19"
 Cohesion: 0.40
 Nodes (4): name, organization_id, organization_slug, ref
@@ -145,7 +150,7 @@ Nodes (3): Club Pool Backend (Polygon + Polymarket) - MVP, Notes, Quick start
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`?**
+- **Why does `Env` connect `Community 3` to `Community 0`, `Community 5`, `Community 6`, `Community 7`, `Community 11`, `Community 12`, `Community 16`?**
   _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
@@ -154,7 +159,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
   _145 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07894736842105263 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07957393483709273 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.13793103448275862 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**

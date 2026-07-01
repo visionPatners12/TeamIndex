@@ -1509,7 +1509,7 @@
       "label": "PostLimitlessOrderParams",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L46",
+      "source_location": "L47",
       "id": "limitless_limitlessorderclient_postlimitlessorderparams",
       "community": 0,
       "norm_label": "postlimitlessorderparams"
@@ -1518,7 +1518,7 @@
       "label": "OrderLogger",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L82",
+      "source_location": "L83",
       "id": "limitless_limitlessorderclient_orderlogger",
       "community": 0,
       "norm_label": "orderlogger"
@@ -1527,7 +1527,7 @@
       "label": "noopLogger",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L88",
+      "source_location": "L89",
       "id": "limitless_limitlessorderclient_nooplogger",
       "community": 0,
       "norm_label": "nooplogger"
@@ -1536,7 +1536,7 @@
       "label": "LimitlessOrderResult",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L90",
+      "source_location": "L91",
       "id": "limitless_limitlessorderclient_limitlessorderresult",
       "community": 0,
       "norm_label": "limitlessorderresult"
@@ -1545,7 +1545,7 @@
       "label": "getJson()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L99",
+      "source_location": "L100",
       "id": "limitless_limitlessorderclient_getjson",
       "community": 0,
       "norm_label": "getjson()"
@@ -1554,7 +1554,7 @@
       "label": "postJson()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L103",
+      "source_location": "L104",
       "id": "limitless_limitlessorderclient_postjson",
       "community": 0,
       "norm_label": "postjson()"
@@ -1563,7 +1563,7 @@
       "label": "getBestBidAsk()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L114",
+      "source_location": "L115",
       "id": "limitless_limitlessorderclient_getbestbidask",
       "community": 0,
       "norm_label": "getbestbidask()"
@@ -1572,7 +1572,7 @@
       "label": "getMidpointFromBook()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L125",
+      "source_location": "L126",
       "id": "limitless_limitlessorderclient_getmidpointfrombook",
       "community": 0,
       "norm_label": "getmidpointfrombook()"
@@ -1581,7 +1581,7 @@
       "label": "calculateDepthAtSlippage()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L139",
+      "source_location": "L140",
       "id": "limitless_limitlessorderclient_calculatedepthatslippage",
       "community": 0,
       "norm_label": "calculatedepthatslippage()"
@@ -1590,7 +1590,7 @@
       "label": "estimateSlippage()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L157",
+      "source_location": "L158",
       "id": "limitless_limitlessorderclient_estimateslippage",
       "community": 0,
       "norm_label": "estimateslippage()"
@@ -1599,7 +1599,7 @@
       "label": "getSpread()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L171",
+      "source_location": "L172",
       "id": "limitless_limitlessorderclient_getspread",
       "community": 0,
       "norm_label": "getspread()"
@@ -1608,7 +1608,7 @@
       "label": "getMidpoint()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L183",
+      "source_location": "L184",
       "id": "limitless_limitlessorderclient_getmidpoint",
       "community": 0,
       "norm_label": "getmidpoint()"
@@ -1617,7 +1617,7 @@
       "label": "getOwnerId()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L207",
+      "source_location": "L208",
       "id": "limitless_limitlessorderclient_getownerid",
       "community": 0,
       "norm_label": "getownerid()"
@@ -1626,7 +1626,7 @@
       "label": "erc1271SignatureType()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L220",
+      "source_location": "L221",
       "id": "limitless_limitlessorderclient_erc1271signaturetype",
       "community": 0,
       "norm_label": "erc1271signaturetype()"
@@ -1635,7 +1635,7 @@
       "label": "clampOrderPrice()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L227",
+      "source_location": "L228",
       "id": "limitless_limitlessorderclient_clamporderprice",
       "community": 0,
       "norm_label": "clamporderprice()"
@@ -1644,7 +1644,7 @@
       "label": "extractExpectedExchangeAddress()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L232",
+      "source_location": "L233",
       "id": "limitless_limitlessorderclient_extractexpectedexchangeaddress",
       "community": 0,
       "norm_label": "extractexpectedexchangeaddress()"
@@ -1653,7 +1653,7 @@
       "label": "isInvalidSignatureError()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L237",
+      "source_location": "L238",
       "id": "limitless_limitlessorderclient_isinvalidsignatureerror",
       "community": 0,
       "norm_label": "isinvalidsignatureerror()"
@@ -1662,7 +1662,7 @@
       "label": "buildEip712Order()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L254",
+      "source_location": "L255",
       "id": "limitless_limitlessorderclient_buildeip712order",
       "community": 0,
       "norm_label": "buildeip712order()"
@@ -1671,7 +1671,7 @@
       "label": "computeAmounts()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L323",
+      "source_location": "L324",
       "id": "limitless_limitlessorderclient_computeamounts",
       "community": 0,
       "norm_label": "computeamounts()"
@@ -1680,7 +1680,7 @@
       "label": "quoteLimitlessOrderAmounts()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L342",
+      "source_location": "L343",
       "id": "limitless_limitlessorderclient_quotelimitlessorderamounts",
       "community": 0,
       "norm_label": "quotelimitlessorderamounts()"
@@ -1689,7 +1689,7 @@
       "label": "postLimitlessOrder()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L363",
+      "source_location": "L364",
       "id": "limitless_limitlessorderclient_postlimitlessorder",
       "community": 0,
       "norm_label": "postlimitlessorder()"
@@ -1698,7 +1698,7 @@
       "label": "getLimitlessOrder()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L718",
+      "source_location": "L728",
       "id": "limitless_limitlessorderclient_getlimitlessorder",
       "community": 3,
       "norm_label": "getlimitlessorder()"
@@ -1707,7 +1707,7 @@
       "label": "isAcceptedOrderResult()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L738",
+      "source_location": "L748",
       "id": "limitless_limitlessorderclient_isacceptedorderresult",
       "community": 0,
       "norm_label": "isacceptedorderresult()"
@@ -1716,7 +1716,7 @@
       "label": "getOrderRejectMessage()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L745",
+      "source_location": "L755",
       "id": "limitless_limitlessorderclient_getorderrejectmessage",
       "community": 0,
       "norm_label": "getorderrejectmessage()"
@@ -1725,7 +1725,7 @@
       "label": "getLimitlessOrderSignerPrivateKey()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L754",
+      "source_location": "L764",
       "id": "limitless_limitlessorderclient_getlimitlessordersignerprivatekey",
       "community": 0,
       "norm_label": "getlimitlessordersignerprivatekey()"
@@ -1734,7 +1734,7 @@
       "label": "assertLimitlessTradingConfig()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L758",
+      "source_location": "L768",
       "id": "limitless_limitlessorderclient_assertlimitlesstradingconfig",
       "community": 0,
       "norm_label": "assertlimitlesstradingconfig()"
@@ -1743,7 +1743,7 @@
       "label": "isLimitlessTradingReady()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessOrderClient.ts",
-      "source_location": "L770",
+      "source_location": "L780",
       "id": "limitless_limitlessorderclient_islimitlesstradingready",
       "community": 0,
       "norm_label": "islimitlesstradingready()"
@@ -2276,7 +2276,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 7,
+      "community": 16,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2285,7 +2285,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 7,
+      "community": 16,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2294,7 +2294,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 7,
+      "community": 16,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2303,7 +2303,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 7,
+      "community": 16,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2312,7 +2312,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 7,
+      "community": 16,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2321,7 +2321,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 7,
+      "community": 16,
       "norm_label": "assertaddress()"
     },
     {
@@ -2330,7 +2330,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 7,
+      "community": 16,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2339,7 +2339,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 7,
+      "community": 16,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2501,7 +2501,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 7,
+      "community": 16,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2510,7 +2510,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 7,
+      "community": 16,
       "norm_label": "syncinputs"
     },
     {
@@ -2519,7 +2519,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 7,
+      "community": 16,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2528,7 +2528,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 7,
+      "community": 16,
       "norm_label": "dectostr()"
     },
     {
@@ -2537,7 +2537,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 7,
+      "community": 16,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2546,7 +2546,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 7,
+      "community": 16,
       "norm_label": "transferposition()"
     },
     {
@@ -2555,7 +2555,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 7,
+      "community": 16,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2564,7 +2564,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 7,
+      "community": 16,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2573,7 +2573,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 7,
+      "community": 16,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2582,7 +2582,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 7,
+      "community": 16,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -9823,6 +9823,17 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "test/limitless/orderClient.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "limitless_orderclient_test",
+      "target": "limitless_limitlessorderclient_postlimitlessorder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/server/http.ts",
       "source_location": "L52",
       "weight": 1.0,
@@ -11018,9 +11029,9 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L132",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_partneraccounts",
-      "target": "limitless_partneraccounts_collectallowancestatuses",
-      "confidence_score": 1.0
+      "target": "limitless_partneraccounts_collectallowancestatuses"
     },
     {
       "relation": "contains",
@@ -11523,9 +11534,9 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L161",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_partneraccounts_partneraccountallowanceready",
-      "target": "limitless_partneraccounts_collectallowancestatuses",
-      "confidence_score": 1.0
+      "target": "limitless_partneraccounts_collectallowancestatuses"
     },
     {
       "relation": "imports",
@@ -11545,9 +11556,9 @@
       "source_file": "test/limitless/partnerAccounts.test.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_partneraccounts_test",
-      "target": "limitless_partneraccounts_partneraccountallowanceready",
-      "confidence_score": 1.0
+      "target": "limitless_partneraccounts_partneraccountallowanceready"
     },
     {
       "relation": "imports",
@@ -17612,5 +17623,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a54f294340f9df2e7fd3bc2baf7466bd235c3dee"
+  "built_at_commit": "f02e4827335321961dee7d18e6daab26004c19d1"
 }

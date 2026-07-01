@@ -42,6 +42,7 @@ const SIDE_SELL = 1;
 const SIGNATURE_TYPE_EOA = 0;
 /** signatureType: smart contract wallet / ERC-1271-compatible signature. */
 const SIGNATURE_TYPE_ERC1271 = 2;
+const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
 export interface PostLimitlessOrderParams {
   /** Market slug (e.g. "will-eth-hit-4000-by-june-30"). */
@@ -395,18 +396,24 @@ export async function postLimitlessOrder(
   const sideInt: 0 | 1 = params.side === "BUY" ? SIDE_BUY : SIDE_SELL;
 
   if (signingMode === "server-wallet") {
-    const onBehalfOf = params.onBehalfOf ?? params.ownerId;
-    if (!onBehalfOf || !Number.isFinite(onBehalfOf) || onBehalfOf <= 0) {
+    const ownerId = params.onBehalfOf ?? params.ownerId;
+    if (!ownerId || !Number.isFinite(ownerId) || ownerId <= 0) {
       throw new Error("Limitless server-wallet mode requires onBehalfOf/profileId");
+    }
+    const makerAddress = params.makerAddress;
+    if (!makerAddress || !ETH_ADDRESS_RE.test(makerAddress)) {
+      throw new Error("Limitless server-wallet mode requires makerAddress/server wallet address");
     }
 
     const salt = Math.floor(Math.random() * 1e15);
     const requestBody = {
-      onBehalfOf,
+      ownerId,
       orderType: params.orderType ?? "GTC",
       marketSlug: params.marketSlug,
       order: {
         salt: String(salt),
+        maker: makerAddress,
+        signer: makerAddress,
         taker: "0x0000000000000000000000000000000000000000",
         tokenId: String(tokenId),
         makerAmount: Number(makerAmount),
@@ -424,7 +431,8 @@ export async function postLimitlessOrder(
         marketSlug: params.marketSlug,
         outcome: params.outcome,
         side: params.side,
-        onBehalfOf,
+        ownerId,
+        maker: makerAddress,
         signingMode,
         tokenId: String(tokenId),
         price,
@@ -441,7 +449,8 @@ export async function postLimitlessOrder(
       log.info(
         {
           marketSlug: params.marketSlug,
-          onBehalfOf,
+          ownerId,
+          maker: makerAddress,
           signingMode,
           status: result?.status,
           orderId: result?.orderId ?? result?.id,
@@ -455,7 +464,8 @@ export async function postLimitlessOrder(
         `${baseMessage} | orderPostAttempts=${JSON.stringify([
           {
             signingMode,
-            onBehalfOf,
+            ownerId,
+            maker: makerAddress,
             tokenId: String(tokenId),
             price,
             makerAmount: String(makerAmount),

@@ -290,6 +290,7 @@ async function executeLimitlessTranche(params) {
                 orderType: "GTC",
                 signingMode: "server-wallet",
                 onBehalfOf: ownerId,
+                makerAddress: serverWallet.walletAddress,
             });
         }
         catch (err) {

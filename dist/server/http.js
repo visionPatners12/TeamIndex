@@ -2640,6 +2640,7 @@ function startHttpServer({ env, logger }) {
                 orderType: "GTC",
                 signingMode: "server-wallet",
                 onBehalfOf: ownerId,
+                makerAddress: serverWallet.walletAddress,
                 log: logger,
             });
             if (!(0, limitlessOrderClient_1.isAcceptedOrderResult)(orderResult)) {

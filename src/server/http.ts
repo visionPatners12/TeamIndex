@@ -2919,6 +2919,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         orderType: "GTC",
         signingMode: "server-wallet",
         onBehalfOf: ownerId,
+        makerAddress: serverWallet.walletAddress,
         log: logger,
       });
 
