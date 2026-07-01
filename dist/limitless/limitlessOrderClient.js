@@ -336,6 +336,7 @@ async function postLimitlessOrder(env, params) {
         const salt = Math.floor(Math.random() * 1e15);
         const requestBody = {
             ownerId,
+            onBehalfOf: ownerId,
             orderType: params.orderType ?? "GTC",
             marketSlug: params.marketSlug,
             order: {
@@ -385,6 +386,7 @@ async function postLimitlessOrder(env, params) {
                 {
                     signingMode,
                     ownerId,
+                    onBehalfOf: ownerId,
                     maker: makerAddress,
                     tokenId: String(tokenId),
                     price,

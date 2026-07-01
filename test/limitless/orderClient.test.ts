@@ -16,7 +16,7 @@ describe("Limitless order client", () => {
     expect(extractExpectedExchangeAddress("Invalid signature")).to.equal(null);
   });
 
-  it("posts delegated server-wallet orders with ownerId and maker/signer addresses", async () => {
+  it("posts delegated server-wallet orders with ownerId, onBehalfOf, and maker/signer addresses", async () => {
     const makerAddress = "0x4157A8f849199Dd076865E24C9d967f4244657b2";
     let postedBody: any = null;
 
@@ -60,7 +60,7 @@ describe("Limitless order client", () => {
     );
 
     expect(postedBody.ownerId).to.equal(1424206);
-    expect(postedBody).not.to.have.property("onBehalfOf");
+    expect(postedBody.onBehalfOf).to.equal(1424206);
     expect(postedBody.order.maker).to.equal(makerAddress);
     expect(postedBody.order.signer).to.equal(makerAddress);
   });

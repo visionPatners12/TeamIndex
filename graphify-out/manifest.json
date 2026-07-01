@@ -170,8 +170,8 @@
     "semantic_hash": ""
   },
   "src/limitless/limitlessOrderClient.ts": {
-    "mtime": 1782841179.5537512,
-    "ast_hash": "26e51ab77b22c8eac530d71b7d82e74a",
+    "mtime": 1782902740.624315,
+    "ast_hash": "f3ef4d0ffcfd3140953f50e5806b72c9",
     "semantic_hash": ""
   },
   "src/limitless/limitlessPositionSync.ts": {
@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "test/limitless/orderClient.test.ts": {
-    "mtime": 1782841259.8959837,
-    "ast_hash": "e7ee97f2e1d0194f6b1d41c0c4adbe19",
+    "mtime": 1782902714.857664,
+    "ast_hash": "3f16c7cf32fd81019aed565cfdb91fea",
     "semantic_hash": ""
   },
   "scripts/deployBaseVaultFactory.ts": {

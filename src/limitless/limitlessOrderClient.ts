@@ -408,6 +408,7 @@ export async function postLimitlessOrder(
     const salt = Math.floor(Math.random() * 1e15);
     const requestBody = {
       ownerId,
+      onBehalfOf: ownerId,
       orderType: params.orderType ?? "GTC",
       marketSlug: params.marketSlug,
       order: {
@@ -465,6 +466,7 @@ export async function postLimitlessOrder(
           {
             signingMode,
             ownerId,
+            onBehalfOf: ownerId,
             maker: makerAddress,
             tokenId: String(tokenId),
             price,
