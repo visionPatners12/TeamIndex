@@ -66,9 +66,9 @@ async function readVaultSyncSnapshot({ env, pool, fromBlock, toBlock, logger, lo
         ...logOptions,
         context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
     });
-    const totalAssets = (await vault.totalCash());
+    const vaultCash = (await vault.totalCash());
     const totalSupply = (await vault.totalSupply());
-    return { depositEvents, withdrawEvents, transferEvents, feeEvents, totalAssets, totalSupply };
+    return { depositEvents, withdrawEvents, transferEvents, feeEvents, vaultCash, totalSupply };
 }
 function transferPosition(ev) {
     return {
@@ -126,7 +126,7 @@ async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransact
     const onlySet = onlyTransactionHashes && onlyTransactionHashes.length > 0
         ? new Set(onlyTransactionHashes.map((h) => h.toLowerCase()))
         : null;
-    const { depositEvents, withdrawEvents, transferEvents, feeEvents, totalAssets, totalSupply } = await (0, rpc_1.withBaseRpcRetry)(env, (provider) => readVaultSyncSnapshot({
+    const { depositEvents, withdrawEvents, transferEvents, feeEvents, vaultCash, totalSupply } = await (0, rpc_1.withBaseRpcRetry)(env, (provider) => readVaultSyncSnapshot({
         env,
         pool,
         fromBlock,
@@ -266,7 +266,7 @@ async function syncVaultEventsToDb({ env, pool, fromBlock, toBlock, onlyTransact
         }, { maxRetriesPerUrl: 1 });
     }
     // totalCash is USDC base units (6 decimals); store human USD in DB for pricing + UI.
-    const cashHuman = (0, ethers_1.formatUnits)(totalAssets, 6);
+    const cashHuman = (0, ethers_1.formatUnits)(vaultCash, 6);
     await prisma_1.prisma.club_pools.update({
         where: { id: pool.id },
         data: {

@@ -1,5 +1,6 @@
 import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
+import { recalculateOfficialPriceForPool } from "../services/priceEngine";
 import { limitlessGetJson } from "./limitlessAuth";
 
 type JsonRecord = Record<string, unknown>;
@@ -17,8 +18,6 @@ export type NormalizedPortfolioPosition = {
   realizedPnl: number;
   raw: JsonRecord;
 };
-
-const VAULT_SHARE_DECIMALS = 6;
 
 function asArray(raw: unknown): JsonRecord[] {
   if (Array.isArray(raw)) return raw.filter((x): x is JsonRecord => !!x && typeof x === "object" && !Array.isArray(x));
@@ -167,15 +166,6 @@ export function extractRealizedPnl(raw: unknown, positions: NormalizedPortfolioP
   const currentValue = pickNumber(root, ["currentValue"]);
   if (currentValue !== 0) return currentValue;
   return positions.reduce((sum, pos) => sum + pos.realizedPnl, 0);
-}
-
-function vaultCashDbToHuman(cashRaw: unknown): number {
-  const s = String((cashRaw as any)?.toString?.() ?? cashRaw ?? "").trim();
-  if (!s || s === "0") return 0;
-  if (s.includes(".") || /[eE]/i.test(s)) return Number(s);
-  const n = Number(s);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  return /^\d+$/.test(s) ? n / 1e6 : n;
 }
 
 export async function fetchPortfolioPositions(env: Env, profileId?: string): Promise<JsonRecord> {
@@ -327,38 +317,17 @@ export async function syncLimitlessPortfolioForPool(env: Env, poolId: string) {
   });
 
   await applyNormalizedPortfolioPositions(poolId, positions);
+  await prisma.club_pools.update({
+    where: { id: poolId },
+    data: { realizedPnl: realizedPnl.toString() },
+  });
 
-  const freshPool = await prisma.club_pools.findUnique({ where: { id: poolId } });
-  const cash = vaultCashDbToHuman((freshPool ?? pool).cash);
-  const totalTokenSupply = num((freshPool ?? pool).totalTokenSupply?.toString?.() ?? (freshPool ?? pool).totalTokenSupply);
-  const sharesHuman = totalTokenSupply / 10 ** VAULT_SHARE_DECIMALS;
-  const totalPoolValue = cash + marketValue + realizedPnl;
-  const officialTokenPrice = sharesHuman > 0 ? totalPoolValue / sharesHuman : 0;
-
-  const valuation = await (prisma as any).pool_valuation_snapshots.create({
-    data: {
-      poolId,
-      cash: cash.toString(),
-      positionsValue: marketValue.toString(),
-      realizedPnl: realizedPnl.toString(),
-      totalPoolValue: totalPoolValue.toString(),
-      totalTokenSupply: totalTokenSupply.toString(),
-      officialTokenPrice: officialTokenPrice.toString(),
+  const { valuation, valuationSnapshot } = await recalculateOfficialPriceForPool(env, poolId, {
+    valuationSnapshot: {
       source: "LIMITLESS_REST",
       rawJson: { positions: positionsRaw, pnl: pnlRaw, history: historyRaw } as any,
     },
   });
 
-  await prisma.club_pools.update({
-    where: { id: poolId },
-    data: {
-      cash: cash.toString(),
-      openPositionsValue: marketValue.toString(),
-      realizedPnl: realizedPnl.toString(),
-      totalPoolValue: totalPoolValue.toString(),
-      officialTokenPrice: officialTokenPrice.toString(),
-    },
-  });
-
-  return { poolId, accountId, positions: positions.length, trades: trades.length, valuation };
+  return { poolId, accountId, positions: positions.length, trades: trades.length, valuation: valuationSnapshot ?? valuation };
 }

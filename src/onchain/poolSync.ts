@@ -31,7 +31,7 @@ type VaultSyncSnapshot = {
   withdrawEvents: EventLog[];
   transferEvents: Array<EventLog | CdpTransferEvent>;
   feeEvents: EventLog[];
-  totalAssets: bigint;
+  vaultCash: bigint;
   totalSupply: bigint;
 };
 
@@ -101,10 +101,10 @@ async function readVaultSyncSnapshot(
     ...logOptions,
     context: { ...(logContext ?? {}), eventName: "VaultFeeCharged" }
   });
-  const totalAssets = (await (vault as any).totalCash()) as bigint;
+  const vaultCash = (await (vault as any).totalCash()) as bigint;
   const totalSupply = (await vault.totalSupply()) as bigint;
 
-  return { depositEvents, withdrawEvents, transferEvents, feeEvents, totalAssets, totalSupply };
+  return { depositEvents, withdrawEvents, transferEvents, feeEvents, vaultCash, totalSupply };
 }
 
 function transferPosition(ev: EventLog | CdpTransferEvent) {
@@ -196,7 +196,7 @@ export async function syncVaultEventsToDb({
     withdrawEvents,
     transferEvents,
     feeEvents,
-    totalAssets,
+    vaultCash,
     totalSupply
   } = await withBaseRpcRetry(
     env,
@@ -359,7 +359,7 @@ export async function syncVaultEventsToDb({
   }
 
   // totalCash is USDC base units (6 decimals); store human USD in DB for pricing + UI.
-  const cashHuman = formatUnits(totalAssets, 6);
+  const cashHuman = formatUnits(vaultCash, 6);
 
   await prisma.club_pools.update({
     where: { id: pool.id },

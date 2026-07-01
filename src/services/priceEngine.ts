@@ -2,10 +2,10 @@ import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { withBaseRpcRetry } from "../onchain/rpc";
 import { isRpcRateLimitError } from "../onchain/ethersLogChunks";
-import { getVaultContract } from "../onchain/vaultExecutor";
-import { parseUnits } from "ethers";
+import { getErc20Balance, getVaultContract } from "../onchain/vaultExecutor";
+import { formatUnits, parseUnits } from "ethers";
 
-function decToNumber(d: any): number {
+export function decToNumber(d: any): number {
   // Prisma Decimal -> string
   if (typeof d === "number") return d;
   if (typeof d === "string") return Number(d);
@@ -40,6 +40,60 @@ function humanUsdToUsdcBaseUnits(h: number): bigint {
 /** Must match `USDC4626Vault.decimals()` — raw `totalSupply()` is in these base units. */
 const VAULT_SHARE_DECIMALS = 6;
 
+type PoolForValuation = {
+  id: string;
+  clubName: string;
+  vaultAddress?: string | null;
+  cash: any;
+  realizedPnl: any;
+  totalTokenSupply: any;
+};
+
+export type PoolValuationInputs = {
+  vaultCash: number;
+  serverWalletCash: number;
+  openPositionsValue: number;
+  realizedPnl: number;
+  totalTokenSupplyRaw: number;
+};
+
+export type PoolValuation = PoolValuationInputs & {
+  cash: number;
+  syntheticOnchainPositionsValue: number;
+  totalPoolValue: number;
+  totalSupplyHuman: number;
+  officialTokenPrice: number;
+};
+
+export function calculatePoolValuation(inputs: PoolValuationInputs): PoolValuation {
+  const vaultCash = Number.isFinite(inputs.vaultCash) && inputs.vaultCash > 0 ? inputs.vaultCash : 0;
+  const serverWalletCash =
+    Number.isFinite(inputs.serverWalletCash) && inputs.serverWalletCash > 0 ? inputs.serverWalletCash : 0;
+  const openPositionsValue =
+    Number.isFinite(inputs.openPositionsValue) && inputs.openPositionsValue > 0 ? inputs.openPositionsValue : 0;
+  const realizedPnl = Number.isFinite(inputs.realizedPnl) ? inputs.realizedPnl : 0;
+  const totalTokenSupplyRaw =
+    Number.isFinite(inputs.totalTokenSupplyRaw) && inputs.totalTokenSupplyRaw > 0 ? inputs.totalTokenSupplyRaw : 0;
+  const cash = vaultCash + serverWalletCash;
+  const syntheticOnchainPositionsValue = serverWalletCash + openPositionsValue;
+  const totalPoolValue = cash + openPositionsValue + realizedPnl;
+  const totalSupplyHuman = totalTokenSupplyRaw / 10 ** VAULT_SHARE_DECIMALS;
+  const officialTokenPrice = totalSupplyHuman > 0 ? totalPoolValue / totalSupplyHuman : 0;
+
+  return {
+    vaultCash,
+    serverWalletCash,
+    openPositionsValue,
+    realizedPnl,
+    totalTokenSupplyRaw,
+    cash,
+    syntheticOnchainPositionsValue,
+    totalPoolValue,
+    totalSupplyHuman,
+    officialTokenPrice
+  };
+}
+
 /**
  * Last time we pushed NAV on-chain per pool (epoch ms). In-memory: on restart the
  * first cycle re-pushes for every pool, which is the desired resync-after-downtime.
@@ -60,93 +114,166 @@ function onchainNavPushEnabled(env: Env): boolean {
   return !["0", "false", "no", "off"].includes(raw);
 }
 
-export async function recalculateOfficialPrices(env: Env) {
-  const pools = await prisma.club_pools.findMany({ where: { status: "ACTIVE" } });
+async function readPoolCashBreakdown(env: Env, pool: PoolForValuation) {
+  let vaultCash = vaultCashDbToHuman(pool.cash);
+  let readVaultCash = false;
 
-  for (const pool of pools) {
-    const openPositions = await prisma.club_pool_positions.findMany({
-      where: { poolId: pool.id, status: "OPEN" }
+  try {
+    const vaultCashRaw = await withBaseRpcRetry(
+      env,
+      async (provider) => {
+        const vault = await getVaultContract(env, provider, {
+          clubName: pool.clubName,
+          vaultAddress: pool.vaultAddress ?? undefined
+        });
+        return (await (vault as any).totalCash()) as bigint;
+      },
+      { maxRetriesPerUrl: 1 }
+    );
+    vaultCash = Number(formatUnits(vaultCashRaw, 6));
+    readVaultCash = true;
+  } catch {
+    // Fall back to the DB's last idle-cash value. It may already include server
+    // wallet cash from a previous canonical recalc, so don't add server cash too.
+  }
+
+  let serverWalletCash = 0;
+  if (readVaultCash && env.BASE_USDC_ADDRESS) {
+    const account = await (prisma as any).pool_limitless_accounts.findUnique({
+      where: { poolId: pool.id },
+      select: { accountAddress: true }
     });
-
-    let positionsValue = 0;
-    for (const pos of openPositions) {
-      // `currentValue` is the marked-to-market value maintained by
-      // `syncLimitlessFillsAndSettle` (Limitless mid-price × matched quantity),
-      // which runs immediately before this recalc in the price ticker. We treat it
-      // as the single source of truth instead of re-fetching mid-prices here.
-      positionsValue += decToNumber(pos.currentValue);
-    }
-
-    const cashHuman = vaultCashDbToHuman(pool.cash);
-    const realizedPnl = decToNumber(pool.realizedPnl);
-    const totalPoolValue = cashHuman + positionsValue + realizedPnl;
-    const totalSupplyRaw = decToNumber(pool.totalTokenSupply);
-    const sharesHuman = totalSupplyRaw / 10 ** VAULT_SHARE_DECIMALS;
-
-    // USD (or pool accounting unit) per **1.0** vault share — not per raw 1e-6 share unit.
-    const officialTokenPrice = sharesHuman > 0 ? totalPoolValue / sharesHuman : 0;
-
-    await prisma.club_pools.update({
-      where: { id: pool.id },
-      data: {
-        cash: String(cashHuman),
-        openPositionsValue: positionsValue.toString(),
-        totalPoolValue: totalPoolValue.toString(),
-        officialTokenPrice: officialTokenPrice.toString()
+    const accountAddress = account?.accountAddress ? String(account.accountAddress) : "";
+    if (accountAddress) {
+      try {
+        const serverWalletCashRaw = await getErc20Balance(env, env.BASE_USDC_ADDRESS, accountAddress);
+        serverWalletCash = Number(formatUnits(serverWalletCashRaw, 6));
+      } catch {
+        serverWalletCash = 0;
       }
-    });
+    }
+  }
 
-    await prisma.club_pool_price_snapshots.create({
+  return { vaultCash, serverWalletCash, readVaultCash };
+}
+
+export async function recalculateOfficialPriceForPool(
+  env: Env,
+  poolId: string,
+  options?: {
+    valuationSnapshot?: {
+      source: string;
+      rawJson?: unknown;
+    };
+  }
+) {
+  const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+  if (!pool) throw new Error(`Pool not found: ${poolId}`);
+
+  const openPositions = await prisma.club_pool_positions.findMany({
+    where: { poolId: pool.id, status: "OPEN" }
+  });
+
+  let positionsValue = 0;
+  for (const pos of openPositions) {
+    // `currentValue` is the marked-to-market value maintained by
+    // `syncLimitlessFillsAndSettle` (Limitless mid-price × matched quantity),
+    // which runs immediately before this recalc in the price ticker. We treat it
+    // as the single source of truth instead of re-fetching mid-prices here.
+    positionsValue += decToNumber(pos.currentValue);
+  }
+
+  const { vaultCash, serverWalletCash, readVaultCash } = await readPoolCashBreakdown(env, pool);
+  const valuation = calculatePoolValuation({
+    vaultCash,
+    serverWalletCash,
+    openPositionsValue: positionsValue,
+    realizedPnl: decToNumber(pool.realizedPnl),
+    totalTokenSupplyRaw: decToNumber(pool.totalTokenSupply)
+  });
+
+  await prisma.club_pools.update({
+    where: { id: pool.id },
+    data: {
+      cash: valuation.cash.toString(),
+      openPositionsValue: valuation.openPositionsValue.toString(),
+      totalPoolValue: valuation.totalPoolValue.toString(),
+      officialTokenPrice: valuation.officialTokenPrice.toString()
+    }
+  });
+
+  await prisma.club_pool_price_snapshots.create({
+    data: {
+      poolId: pool.id,
+      cash: valuation.cash.toString(),
+      positionsValue: valuation.openPositionsValue.toString(),
+      realizedPnl: valuation.realizedPnl.toString(),
+      totalPoolValue: valuation.totalPoolValue.toString(),
+      officialTokenPrice: valuation.officialTokenPrice.toString()
+    }
+  });
+
+  let valuationSnapshot: unknown = null;
+  if (options?.valuationSnapshot) {
+    valuationSnapshot = await (prisma as any).pool_valuation_snapshots.create({
       data: {
         poolId: pool.id,
-        cash: String(cashHuman),
-        positionsValue: positionsValue.toString(),
-        realizedPnl: pool.realizedPnl,
-        totalPoolValue: totalPoolValue.toString(),
-        officialTokenPrice: officialTokenPrice.toString()
+        cash: valuation.cash.toString(),
+        positionsValue: valuation.openPositionsValue.toString(),
+        realizedPnl: valuation.realizedPnl.toString(),
+        totalPoolValue: valuation.totalPoolValue.toString(),
+        totalTokenSupply: valuation.totalTokenSupplyRaw.toString(),
+        officialTokenPrice: valuation.officialTokenPrice.toString(),
+        source: options.valuationSnapshot.source,
+        rawJson: options.valuationSnapshot.rawJson as any
       }
     });
+  }
 
-    // Keep onchain valuation inputs in sync with offchain calculations so ERC4626
-    // conversions use the same "official token price" basis. The DB (above) is refreshed
-    // every cycle (real-time); the on-chain `setPoolValuation` write is throttled to
-    // ONCHAIN_NAV_PUSH_INTERVAL_MS (default 1h) per pool to bound gas spend. The vault
-    // lives on Base and `getVaultContract` returns a contract bound to the Base executor
-    // signer. Pools are processed sequentially, so nonces from the shared executor wallet
-    // don't collide (each `tx.wait()` mines before the next pool).
-    // Compute the on-chain valuation inputs up front so we can skip the write when the
-    // value hasn't changed since the last push (no-op pushes just waste gas).
-    const posBase = humanUsdToUsdcBaseUnits(positionsValue);
-    // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
-    const rPnLBase = realizedPnl >= 0
-      ? humanUsdToUsdcBaseUnits(realizedPnl)
-      : -humanUsdToUsdcBaseUnits(-realizedPnl);
+  // Keep onchain valuation inputs in sync with offchain calculations so ERC4626
+  // conversions use the same "official token price" basis. The vault already
+  // includes its own `totalCash()`, so only push server-wallet cash plus positions
+  // as the synthetic external NAV component.
+  const posBase = humanUsdToUsdcBaseUnits(valuation.syntheticOnchainPositionsValue);
+  // realizedPnl is `int256` onchain — preserve sign so losses are reflected in NAV.
+  const rPnLBase = valuation.realizedPnl >= 0
+    ? humanUsdToUsdcBaseUnits(valuation.realizedPnl)
+    : -humanUsdToUsdcBaseUnits(-valuation.realizedPnl);
 
-    const lastPushed = lastOnchainNavValue.get(pool.id);
-    const navChanged = !lastPushed || lastPushed.pos !== posBase || lastPushed.pnl !== rPnLBase;
-    const navPushDue =
-      Date.now() - (lastOnchainNavPushAt.get(pool.id) ?? 0) >= onchainNavPushIntervalMs(env);
+  const lastPushed = lastOnchainNavValue.get(pool.id);
+  const navChanged = !lastPushed || lastPushed.pos !== posBase || lastPushed.pnl !== rPnLBase;
+  const navPushDue =
+    Date.now() - (lastOnchainNavPushAt.get(pool.id) ?? 0) >= onchainNavPushIntervalMs(env);
 
-    if (onchainNavPushEnabled(env) && env.BASE_EXECUTOR_PRIVATE_KEY && navPushDue && navChanged) {
-      try {
-        await withBaseRpcRetry(env, async (provider) => {
-          const vault = await getVaultContract(env, provider, {
-            clubName: pool.clubName,
-            vaultAddress: pool.vaultAddress ?? undefined
-          });
-          const tx = await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
-          try {
-            await tx.wait(); // serialize when the RPC can confirm the tx
-          } catch (err) {
-            if (!isRpcRateLimitError(err)) throw err;
-          }
-        }, { maxRetriesPerUrl: 1 });
-        // Only record on success so failures retry on the next cycle.
-        lastOnchainNavPushAt.set(pool.id, Date.now());
-        lastOnchainNavValue.set(pool.id, { pos: posBase, pnl: rPnLBase });
-      } catch {
-        // Onchain valuation update failure shouldn't block price recalculation.
-      }
+  if (readVaultCash && onchainNavPushEnabled(env) && env.BASE_EXECUTOR_PRIVATE_KEY && navPushDue && navChanged) {
+    try {
+      await withBaseRpcRetry(env, async (provider) => {
+        const vault = await getVaultContract(env, provider, {
+          clubName: pool.clubName,
+          vaultAddress: pool.vaultAddress ?? undefined
+        });
+        const tx = await (vault as any).setPoolValuation(posBase.toString(), rPnLBase.toString());
+        try {
+          await tx.wait(); // serialize when the RPC can confirm the tx
+        } catch (err) {
+          if (!isRpcRateLimitError(err)) throw err;
+        }
+      }, { maxRetriesPerUrl: 1 });
+      // Only record on success so failures retry on the next cycle.
+      lastOnchainNavPushAt.set(pool.id, Date.now());
+      lastOnchainNavValue.set(pool.id, { pos: posBase, pnl: rPnLBase });
+    } catch {
+      // Onchain valuation update failure shouldn't block price recalculation.
     }
+  }
+
+  return { valuation, valuationSnapshot };
+}
+
+export async function recalculateOfficialPrices(env: Env) {
+  const pools = await prisma.club_pools.findMany({ where: { status: "ACTIVE" }, select: { id: true } });
+
+  for (const pool of pools) {
+    await recalculateOfficialPriceForPool(env, pool.id);
   }
 }
