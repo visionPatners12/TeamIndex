@@ -2671,7 +2671,7 @@ function startHttpServer({ env, logger }) {
             const outcomeIndex = body.outcome === "yes" ? 0 : 1;
             const side = body.outcome === "yes" ? "YES" : "NO";
             const plannedQuantity = body.amountUsd / bestAsk;
-            const clobOrderId = orderResult?.orderId ?? orderResult?.orderID ?? orderResult?.id ?? null;
+            const clobOrderId = (0, limitlessOrderClient_1.getLimitlessOrderId)(orderResult);
             const position = await prisma_1.prisma.club_pool_positions.create({
                 data: {
                     poolId: body.poolId,

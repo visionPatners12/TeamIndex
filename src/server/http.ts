@@ -55,6 +55,7 @@ import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
 import { fetchLimitlessMarketData, fetchLimitlessMarketDataBatch } from "../limitless/limitlessMarketData";
 import {
   getBestBidAsk,
+  getLimitlessOrderId,
   getOrderBook,
   getOrderRejectMessage,
   isAcceptedOrderResult,
@@ -2955,8 +2956,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       const outcomeIndex = body.outcome === "yes" ? 0 : 1;
       const side = body.outcome === "yes" ? "YES" : "NO";
       const plannedQuantity = body.amountUsd / bestAsk;
-      const clobOrderId =
-        (orderResult as any)?.orderId ?? (orderResult as any)?.orderID ?? (orderResult as any)?.id ?? null;
+      const clobOrderId = getLimitlessOrderId(orderResult);
 
       const position = await prisma.club_pool_positions.create({
         data: {

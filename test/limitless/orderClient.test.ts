@@ -1,5 +1,11 @@
 import { expect } from "chai";
-import { extractExpectedExchangeAddress, postLimitlessOrder } from "../../src/limitless/limitlessOrderClient";
+import {
+  extractExpectedExchangeAddress,
+  getLimitlessOrderId,
+  getOrderRejectMessage,
+  isAcceptedOrderResult,
+  postLimitlessOrder,
+} from "../../src/limitless/limitlessOrderClient";
 
 describe("Limitless order client", () => {
   const originalFetch = globalThis.fetch;
@@ -63,5 +69,32 @@ describe("Limitless order client", () => {
     expect(postedBody.onBehalfOf).to.equal(1424206);
     expect(postedBody.order.maker).to.equal(makerAddress);
     expect(postedBody.order.signer).to.equal(makerAddress);
+  });
+
+  it("accepts nested delayed Limitless order responses and extracts the nested order id", () => {
+    const result = {
+      order: {
+        id: "b692a685-a1ca-49ae-a553-f193070be471",
+        market: { slug: "portugal-1782637203182" },
+      },
+      execution: {
+        matched: false,
+        settlementStatus: "DELAYED",
+      },
+    };
+
+    expect(isAcceptedOrderResult(result)).to.equal(true);
+    expect(getLimitlessOrderId(result)).to.equal("b692a685-a1ca-49ae-a553-f193070be471");
+  });
+
+  it("rejects nested failed Limitless order responses and includes the nested status in the message", () => {
+    const result = {
+      order: { id: "ord_failed" },
+      execution: { settlementStatus: "FAILED" },
+      message: "insufficient balance",
+    };
+
+    expect(isAcceptedOrderResult(result)).to.equal(false);
+    expect(getOrderRejectMessage(result)).to.equal("Order rejected (FAILED): insufficient balance");
   });
 });

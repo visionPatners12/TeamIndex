@@ -1,16 +1,16 @@
-# Graph Report - TeamIndex  (2026-07-01)
+# Graph Report - TeamIndex  (2026-07-02)
 
 ## Corpus Check
-- 79 files · ~55,092 words
+- 79 files · ~55,264 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 560 nodes · 1224 edges · 37 communities (30 shown, 7 thin omitted)
+- 561 nodes · 1232 edges · 37 communities (30 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `61fbf534`
+- Built from commit: `86c82a50`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -43,7 +43,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `getVaultContract()` - 35 edges
-2. `executeLimitlessTranche()` - 28 edges
+2. `executeLimitlessTranche()` - 29 edges
 3. `Env` - 24 edges
 4. `scripts` - 18 edges
 5. `syncLimitlessPortfolioForPool()` - 18 edges
@@ -71,20 +71,20 @@
 ## Communities (37 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
-Nodes (60): globalForPrisma, getMarketBySlug(), getOrderBook(), decodeLimitlessTokenId(), discoverLimitlessClubCandidates(), DiscoverLimitlessInputs, claimQueue(), decToNumber() (+52 more)
+Cohesion: 0.08
+Nodes (52): getMarketBySlug(), getOrderBook(), claimQueue(), decToNumber(), ensurePoolLimitlessServerWallet(), ExecuteLimitlessParams, executeLimitlessTranche(), finishQueue() (+44 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.15
-Nodes (25): assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getEntityLinkedLimitlessMarketsForTeam(), getLegacyLimitlessTeamCounts(), getLimitlessMarketsForTeam(), getLimitlessTeamCountsFromEntityLinks(), getSportsDataTeamName() (+17 more)
+Cohesion: 0.14
+Nodes (26): discoverLimitlessClubCandidates(), assertUuid(), ColumnRow, getCachedLimitlessMarketsForTeam(), getEntityLinkedLimitlessMarketsForTeam(), getLegacyLimitlessTeamCounts(), getLimitlessMarketsForTeam(), getLimitlessTeamCountsFromEntityLinks() (+18 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
 Nodes (41): alignedLogitReturnCorr(), blendedCorr(), buildCovariance(), chosenSideSeries(), clamp(), computeEdge(), computeTsFeatures(), Edge (+33 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.13
-Nodes (25): Env, EnvSchema, loadEnv(), createLogger(), SerializedError, assertRequiredTablesExist(), baselineMigrations, commandErrorOutput() (+17 more)
+Cohesion: 0.10
+Nodes (32): Env, EnvSchema, loadEnv(), createLogger(), SerializedError, assertRequiredTablesExist(), baselineMigrations, commandErrorOutput() (+24 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.13
@@ -100,7 +100,7 @@ Nodes (26): authHeaders(), detectSportHints(), extractPrices(), getHistoricalPri
 
 ### Community 7 - "Community 7"
 Cohesion: 0.07
-Nodes (54): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), compactRpcError() (+46 more)
+Nodes (57): compactRpcError(), errorText(), getLogsBlockChunkSize(), getRpcRateLimitCooldownUntil(), isRpcRateLimitError(), LogRetryLogger, normalizeOptions(), positiveIntFromEnv() (+49 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.11
@@ -115,8 +115,8 @@ Cohesion: 0.10
 Nodes (39): serializeError(), applyNormalizedPortfolioPositions(), asArray(), authHeaders(), extractRealizedPnl(), fetchPortfolioHistory(), fetchPortfolioPnlChart(), fetchPortfolioPositions() (+31 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.11
-Nodes (36): buildPathWithQuery(), hasLimitlessHmacConfig(), limitlessBase(), limitlessFetch(), limitlessGetJson(), limitlessRequestJson(), limitlessRequestTimeoutMs(), limitlessRestAuthHeaders() (+28 more)
+Cohesion: 0.10
+Nodes (37): buildPathWithQuery(), hasLimitlessHmacConfig(), limitlessBase(), limitlessFetch(), limitlessGetJson(), limitlessRequestJson(), limitlessRequestTimeoutMs(), limitlessRestAuthHeaders() (+29 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.15
@@ -124,7 +124,7 @@ Nodes (12): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, 
 
 ### Community 14 - "Community 14"
 Cohesion: 0.19
-Nodes (18): getErc20Balance(), calculatePoolValuation(), dbStr(), decToNumber(), humanUsdToUsdcBaseUnits(), lastOnchainNavPushAt, lastOnchainNavValue, onchainNavPushEnabled() (+10 more)
+Nodes (15): assertAddress(), CdpSqlResponse, CdpTransferEvent, fetchVaultTransferEventsFromCdpSql(), isCdpSqlConfigured(), runCdpSqlQuery(), tokenFromEnv(), addTouchedHolder() (+7 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.13
@@ -154,13 +154,13 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.047) - this node is a cross-community bridge._
 - **Why does `runAllocationEngine()` connect `Community 2` to `Community 5`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `syncLimitlessPortfolioForPool()` connect `Community 11` to `Community 5`, `Community 14`?**
+- **Why does `syncLimitlessPortfolioForPool()` connect `Community 11` to `Community 5`, `Community 7`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **What connects `allow`, `PreToolUse`, `config` to the rest of the system?**
   _149 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.06672519754170325 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08270676691729323 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.1455026455026455 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13793103448275862 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09191919191919191 - nodes in this community are weakly interconnected._

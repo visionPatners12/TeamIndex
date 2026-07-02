@@ -19,6 +19,7 @@ import type { Env } from "../config/env";
 import { prisma } from "../db/prisma";
 import {
   getBestBidAsk,
+  getLimitlessOrderId,
   postLimitlessOrder,
   isAcceptedOrderResult,
   getOrderRejectMessage,
@@ -367,8 +368,7 @@ export async function executeLimitlessTranche(params: ExecuteLimitlessParams) {
       return { skipped: true, reason: "order_rejected", orderResult };
     }
 
-    const clobOrderId: string | undefined =
-      (orderResult as any)?.orderId ?? (orderResult as any)?.orderID ?? (orderResult as any)?.id;
+    const clobOrderId = getLimitlessOrderId(orderResult) ?? undefined;
 
     // ── Persist position + close queue atomically ─────────────────────────
     await prisma.$transaction([

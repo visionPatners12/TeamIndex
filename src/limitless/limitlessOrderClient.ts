@@ -750,13 +750,43 @@ export async function getLimitlessOrder(
 export function isAcceptedOrderResult(result: LimitlessOrderResult | null): boolean {
   if (!result) return false;
   if (result.success === false) return false;
-  const s = String(result.status ?? "").toLowerCase();
-  return s === "live" || s === "matched" || s === "open" || s === "delayed";
+  const statuses = [
+    result.status,
+    (result as any).order?.status,
+    (result as any).execution?.status,
+    (result as any).execution?.settlementStatus,
+  ]
+    .map(status => String(status ?? "").toLowerCase())
+    .filter(Boolean);
+  const rejectedStatuses = new Set(["rejected", "reject", "cancelled", "canceled", "failed", "failure", "error"]);
+  if (statuses.some(status => rejectedStatuses.has(status))) return false;
+
+  const acceptedStatuses = new Set(["live", "matched", "open", "pending", "delayed"]);
+  if (statuses.some(status => acceptedStatuses.has(status))) return true;
+
+  return getLimitlessOrderId(result) !== null && !(result as any).error && !(result as any).message;
+}
+
+export function getLimitlessOrderId(result: LimitlessOrderResult | null): string | null {
+  const id =
+    result?.orderId ??
+    (result as any)?.orderID ??
+    result?.id ??
+    (result as any)?.order?.orderId ??
+    (result as any)?.order?.orderID ??
+    (result as any)?.order?.id;
+  return id == null || id === "" ? null : String(id);
 }
 
 export function getOrderRejectMessage(result: LimitlessOrderResult | null): string {
   if (!result) return "No order result";
-  const status = String(result.status ?? "unknown");
+  const status = String(
+    result.status ??
+    (result as any).order?.status ??
+    (result as any).execution?.status ??
+    (result as any).execution?.settlementStatus ??
+    "unknown"
+  );
   const msg = result.errorMsg ?? (result as any).error ?? (result as any).message;
   return msg ? `Order rejected (${status}): ${msg}` : `Order rejected (${status})`;
 }

@@ -303,7 +303,7 @@ async function executeLimitlessTranche(params) {
             await finishQueue(queue.id, "FAILED", lastError);
             return { skipped: true, reason: "order_rejected", orderResult };
         }
-        const clobOrderId = orderResult?.orderId ?? orderResult?.orderID ?? orderResult?.id;
+        const clobOrderId = (0, limitlessOrderClient_1.getLimitlessOrderId)(orderResult) ?? undefined;
         // ── Persist position + close queue atomically ─────────────────────────
         await prisma_1.prisma.$transaction([
             prisma_1.prisma.club_pool_positions.upsert({

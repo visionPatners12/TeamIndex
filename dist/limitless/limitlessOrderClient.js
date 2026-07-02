@@ -64,6 +64,7 @@ exports.quoteLimitlessOrderAmounts = quoteLimitlessOrderAmounts;
 exports.postLimitlessOrder = postLimitlessOrder;
 exports.getLimitlessOrder = getLimitlessOrder;
 exports.isAcceptedOrderResult = isAcceptedOrderResult;
+exports.getLimitlessOrderId = getLimitlessOrderId;
 exports.getOrderRejectMessage = getOrderRejectMessage;
 exports.assertLimitlessTradingConfig = assertLimitlessTradingConfig;
 exports.isLimitlessTradingReady = isLimitlessTradingReady;
@@ -613,13 +614,39 @@ function isAcceptedOrderResult(result) {
         return false;
     if (result.success === false)
         return false;
-    const s = String(result.status ?? "").toLowerCase();
-    return s === "live" || s === "matched" || s === "open" || s === "delayed";
+    const statuses = [
+        result.status,
+        result.order?.status,
+        result.execution?.status,
+        result.execution?.settlementStatus,
+    ]
+        .map(status => String(status ?? "").toLowerCase())
+        .filter(Boolean);
+    const rejectedStatuses = new Set(["rejected", "reject", "cancelled", "canceled", "failed", "failure", "error"]);
+    if (statuses.some(status => rejectedStatuses.has(status)))
+        return false;
+    const acceptedStatuses = new Set(["live", "matched", "open", "pending", "delayed"]);
+    if (statuses.some(status => acceptedStatuses.has(status)))
+        return true;
+    return getLimitlessOrderId(result) !== null && !result.error && !result.message;
+}
+function getLimitlessOrderId(result) {
+    const id = result?.orderId ??
+        result?.orderID ??
+        result?.id ??
+        result?.order?.orderId ??
+        result?.order?.orderID ??
+        result?.order?.id;
+    return id == null || id === "" ? null : String(id);
 }
 function getOrderRejectMessage(result) {
     if (!result)
         return "No order result";
-    const status = String(result.status ?? "unknown");
+    const status = String(result.status ??
+        result.order?.status ??
+        result.execution?.status ??
+        result.execution?.settlementStatus ??
+        "unknown");
     const msg = result.errorMsg ?? result.error ?? result.message;
     return msg ? `Order rejected (${status}): ${msg}` : `Order rejected (${status})`;
 }
