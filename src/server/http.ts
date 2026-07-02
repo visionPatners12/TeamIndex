@@ -78,11 +78,6 @@ import {
 import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
 import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
 import {
-  startPoolPositionsRealtimeListener,
-  subscribePoolPositions,
-  type PoolPositionsChange,
-} from "./poolRealtime";
-import {
   getBaseBlockNumber,
   getBaseProvider,
   getBaseTransactionReceipt,
@@ -101,7 +96,6 @@ declare global {
 export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<typeof createLogger> }) {
   const app = express();
   app.set("etag", false);
-  startPoolPositionsRealtimeListener({ databaseUrl: env.DATABASE_URL, logger });
 
   app.use((_req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");

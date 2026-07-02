@@ -5,7 +5,7 @@ import { startWorker } from "./workers/startWorker";
 import { initDb } from "./db/initDb";
 import { startPriceTicker } from "./workers/priceTicker";
 import { startVaultSyncTicker } from "./workers/vaultSyncTicker";
-import { startLimitlessWebsocketTicker } from "./workers/limitlessWebsocketTicker";
+import { startLimitlessPortfolioPollingTicker } from "./workers/limitlessPortfolioPollingTicker";
 
 async function main() {
   const env = loadEnv();
@@ -47,9 +47,9 @@ async function main() {
   }
 
   try {
-    startLimitlessWebsocketTicker({ env, logger });
+    startLimitlessPortfolioPollingTicker({ env, logger });
   } catch (err: any) {
-    logger.error({ err }, "Limitless websocket ticker crashed");
+    logger.error({ err }, "Limitless portfolio polling ticker crashed");
   }
 }
 

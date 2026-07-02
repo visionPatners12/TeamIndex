@@ -108,6 +108,7 @@ function normalizePortfolioPositions(raw) {
             const fillPrice = pickNumber(payload, ["fillPrice", "averageFillPrice"], priceNumber);
             const quantity = pickNumber(payload, ["quantity", "ctfBalance", "balance", "outcomeTokenAmount"], humanOrBase6) ||
                 (fillPrice > 0 && cost > 0 ? cost / fillPrice : 0);
+            const entryPrice = fillPrice || (quantity > 0 && cost > 0 ? cost / quantity : 0);
             if (marketValue === 0 && cost === 0 && unrealizedPnl === 0 && realizedPnl === 0 && quantity === 0)
                 continue;
             normalized.push({
@@ -121,6 +122,7 @@ function normalizePortfolioPositions(raw) {
                 marketValue,
                 unrealizedPnl,
                 realizedPnl,
+                entryPrice,
                 raw: { ...row, normalizedSide: side, sidePayload: payload },
             });
         }
@@ -131,17 +133,19 @@ function normalizePortfolioPositions(raw) {
         const marketValue = pickNumber(row, ["collateralOutOnSell", "marketValue"], humanOrBase6) ||
             pickNumber(row, ["collateralAmount"], humanOrBase6);
         const cost = pickNumber(row, ["collateralAmount", "cost"], humanOrBase6);
+        const quantity = pickNumber(row, ["outcomeTokenAmount", "balance"], humanOrBase6);
         normalized.push({
             marketSlug: pickString(row, ["market.slug", "market.id", "market.address", "marketAddress"]),
             marketId: pickString(row, ["market.slug", "market.id", "market.address", "marketAddress"]),
             outcome: outcomeIndex === 0 ? "yes" : outcomeIndex === 1 ? "no" : null,
             outcomeIndex,
             tokenId: pickString(row, ["tokenId"]),
-            quantity: pickNumber(row, ["outcomeTokenAmount", "balance"], humanOrBase6),
+            quantity,
             cost,
             marketValue,
             unrealizedPnl: marketValue - cost,
             realizedPnl: 0,
+            entryPrice: quantity > 0 && cost > 0 ? cost / quantity : 0,
             raw: row,
         });
     }
@@ -171,11 +175,12 @@ async function fetchPortfolioPnlChart(env, profileId, timeframe = "7d") {
 }
 async function applyNormalizedPortfolioPositions(poolId, positions) {
     if (!positions.length)
-        return { updated: 0 };
+        return { updated: 0, created: 0 };
     const localPositions = await prisma_1.prisma.club_pool_positions.findMany({
         where: { poolId, status: "OPEN", tokenId: { contains: ":" } },
     });
     let updated = 0;
+    let created = 0;
     for (const remote of positions) {
         if (!remote.marketSlug && !remote.marketId)
             continue;
@@ -184,23 +189,59 @@ async function applyNormalizedPortfolioPositions(poolId, positions) {
             return (pos.marketId === remote.marketSlug || pos.marketId === remote.marketId) &&
                 (remote.outcome == null || localOutcome === remote.outcome);
         });
-        if (!local)
+        const marketId = remote.marketSlug ?? remote.marketId;
+        if (!marketId || remote.outcome == null)
             continue;
+        const side = remote.outcome === "yes" ? "YES" : "NO";
+        const nextInvested = remote.cost > 0 ? remote.cost : 0;
+        const entryPrice = remote.entryPrice || (remote.quantity > 0 && nextInvested > 0 ? nextInvested / remote.quantity : 0.5);
+        if (!local) {
+            const tokenId = `${marketId}:${remote.outcomeIndex ?? (remote.outcome === "yes" ? 0 : 1)}`;
+            const position = await prisma_1.prisma.$transaction(async (tx) => {
+                if (nextInvested > 0) {
+                    await tx.club_pools.update({
+                        where: { id: poolId },
+                        data: { cash: { decrement: nextInvested.toString() } },
+                    });
+                }
+                return tx.club_pool_positions.create({
+                    data: {
+                        poolId,
+                        eventId: marketId,
+                        marketId,
+                        tokenId,
+                        side,
+                        entryPrice: entryPrice.toString(),
+                        plannedStake: nextInvested.toString(),
+                        plannedQuantity: remote.quantity.toString(),
+                        stake: nextInvested.toString(),
+                        quantity: remote.quantity.toString(),
+                        investedAmount: nextInvested.toString(),
+                        currentValue: remote.marketValue.toString(),
+                        realizedPnl: remote.realizedPnl.toString(),
+                        status: "OPEN",
+                    },
+                });
+            });
+            localPositions.push(position);
+            created += 1;
+            continue;
+        }
         const previousInvested = num(local.investedAmount?.toString?.() ?? local.investedAmount);
-        const nextInvested = remote.cost > 0 ? remote.cost : previousInvested;
+        const updatedInvested = remote.cost > 0 ? remote.cost : previousInvested;
         const data = {
             currentValue: remote.marketValue.toString(),
         };
         if (remote.quantity > 0)
             data.quantity = remote.quantity.toString();
-        if (nextInvested > 0) {
-            data.stake = nextInvested.toString();
-            data.investedAmount = nextInvested.toString();
+        if (updatedInvested > 0) {
+            data.stake = updatedInvested.toString();
+            data.investedAmount = updatedInvested.toString();
         }
         if (remote.realizedPnl !== 0)
             data.realizedPnl = remote.realizedPnl.toString();
         await prisma_1.prisma.$transaction(async (tx) => {
-            const deltaInvested = nextInvested - previousInvested;
+            const deltaInvested = updatedInvested - previousInvested;
             if (deltaInvested > 0) {
                 await tx.club_pools.update({
                     where: { id: poolId },
@@ -211,7 +252,7 @@ async function applyNormalizedPortfolioPositions(poolId, positions) {
         });
         updated += 1;
     }
-    return { updated };
+    return { updated, created };
 }
 async function syncLimitlessPortfolioForPool(env, poolId) {
     const pool = await prisma_1.prisma.club_pools.findUnique({ where: { id: poolId } });

@@ -161,17 +161,19 @@ async function handlePositionEvent(env, context, logger, raw) {
             : Math.trunc(num(row.outcomeIndex));
         const cost = (0, limitlessPortfolio_1.humanOrBase6)(row.costBasis);
         const marketValue = (0, limitlessPortfolio_1.humanOrBase6)(row.marketValue);
+        const quantity = (0, limitlessPortfolio_1.humanOrBase6)(row.ctfBalance ?? row.balance);
         normalized.push({
             marketSlug,
             marketId: marketSlug,
             outcome: outcomeIndex === 0 ? "yes" : outcomeIndex === 1 ? "no" : null,
             outcomeIndex,
             tokenId,
-            quantity: (0, limitlessPortfolio_1.humanOrBase6)(row.ctfBalance ?? row.balance),
+            quantity,
             cost,
             marketValue,
             unrealizedPnl: marketValue - cost,
             realizedPnl: 0,
+            entryPrice: quantity > 0 && cost > 0 ? cost / quantity : 0,
             raw: row,
         });
     }
@@ -281,7 +283,7 @@ async function handleMarketResolved(env, context, logger, raw) {
     await syncPools(env, logger, context.poolIdsByMarketSlug.get(slug) ?? []);
 }
 function startLimitlessWebsocketTicker({ env, logger }) {
-    if (String(env.LIMITLESS_WS_ENABLED ?? "true").toLowerCase() === "false") {
+    if (String(env.LIMITLESS_WS_ENABLED ?? "false").toLowerCase() === "false") {
         logger.warn({}, "Limitless websocket disabled");
         return;
     }

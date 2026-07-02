@@ -39,6 +39,7 @@ describe("Limitless portfolio normalization", () => {
       cost: 75,
       marketValue: 100,
       unrealizedPnl: 25,
+      entryPrice: 0.75,
     });
     expect(positions[0].quantity).to.equal(100);
     expect(positions[1]).to.include({
@@ -47,6 +48,7 @@ describe("Limitless portfolio normalization", () => {
       cost: 25,
       marketValue: 20,
       unrealizedPnl: -5,
+      entryPrice: 0.25,
     });
   });
 
@@ -68,6 +70,7 @@ describe("Limitless portfolio normalization", () => {
       cost: 100.5,
       marketValue: 100.5,
       quantity: 50.25,
+      entryPrice: 2,
     });
   });
 

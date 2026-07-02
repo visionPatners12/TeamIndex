@@ -7,7 +7,7 @@ const startWorker_1 = require("./workers/startWorker");
 const initDb_1 = require("./db/initDb");
 const priceTicker_1 = require("./workers/priceTicker");
 const vaultSyncTicker_1 = require("./workers/vaultSyncTicker");
-const limitlessWebsocketTicker_1 = require("./workers/limitlessWebsocketTicker");
+const limitlessPortfolioPollingTicker_1 = require("./workers/limitlessPortfolioPollingTicker");
 async function main() {
     const env = (0, env_1.loadEnv)();
     const logger = (0, log_1.createLogger)();
@@ -47,10 +47,10 @@ async function main() {
         logger.error({ err }, "Vault sync ticker crashed");
     }
     try {
-        (0, limitlessWebsocketTicker_1.startLimitlessWebsocketTicker)({ env, logger });
+        (0, limitlessPortfolioPollingTicker_1.startLimitlessPortfolioPollingTicker)({ env, logger });
     }
     catch (err) {
-        logger.error({ err }, "Limitless websocket ticker crashed");
+        logger.error({ err }, "Limitless portfolio polling ticker crashed");
     }
 }
 // Prevent unhandled promise rejections (e.g. RPC rate limits) from crashing the process

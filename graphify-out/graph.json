@@ -816,7 +816,7 @@
       "label": "Env",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L82",
+      "source_location": "L85",
       "id": "config_env_env",
       "community": 3,
       "norm_label": "env"
@@ -825,7 +825,7 @@
       "label": "loadEnv()",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L84",
+      "source_location": "L87",
       "id": "config_env_loadenv",
       "community": 3,
       "norm_label": "loadenv()"
@@ -971,7 +971,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L1",
       "id": "db_prisma",
-      "community": 7,
+      "community": 3,
       "norm_label": "prisma.ts"
     },
     {
@@ -980,7 +980,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L4",
       "id": "db_prisma_globalforprisma",
-      "community": 7,
+      "community": 3,
       "norm_label": "globalforprisma"
     },
     {
@@ -1025,7 +1025,7 @@
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L8",
       "id": "limitless_limitlessauth_limitlesswsbase",
-      "community": 12,
+      "community": 11,
       "norm_label": "limitlesswsbase()"
     },
     {
@@ -1052,7 +1052,7 @@
       "source_file": "src/limitless/limitlessAuth.ts",
       "source_location": "L36",
       "id": "limitless_limitlessauth_haslimitlesshmacconfig",
-      "community": 12,
+      "community": 11,
       "norm_label": "haslimitlesshmacconfig()"
     },
     {
@@ -1322,7 +1322,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 3,
+      "community": 1,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -1637,7 +1637,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L184",
       "id": "limitless_limitlessorderclient_getmidpoint",
-      "community": 3,
+      "community": 0,
       "norm_label": "getmidpoint()"
     },
     {
@@ -1815,7 +1815,7 @@
       "label": "asArray()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L22",
+      "source_location": "L23",
       "id": "limitless_limitlessportfolio_asarray",
       "community": 11,
       "norm_label": "asarray()"
@@ -1824,7 +1824,7 @@
       "label": "num()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L34",
+      "source_location": "L35",
       "id": "limitless_limitlessportfolio_num",
       "community": 11,
       "norm_label": "num()"
@@ -1833,7 +1833,7 @@
       "label": "humanOrBase6()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L39",
+      "source_location": "L40",
       "id": "limitless_limitlessportfolio_humanorbase6",
       "community": 11,
       "norm_label": "humanorbase6()"
@@ -1842,7 +1842,7 @@
       "label": "priceNumber()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L47",
+      "source_location": "L48",
       "id": "limitless_limitlessportfolio_pricenumber",
       "community": 11,
       "norm_label": "pricenumber()"
@@ -1851,7 +1851,7 @@
       "label": "nestedValue()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L53",
+      "source_location": "L54",
       "id": "limitless_limitlessportfolio_nestedvalue",
       "community": 11,
       "norm_label": "nestedvalue()"
@@ -1860,7 +1860,7 @@
       "label": "pickString()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L64",
+      "source_location": "L65",
       "id": "limitless_limitlessportfolio_pickstring",
       "community": 11,
       "norm_label": "pickstring()"
@@ -1869,7 +1869,7 @@
       "label": "pickNumber()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L73",
+      "source_location": "L74",
       "id": "limitless_limitlessportfolio_picknumber",
       "community": 11,
       "norm_label": "picknumber()"
@@ -1878,7 +1878,7 @@
       "label": "pickDate()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L81",
+      "source_location": "L82",
       "id": "limitless_limitlessportfolio_pickdate",
       "community": 11,
       "norm_label": "pickdate()"
@@ -1887,7 +1887,7 @@
       "label": "positionSidePayload()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L93",
+      "source_location": "L94",
       "id": "limitless_limitlessportfolio_positionsidepayload",
       "community": 11,
       "norm_label": "positionsidepayload()"
@@ -1896,7 +1896,7 @@
       "label": "normalizePortfolioPositions()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L100",
+      "source_location": "L101",
       "id": "limitless_limitlessportfolio_normalizeportfoliopositions",
       "community": 11,
       "norm_label": "normalizeportfoliopositions()"
@@ -1905,7 +1905,7 @@
       "label": "extractRealizedPnl()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L159",
+      "source_location": "L164",
       "id": "limitless_limitlessportfolio_extractrealizedpnl",
       "community": 11,
       "norm_label": "extractrealizedpnl()"
@@ -1914,7 +1914,7 @@
       "label": "fetchPortfolioPositions()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L171",
+      "source_location": "L176",
       "id": "limitless_limitlessportfolio_fetchportfoliopositions",
       "community": 11,
       "norm_label": "fetchportfoliopositions()"
@@ -1923,7 +1923,7 @@
       "label": "fetchPortfolioHistory()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L180",
+      "source_location": "L185",
       "id": "limitless_limitlessportfolio_fetchportfoliohistory",
       "community": 11,
       "norm_label": "fetchportfoliohistory()"
@@ -1932,7 +1932,7 @@
       "label": "fetchPortfolioPnlChart()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L189",
+      "source_location": "L194",
       "id": "limitless_limitlessportfolio_fetchportfoliopnlchart",
       "community": 11,
       "norm_label": "fetchportfoliopnlchart()"
@@ -1941,7 +1941,7 @@
       "label": "applyNormalizedPortfolioPositions()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L198",
+      "source_location": "L203",
       "id": "limitless_limitlessportfolio_applynormalizedportfoliopositions",
       "community": 11,
       "norm_label": "applynormalizedportfoliopositions()"
@@ -1950,7 +1950,7 @@
       "label": "syncLimitlessPortfolioForPool()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessPortfolio.ts",
-      "source_location": "L241",
+      "source_location": "L284",
       "id": "limitless_limitlessportfolio_synclimitlessportfolioforpool",
       "community": 11,
       "norm_label": "synclimitlessportfolioforpool()"
@@ -2303,7 +2303,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 7,
+      "community": 14,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2312,7 +2312,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 7,
+      "community": 14,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2321,7 +2321,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 7,
+      "community": 14,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2330,7 +2330,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 7,
+      "community": 14,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2339,7 +2339,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 7,
+      "community": 14,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2348,7 +2348,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 7,
+      "community": 14,
       "norm_label": "assertaddress()"
     },
     {
@@ -2357,7 +2357,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 7,
+      "community": 14,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2366,7 +2366,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 7,
+      "community": 14,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2528,7 +2528,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 7,
+      "community": 14,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2537,7 +2537,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 7,
+      "community": 14,
       "norm_label": "syncinputs"
     },
     {
@@ -2546,7 +2546,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 7,
+      "community": 14,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2555,7 +2555,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 7,
+      "community": 14,
       "norm_label": "dectostr()"
     },
     {
@@ -2564,7 +2564,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 7,
+      "community": 14,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2573,7 +2573,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 7,
+      "community": 14,
       "norm_label": "transferposition()"
     },
     {
@@ -2582,7 +2582,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 7,
+      "community": 14,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2591,7 +2591,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 7,
+      "community": 14,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2600,7 +2600,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 7,
+      "community": 14,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2609,7 +2609,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 7,
+      "community": 14,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -4143,6 +4143,60 @@
       "norm_label": "failchaineventcursor()"
     },
     {
+      "label": "limitlessPortfolioPollingTicker.ts",
+      "file_type": "code",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L1",
+      "id": "workers_limitlessportfoliopollingticker",
+      "community": 11,
+      "norm_label": "limitlessportfoliopollingticker.ts"
+    },
+    {
+      "label": "Logger",
+      "file_type": "code",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L7",
+      "id": "workers_limitlessportfoliopollingticker_logger",
+      "community": 11,
+      "norm_label": "logger"
+    },
+    {
+      "label": "envBool()",
+      "file_type": "code",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L13",
+      "id": "workers_limitlessportfoliopollingticker_envbool",
+      "community": 11,
+      "norm_label": "envbool()"
+    },
+    {
+      "label": "activeLimitlessPoolIds()",
+      "file_type": "code",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L18",
+      "id": "workers_limitlessportfoliopollingticker_activelimitlesspoolids",
+      "community": 11,
+      "norm_label": "activelimitlesspoolids()"
+    },
+    {
+      "label": "syncAllLimitlessPortfolios()",
+      "file_type": "code",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L30",
+      "id": "workers_limitlessportfoliopollingticker_syncalllimitlessportfolios",
+      "community": 11,
+      "norm_label": "syncalllimitlessportfolios()"
+    },
+    {
+      "label": "startLimitlessPortfolioPollingTicker()",
+      "file_type": "code",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L49",
+      "id": "workers_limitlessportfoliopollingticker_startlimitlessportfoliopollingticker",
+      "community": 11,
+      "norm_label": "startlimitlessportfoliopollingticker()"
+    },
+    {
       "label": "limitlessWebsocketTicker.ts",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
@@ -4290,7 +4344,7 @@
       "label": "upsertWsTrade()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L214",
+      "source_location": "L216",
       "id": "workers_limitlesswebsocketticker_upsertwstrade",
       "community": 11,
       "norm_label": "upsertwstrade()"
@@ -4299,7 +4353,7 @@
       "label": "handleOrderEvent()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L246",
+      "source_location": "L248",
       "id": "workers_limitlesswebsocketticker_handleorderevent",
       "community": 11,
       "norm_label": "handleorderevent()"
@@ -4308,7 +4362,7 @@
       "label": "handleMarketResolved()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L307",
+      "source_location": "L309",
       "id": "workers_limitlesswebsocketticker_handlemarketresolved",
       "community": 11,
       "norm_label": "handlemarketresolved()"
@@ -4317,9 +4371,9 @@
       "label": "startLimitlessWebsocketTicker()",
       "file_type": "code",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
-      "source_location": "L321",
+      "source_location": "L323",
       "id": "workers_limitlesswebsocketticker_startlimitlesswebsocketticker",
-      "community": 12,
+      "community": 11,
       "norm_label": "startlimitlesswebsocketticker()"
     },
     {
@@ -6074,6 +6128,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "config_env"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -6327,6 +6392,17 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "config_env_env"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -6467,6 +6543,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "config_log"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -6483,6 +6570,28 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "server_http",
+      "target": "config_log_serializeerror"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "config_log_serializeerror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "workers_limitlessportfoliopollingticker_syncalllimitlessportfolios",
       "target": "config_log_serializeerror"
     },
     {
@@ -6909,6 +7018,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "db_prisma"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
       "source_location": "L3",
       "weight": 1.0,
@@ -6958,6 +7078,28 @@
       "confidence_score": 1.0,
       "source": "src_index",
       "target": "src_index_main"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_index",
+      "target": "workers_limitlessportfoliopollingticker"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_index",
+      "target": "workers_limitlessportfoliopollingticker_startlimitlessportfoliopollingticker"
     },
     {
       "relation": "imports_from",
@@ -7057,6 +7199,17 @@
       "confidence_score": 1.0,
       "source": "src_index_main",
       "target": "server_http_starthttpserver"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_index_main",
+      "target": "workers_limitlessportfoliopollingticker_startlimitlessportfoliopollingticker"
     },
     {
       "relation": "calls",
@@ -7280,6 +7433,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "limitless_limitlessauth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
       "source_location": "L4",
       "weight": 1.0,
@@ -7407,6 +7571,28 @@
       "confidence_score": 1.0,
       "source": "limitless_partneraccounts_fetchlimitlesssigningmessage",
       "target": "limitless_limitlessauth_limitlessfetch"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "limitless_limitlessauth_haslimitlesshmacconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "workers_limitlessportfoliopollingticker_startlimitlessportfoliopollingticker",
+      "target": "limitless_limitlessauth_haslimitlesshmacconfig"
     },
     {
       "relation": "imports",
@@ -8382,9 +8568,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "limitless_limitlessexecutor_base6tonumber",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_base6tonumber"
     },
     {
       "relation": "contains",
@@ -8452,9 +8638,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "limitless_limitlessexecutor_fixed4",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_fixed4"
     },
     {
       "relation": "contains",
@@ -8492,9 +8678,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "limitless_limitlessexecutor_percent4",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_percent4"
     },
     {
       "relation": "contains",
@@ -8799,9 +8985,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L411",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor_executelimitlesstranche",
-      "target": "limitless_limitlessexecutor_fixed4",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_fixed4"
     },
     {
       "relation": "calls",
@@ -8810,9 +8996,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L416",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor_executelimitlesstranche",
-      "target": "limitless_limitlessexecutor_percent4",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_percent4"
     },
     {
       "relation": "calls",
@@ -8821,9 +9007,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L385",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor_executelimitlesstranche",
-      "target": "limitless_limitlessexecutor_base6tonumber",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessexecutor_base6tonumber"
     },
     {
       "relation": "calls",
@@ -10463,6 +10649,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "limitless_limitlessportfolio"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/limitlessWebsocketTicker.ts",
       "source_location": "L9",
       "weight": 1.0,
@@ -10886,6 +11083,28 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "server_http",
+      "target": "limitless_limitlessportfolio_synclimitlessportfolioforpool"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "limitless_limitlessportfolio_synclimitlessportfolioforpool"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "workers_limitlessportfoliopollingticker_syncalllimitlessportfolios",
       "target": "limitless_limitlessportfolio_synclimitlessportfolioforpool"
     },
     {
@@ -17202,6 +17421,78 @@
       "target": "workers_chaineventcursor_failchaineventcursor"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "workers_limitlessportfoliopollingticker_activelimitlesspoolids"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "workers_limitlessportfoliopollingticker_envbool"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "workers_limitlessportfoliopollingticker_logger"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "workers_limitlessportfoliopollingticker_startlimitlessportfoliopollingticker"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker",
+      "target": "workers_limitlessportfoliopollingticker_syncalllimitlessportfolios"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker_startlimitlessportfoliopollingticker",
+      "target": "workers_limitlessportfoliopollingticker_envbool"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/limitlessPortfolioPollingTicker.ts",
+      "source_location": "L30",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_limitlessportfoliopollingticker_syncalllimitlessportfolios",
+      "target": "workers_limitlessportfoliopollingticker_activelimitlesspoolids"
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -18212,5 +18503,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0f43049a1fd4353bdf2d1c08fd6a636ba43bbd10"
+  "built_at_commit": "82ad138997bec5358ed74bb9395e91fb2fa20845"
 }

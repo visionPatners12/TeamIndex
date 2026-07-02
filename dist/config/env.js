@@ -45,8 +45,11 @@ const EnvSchema = zod_1.z.object({
     // Scoped HMAC token used for partner accounts and delegated signing.
     LIMITLESS_API_SECRET: zod_1.z.string().optional(),
     LIMITLESS_WS_URL: zod_1.z.string().optional().default("wss://ws.limitless.exchange/markets"),
-    LIMITLESS_WS_ENABLED: zod_1.z.string().optional().default("true"),
+    LIMITLESS_WS_ENABLED: zod_1.z.string().optional().default("false"),
     LIMITLESS_WS_RECONCILE_INTERVAL_MS: zod_1.z.string().optional().default("600000"),
+    LIMITLESS_PORTFOLIO_POLL_ENABLED: zod_1.z.string().optional().default("true"),
+    LIMITLESS_PORTFOLIO_POLL_INTERVAL_MS: zod_1.z.string().optional().default("900000"),
+    LIMITLESS_PORTFOLIO_POLL_INITIAL_DELAY_MS: zod_1.z.string().optional().default("5000"),
     LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: zod_1.z
         .string()
         .optional()
@@ -107,6 +110,9 @@ function loadEnv() {
         LIMITLESS_WS_URL: process.env.LIMITLESS_WS_URL,
         LIMITLESS_WS_ENABLED: process.env.LIMITLESS_WS_ENABLED,
         LIMITLESS_WS_RECONCILE_INTERVAL_MS: process.env.LIMITLESS_WS_RECONCILE_INTERVAL_MS,
+        LIMITLESS_PORTFOLIO_POLL_ENABLED: process.env.LIMITLESS_PORTFOLIO_POLL_ENABLED,
+        LIMITLESS_PORTFOLIO_POLL_INTERVAL_MS: process.env.LIMITLESS_PORTFOLIO_POLL_INTERVAL_MS,
+        LIMITLESS_PORTFOLIO_POLL_INITIAL_DELAY_MS: process.env.LIMITLESS_PORTFOLIO_POLL_INITIAL_DELAY_MS,
         LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: process.env.LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED,
         LIMITLESS_FEE_RATE_BPS: process.env.LIMITLESS_FEE_RATE_BPS,
         LIMITLESS_CHAIN_ID: process.env.LIMITLESS_CHAIN_ID,

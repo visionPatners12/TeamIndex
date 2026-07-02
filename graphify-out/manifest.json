@@ -15,7 +15,7 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1782811535.5933003,
+    "mtime": 1783033315.1758993,
     "ast_hash": "fc32c7d4bb30f02f729b9f28c7cd4199",
     "semantic_hash": ""
   },
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1782815244.1910453,
-    "ast_hash": "883bc4a325e58676c0d2f08127a3f73f",
+    "mtime": 1783033434.0908327,
+    "ast_hash": "0a4abd25138a32b0a160050dcf2d2bb4",
     "semantic_hash": ""
   },
   "src/config/log.ts": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "src/index.ts": {
-    "mtime": 1782354188.3244858,
-    "ast_hash": "896b632a00e7f9082fc9f6279e14fbd0",
+    "mtime": 1783033424.141353,
+    "ast_hash": "a10c10a176047c8997b3c967ef339b56",
     "semantic_hash": ""
   },
   "src/limitless/limitlessClient.ts": {
@@ -220,7 +220,7 @@
     "semantic_hash": ""
   },
   "src/server/http.ts": {
-    "mtime": 1782960338.3364503,
+    "mtime": 1783033349.921641,
     "ast_hash": "edebc8a565fcacd8950e1837c386829f",
     "semantic_hash": ""
   },
@@ -310,8 +310,8 @@
     "semantic_hash": ""
   },
   "src/limitless/limitlessPortfolio.ts": {
-    "mtime": 1782893068.510334,
-    "ast_hash": "e0b42896ee624d8d208bd05e6ba0b052",
+    "mtime": 1783033398.9006822,
+    "ast_hash": "39ef21688d3cd2ac731f34b5a143f58e",
     "semantic_hash": ""
   },
   "src/limitless/partnerAccounts.ts": {
@@ -345,8 +345,8 @@
     "semantic_hash": ""
   },
   "src/workers/limitlessWebsocketTicker.ts": {
-    "mtime": 1782813731.5130043,
-    "ast_hash": "531ec9468741e178d0ccf35c152a2524",
+    "mtime": 1783033556.3232186,
+    "ast_hash": "c3b1c530564c35c4db463eb85a445393",
     "semantic_hash": ""
   },
   "test/limitless/auth.test.ts": {
@@ -355,8 +355,8 @@
     "semantic_hash": ""
   },
   "test/limitless/portfolio.test.ts": {
-    "mtime": 1782354250.9078562,
-    "ast_hash": "194444e9030569732054200e86808383",
+    "mtime": 1783033537.8592093,
+    "ast_hash": "7b19c2cf523be2f6cc7cf694372e639e",
     "semantic_hash": ""
   },
   "test/limitless/websocket.test.ts": {
@@ -392,6 +392,11 @@
   "test/services/priceEngine.test.ts": {
     "mtime": 1782893028.8287282,
     "ast_hash": "095f2ab330d05beda3ca9bb44c4f0f51",
+    "semantic_hash": ""
+  },
+  "src/workers/limitlessPortfolioPollingTicker.ts": {
+    "mtime": 1783033653.1347663,
+    "ast_hash": "b655b8e0b7a0eb8288b37572ff4df7fe",
     "semantic_hash": ""
   }
 }
