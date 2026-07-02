@@ -33,6 +33,15 @@ function decToNumber(d) {
         return Number(d.toString());
     return 0;
 }
+function fixed4(value) {
+    return Number.isFinite(value) ? value.toFixed(4) : "0.0000";
+}
+function percent4(value) {
+    return `${(Number.isFinite(value) ? value * 100 : 0).toFixed(4)}%`;
+}
+function base6ToNumber(value) {
+    return Number(value) / 1_000_000;
+}
 function getRiskPerMatchPct(poolRiskParams, fallback) {
     const p = poolRiskParams;
     const v = p?.maxPerMatchPct ?? p?.riskPerMatchPct ?? p?.perMatchPct;
@@ -304,6 +313,41 @@ async function executeLimitlessTranche(params) {
             return { skipped: true, reason: "order_rejected", orderResult };
         }
         const clobOrderId = (0, limitlessOrderClient_1.getLimitlessOrderId)(orderResult) ?? undefined;
+        const plannedQuantity = trancheStakeUsd / bestAsk;
+        const makerAmountUsdc = base6ToNumber(orderQuote.makerAmount);
+        const takerQuantity = base6ToNumber(orderQuote.takerAmount);
+        const orderDetails = {
+            id: clobOrderId ?? null,
+            status: String(orderResult.status ?? (orderResult.success ? "accepted" : "unknown")),
+            marketSlug,
+            outcome,
+            side: candidate.side,
+            price: bestAsk,
+            amountUsd: trancheStakeUsd,
+            plannedQuantity,
+            makerAmountUsdc,
+            takerQuantity,
+            serverWallet: {
+                ownerId,
+                address: serverWallet.walletAddress,
+                created: serverWallet.created,
+            },
+            quote: {
+                price: orderQuote.price,
+                makerAmount: orderQuote.makerAmount.toString(),
+                takerAmount: orderQuote.takerAmount.toString(),
+                makerAmountUsdc,
+                takerQuantity,
+            },
+            formatted: {
+                price: fixed4(bestAsk),
+                amountUsd: fixed4(trancheStakeUsd),
+                plannedQuantity: fixed4(plannedQuantity),
+                makerAmountUsdc: fixed4(makerAmountUsdc),
+                takerQuantity: fixed4(takerQuantity),
+                fillPct: percent4(0),
+            },
+        };
         // ── Persist position + close queue atomically ─────────────────────────
         await prisma_1.prisma.$transaction([
             prisma_1.prisma.club_pool_positions.upsert({
@@ -319,7 +363,7 @@ async function executeLimitlessTranche(params) {
                     entryPrice: String(bestAsk),
                     clobOrderId: clobOrderId ?? null,
                     plannedStake: trancheStakeUsd.toString(),
-                    plannedQuantity: (trancheStakeUsd / bestAsk).toString(),
+                    plannedQuantity: plannedQuantity.toString(),
                     stake: "0",
                     quantity: "0",
                     investedAmount: "0",
@@ -339,7 +383,7 @@ async function executeLimitlessTranche(params) {
                 },
             }),
         ]);
-        return { executed: true, orderResult };
+        return { executed: true, order: orderDetails, formatted: orderDetails.formatted, orderResult };
     }
     catch (err) {
         await finishQueue(queue.id, "FAILED", String(err?.message ?? err).slice(0, 500));

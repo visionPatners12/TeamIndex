@@ -305,6 +305,24 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     res.setHeader("Surrogate-Control", "no-store");
   }
 
+  function decimalNumber(value: unknown, fallback = 0) {
+    const raw = value && typeof (value as any).toString === "function" ? (value as any).toString() : value;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function fixed4(value: unknown) {
+    return decimalNumber(value).toFixed(4);
+  }
+
+  function percent4(value: unknown) {
+    return `${(decimalNumber(value) * 100).toFixed(4)}%`;
+  }
+
+  function usdcUnitsNumber(value: bigint) {
+    return Number(ethers.formatUnits(value, 6));
+  }
+
   function respondRpcError(res: express.Response, err: unknown, fallbackMessage: string) {
     if (isBaseRpcRateLimitError(err)) {
       return res.status(429).json({ ok: false, code: "RPC_RATE_LIMITED", error: "Base RPC is rate limited. Please retry shortly." });
@@ -738,25 +756,86 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
     const positions = rawPositions.map((pos) => {
       const meta = metaMap.get(pos.marketId);
-      const investedAmount = Number(pos.investedAmount ?? pos.stake ?? 0);
-      const currentValue   = Number(pos.currentValue ?? pos.investedAmount ?? 0);
-      const quantity       = Number(pos.quantity ?? pos.plannedQuantity ?? 0);
+      const plannedStake = decimalNumber(pos.plannedStake);
+      const plannedQuantity = decimalNumber(pos.plannedQuantity);
+      const filledStake = decimalNumber(pos.stake);
+      const filledQuantity = decimalNumber(pos.quantity);
+      const investedAmount = decimalNumber(pos.investedAmount ?? pos.stake);
+      const currentValue   = decimalNumber(pos.currentValue ?? pos.investedAmount);
+      const quantity       = filledQuantity > 0 ? filledQuantity : plannedQuantity;
       const unrealizedPnl  = currentValue - investedAmount;
       const unrealizedPnlPct = investedAmount > 0 ? unrealizedPnl / investedAmount : 0;
-      const currentPrice   = quantity > 0 ? currentValue / quantity : Number(pos.entryPrice ?? 0.5);
+      const entryPrice = decimalNumber(pos.entryPrice);
+      const currentPrice   = quantity > 0 && currentValue > 0 ? currentValue / quantity : entryPrice || 0.5;
+      const fillPct = plannedQuantity > 0 ? filledQuantity / plannedQuantity : 0;
+      const createdAt = pos.createdAt instanceof Date ? pos.createdAt.toISOString() : pos.createdAt;
+      const updatedAt = pos.updatedAt instanceof Date ? pos.updatedAt.toISOString() : pos.updatedAt;
 
       return {
+        id:               pos.id,
+        poolId:           pos.poolId,
+        queueId:          pos.queueId,
+        eventId:          pos.eventId,
+        marketId:         pos.marketId,
+        tokenId:          pos.tokenId,
+        clobOrderId:      pos.clobOrderId,
         conditionId:      meta?.conditionId ?? pos.marketId,
         question:         meta?.question ?? `Market ${pos.marketId.slice(0, 8)}`,
         marketType:       meta?.marketType ?? "game",
         selectedSide:     pos.side,
         sizeUsdc:         investedAmount,
-        entryPrice:       Number(pos.entryPrice ?? 0),
+        entryPrice,
         currentPrice:     currentPrice,
         unrealizedPnl,
         unrealizedPnlPct,
+        realizedPnl:      decimalNumber(pos.realizedPnl),
         status:           pos.status === "OPEN" ? "open" : pos.status === "SETTLED" ? "settled" : "cancelled",
         endsAt:           meta?.endDateIso ?? null,
+        createdAt,
+        updatedAt,
+        order: {
+          id: pos.clobOrderId ?? null,
+          status: pos.status,
+          side: pos.side,
+          marketId: pos.marketId,
+          tokenId: pos.tokenId,
+          queueId: pos.queueId ?? null,
+          createdAt,
+          updatedAt,
+        },
+        planned: {
+          stake: plannedStake,
+          quantity: plannedQuantity,
+        },
+        filled: {
+          stake: filledStake,
+          quantity: filledQuantity,
+          fillPct,
+        },
+        valuation: {
+          entryPrice,
+          currentPrice,
+          investedAmount,
+          currentValue,
+          unrealizedPnl,
+          unrealizedPnlPct,
+          realizedPnl: decimalNumber(pos.realizedPnl),
+        },
+        formatted: {
+          sizeUsdc: fixed4(investedAmount),
+          entryPrice: fixed4(entryPrice),
+          currentPrice: fixed4(currentPrice),
+          unrealizedPnl: fixed4(unrealizedPnl),
+          unrealizedPnlPct: percent4(unrealizedPnlPct),
+          realizedPnl: fixed4(pos.realizedPnl),
+          plannedStake: fixed4(plannedStake),
+          plannedQuantity: fixed4(plannedQuantity),
+          filledStake: fixed4(filledStake),
+          filledQuantity: fixed4(filledQuantity),
+          fillPct: percent4(fillPct),
+          investedAmount: fixed4(investedAmount),
+          currentValue: fixed4(currentValue),
+        },
       };
     });
 
@@ -773,6 +852,11 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       openPositionCount: positions.filter((pos) => pos.status === "open").length,
       settledPositionCount: positions.filter((pos) => pos.status === "settled").length,
       cancelledPositionCount: positions.filter((pos) => pos.status === "cancelled").length,
+      formatted: {
+        openPositionsValue: fixed4(openPositionsValue),
+        realizedPnl: fixed4(realizedPnl),
+        totalPoolValue: fixed4(balances.totalCash + openPositionsValue + realizedPnl),
+      },
     };
 
     res.json({ ok: true, balances, summary, positions });
@@ -2957,6 +3041,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       const side = body.outcome === "yes" ? "YES" : "NO";
       const plannedQuantity = body.amountUsd / bestAsk;
       const clobOrderId = getLimitlessOrderId(orderResult);
+      const makerAmountUsdc = usdcUnitsNumber(orderQuote.makerAmount);
+      const takerQuantity = usdcUnitsNumber(orderQuote.takerAmount);
 
       const position = await prisma.club_pool_positions.create({
         data: {
@@ -2992,6 +3078,40 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         "limitless bet: success"
       );
 
+      const orderDetails = {
+        id: clobOrderId ?? null,
+        status: String(orderResult.status ?? (orderResult.success ? "accepted" : "unknown")),
+        marketSlug,
+        outcome: body.outcome,
+        side,
+        price: bestAsk,
+        amountUsd: body.amountUsd,
+        plannedQuantity,
+        makerAmountUsdc,
+        takerQuantity,
+        positionId: position.id,
+        serverWallet: {
+          ownerId,
+          address: serverWallet.walletAddress,
+          created: serverWallet.created,
+        },
+        quote: {
+          price: orderQuote.price,
+          makerAmount: orderQuote.makerAmount.toString(),
+          takerAmount: orderQuote.takerAmount.toString(),
+          makerAmountUsdc,
+          takerQuantity,
+        },
+        formatted: {
+          price: fixed4(bestAsk),
+          amountUsd: fixed4(body.amountUsd),
+          plannedQuantity: fixed4(plannedQuantity),
+          makerAmountUsdc: fixed4(makerAmountUsdc),
+          takerQuantity: fixed4(takerQuantity),
+          quotePrice: fixed4(orderQuote.price),
+        },
+      };
+
       res.json({
         ok: true,
         positionId: position.id,
@@ -3001,6 +3121,8 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         price: bestAsk,
         plannedQuantity,
         clobOrderId,
+        order: orderDetails,
+        formatted: orderDetails.formatted,
         serverWallet: {
           ownerId,
           address: serverWallet.walletAddress,
@@ -3013,6 +3135,13 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
           price: orderQuote.price,
           makerAmount: orderQuote.makerAmount.toString(),
           takerAmount: orderQuote.takerAmount.toString(),
+          makerAmountUsdc,
+          takerQuantity,
+          formatted: {
+            price: fixed4(orderQuote.price),
+            makerAmountUsdc: fixed4(makerAmountUsdc),
+            takerQuantity: fixed4(takerQuantity),
+          },
         },
         allowanceCheck,
         orderResult,

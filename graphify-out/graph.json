@@ -971,7 +971,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L1",
       "id": "db_prisma",
-      "community": 3,
+      "community": 7,
       "norm_label": "prisma.ts"
     },
     {
@@ -980,7 +980,7 @@
       "source_file": "src/db/prisma.ts",
       "source_location": "L4",
       "id": "db_prisma_globalforprisma",
-      "community": 3,
+      "community": 7,
       "norm_label": "globalforprisma"
     },
     {
@@ -1322,7 +1322,7 @@
       "source_file": "src/limitless/limitlessDiscoveryService.ts",
       "source_location": "L29",
       "id": "limitless_limitlessdiscoveryservice_discoverlimitlessclubcandidates",
-      "community": 1,
+      "community": 3,
       "norm_label": "discoverlimitlessclubcandidates()"
     },
     {
@@ -1362,10 +1362,37 @@
       "norm_label": "dectonumber()"
     },
     {
-      "label": "getRiskPerMatchPct()",
+      "label": "fixed4()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L56",
+      "id": "limitless_limitlessexecutor_fixed4",
+      "community": 0,
+      "norm_label": "fixed4()"
+    },
+    {
+      "label": "percent4()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L60",
+      "id": "limitless_limitlessexecutor_percent4",
+      "community": 0,
+      "norm_label": "percent4()"
+    },
+    {
+      "label": "base6ToNumber()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L64",
+      "id": "limitless_limitlessexecutor_base6tonumber",
+      "community": 0,
+      "norm_label": "base6tonumber()"
+    },
+    {
+      "label": "getRiskPerMatchPct()",
+      "file_type": "code",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L68",
       "id": "limitless_limitlessexecutor_getriskpermatchpct",
       "community": 0,
       "norm_label": "getriskpermatchpct()"
@@ -1374,7 +1401,7 @@
       "label": "getLiquidityMinUsd()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L63",
+      "source_location": "L75",
       "id": "limitless_limitlessexecutor_getliquidityminusd",
       "community": 0,
       "norm_label": "getliquidityminusd()"
@@ -1383,7 +1410,7 @@
       "label": "ensurePoolLimitlessServerWallet()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L70",
+      "source_location": "L82",
       "id": "limitless_limitlessexecutor_ensurepoollimitlessserverwallet",
       "community": 0,
       "norm_label": "ensurepoollimitlessserverwallet()"
@@ -1392,7 +1419,7 @@
       "label": "queueLookup()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L148",
+      "source_location": "L160",
       "id": "limitless_limitlessexecutor_queuelookup",
       "community": 0,
       "norm_label": "queuelookup()"
@@ -1401,7 +1428,7 @@
       "label": "claimQueue()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L163",
+      "source_location": "L175",
       "id": "limitless_limitlessexecutor_claimqueue",
       "community": 0,
       "norm_label": "claimqueue()"
@@ -1410,7 +1437,7 @@
       "label": "finishQueue()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L192",
+      "source_location": "L204",
       "id": "limitless_limitlessexecutor_finishqueue",
       "community": 0,
       "norm_label": "finishqueue()"
@@ -1419,7 +1446,7 @@
       "label": "executeLimitlessTranche()",
       "file_type": "code",
       "source_file": "src/limitless/limitlessExecutor.ts",
-      "source_location": "L211",
+      "source_location": "L223",
       "id": "limitless_limitlessexecutor_executelimitlesstranche",
       "community": 0,
       "norm_label": "executelimitlesstranche()"
@@ -1610,7 +1637,7 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L184",
       "id": "limitless_limitlessorderclient_getmidpoint",
-      "community": 0,
+      "community": 3,
       "norm_label": "getmidpoint()"
     },
     {
@@ -2267,7 +2294,7 @@
       "source_file": "src/limitless/partnerAccounts.ts",
       "source_location": "L247",
       "id": "limitless_partneraccounts_resolveprofileidforaddress",
-      "community": 12,
+      "community": 0,
       "norm_label": "resolveprofileidforaddress()"
     },
     {
@@ -2276,7 +2303,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 14,
+      "community": 7,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2285,7 +2312,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 14,
+      "community": 7,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2294,7 +2321,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 14,
+      "community": 7,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2303,7 +2330,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 14,
+      "community": 7,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2312,7 +2339,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 14,
+      "community": 7,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2321,7 +2348,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 14,
+      "community": 7,
       "norm_label": "assertaddress()"
     },
     {
@@ -2330,7 +2357,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 14,
+      "community": 7,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2339,7 +2366,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 14,
+      "community": 7,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2501,7 +2528,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 14,
+      "community": 7,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2510,7 +2537,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 14,
+      "community": 7,
       "norm_label": "syncinputs"
     },
     {
@@ -2519,7 +2546,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 14,
+      "community": 7,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2528,7 +2555,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 14,
+      "community": 7,
       "norm_label": "dectostr()"
     },
     {
@@ -2537,7 +2564,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 14,
+      "community": 7,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2546,7 +2573,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 14,
+      "community": 7,
       "norm_label": "transferposition()"
     },
     {
@@ -2555,7 +2582,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 14,
+      "community": 7,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2564,7 +2591,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 14,
+      "community": 7,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2573,7 +2600,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 14,
+      "community": 7,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2582,7 +2609,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 14,
+      "community": 7,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -8353,6 +8380,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor",
+      "target": "limitless_limitlessexecutor_base6tonumber",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L78",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8413,6 +8450,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor",
+      "target": "limitless_limitlessexecutor_fixed4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L54",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8438,6 +8485,16 @@
       "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
       "target": "limitless_limitlessexecutor_humanusdtobase6"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor",
+      "target": "limitless_limitlessexecutor_percent4",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -8478,9 +8535,9 @@
       "source_file": "src/limitless/limitlessExecutor.ts",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor",
-      "target": "limitless_limitlessorderclient_getlimitlessorderid",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_getlimitlessorderid"
     },
     {
       "relation": "imports",
@@ -8734,6 +8791,39 @@
       "confidence_score": 1.0,
       "source": "limitless_limitlessexecutor_executelimitlesstranche",
       "target": "limitless_limitlessexecutor_dectonumber"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L411",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor_executelimitlesstranche",
+      "target": "limitless_limitlessexecutor_fixed4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L416",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor_executelimitlesstranche",
+      "target": "limitless_limitlessexecutor_percent4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/limitless/limitlessExecutor.ts",
+      "source_location": "L385",
+      "weight": 1.0,
+      "source": "limitless_limitlessexecutor_executelimitlesstranche",
+      "target": "limitless_limitlessexecutor_base6tonumber",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -9428,9 +9518,9 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L770",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessorderclient",
-      "target": "limitless_limitlessorderclient_getlimitlessorderid",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_getlimitlessorderid"
     },
     {
       "relation": "contains",
@@ -9992,9 +10082,9 @@
       "source_file": "src/limitless/limitlessOrderClient.ts",
       "source_location": "L767",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_limitlessorderclient_isacceptedorderresult",
-      "target": "limitless_limitlessorderclient_getlimitlessorderid",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_getlimitlessorderid"
     },
     {
       "relation": "imports",
@@ -10003,9 +10093,9 @@
       "source_file": "test/limitless/orderClient.test.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_orderclient_test",
-      "target": "limitless_limitlessorderclient_isacceptedorderresult",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_isacceptedorderresult"
     },
     {
       "relation": "imports",
@@ -10025,9 +10115,9 @@
       "source_file": "test/limitless/orderClient.test.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_orderclient_test",
-      "target": "limitless_limitlessorderclient_getlimitlessorderid",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_getlimitlessorderid"
     },
     {
       "relation": "imports",
@@ -10036,9 +10126,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "limitless_limitlessorderclient_getlimitlessorderid",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_getlimitlessorderid"
     },
     {
       "relation": "imports",
@@ -10047,9 +10137,9 @@
       "source_file": "test/limitless/orderClient.test.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "limitless_orderclient_test",
-      "target": "limitless_limitlessorderclient_getorderrejectmessage",
-      "confidence_score": 1.0
+      "target": "limitless_limitlessorderclient_getorderrejectmessage"
     },
     {
       "relation": "imports",
@@ -18122,5 +18212,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "86c82a50c1d4add5a6ea07d6c9bbfac4df6dc7ba"
+  "built_at_commit": "0f43049a1fd4353bdf2d1c08fd6a636ba43bbd10"
 }
