@@ -90,6 +90,8 @@ model club_pools {
   valuationSnapshots   pool_valuation_snapshots[]
   limitlessPositionSnapshots pool_limitless_position_snapshots[]
   limitlessTrades      pool_limitless_trades[]
+  limitlessOrders      pool_limitless_orders[]
+  limitlessOrderEvents pool_limitless_order_events[]
   limitlessPnlSnapshots pool_limitless_pnl_snapshots[]
 
   @@index([primarySportsDataTeamId])
@@ -338,6 +340,73 @@ model pool_limitless_trades {
   @@unique([poolId, externalTradeId])
   @@index([poolId, executedAt])
   @@index([marketId])
+}
+
+model pool_limitless_orders {
+  id              String   @id @default(cuid())
+  poolId          String
+  accountId       String?
+  orderId         String
+  clientOrderId   String?
+  marketId        String?
+  marketSlug      String?
+  tokenId         String?
+  side            String?
+  outcome         String?
+  orderSide       String?
+  price           Decimal? @db.Decimal(78, 18)
+  originalSize    Decimal? @db.Decimal(78, 18)
+  remainingSize   Decimal? @db.Decimal(78, 18)
+  filledSize      Decimal  @db.Decimal(78, 18) @default(0)
+  collateral      Decimal  @db.Decimal(78, 18) @default(0)
+  status          String   @default("UNKNOWN")
+  source          String?
+  lastEventType   String?
+  lastEventId     String?
+  lastEventAt     DateTime?
+  rawJson         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, orderId])
+  @@index([poolId, status])
+  @@index([marketSlug])
+}
+
+model pool_limitless_order_events {
+  id              String   @id @default(cuid())
+  poolId          String
+  accountId       String?
+  orderId         String?
+  clientOrderId   String?
+  eventId         String
+  tradeEventId    String?
+  source          String?
+  type            String?
+  status          String?
+  marketId        String?
+  marketSlug      String?
+  tokenId         String?
+  side            String?
+  outcome         String?
+  price           Decimal? @db.Decimal(78, 18)
+  amountContracts Decimal? @db.Decimal(78, 18)
+  amountCollateral Decimal? @db.Decimal(78, 18)
+  fee             Decimal? @db.Decimal(78, 18)
+  txHash          String?
+  isEstimate      Boolean  @default(false)
+  occurredAt      DateTime?
+  rawJson         Json
+  createdAt       DateTime @default(now())
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, eventId])
+  @@index([poolId, occurredAt])
+  @@index([orderId])
+  @@index([marketSlug])
 }
 
 model pool_limitless_pnl_snapshots {
