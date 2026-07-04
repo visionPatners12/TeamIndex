@@ -51,6 +51,7 @@ import {
 } from "../limitless/limitlessSyncService";
 import { discoverLimitlessClubCandidates } from "../limitless/limitlessDiscoveryService";
 import { syncLimitlessFillsAndSettle } from "../limitless/limitlessPositionSync";
+import { redeemResolvedPosition, resolveConditionId } from "../limitless/limitlessRedeem";
 import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
 import { fetchLimitlessMarketData, fetchLimitlessMarketDataBatch } from "../limitless/limitlessMarketData";
 import {
@@ -61,7 +62,9 @@ import {
   isAcceptedOrderResult,
   isLimitlessTradingReady,
   postLimitlessOrder,
-  quoteLimitlessOrderAmounts,
+  quoteLimitlessFokAmounts,
+  simulateMarketBuy,
+  extractLimitlessFill,
 } from "../limitless/limitlessOrderClient";
 import { getMarketBySlug } from "../limitless/limitlessClient";
 import {
@@ -860,6 +863,53 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     };
 
     res.json({ ok: true, balances, summary, positions });
+  });
+
+  // ─── Redeem a RESOLVED position's payout for the pool server wallet ───────────
+  // Admin-only. Claims the on-chain USDC of a resolved Limitless market into the
+  // pool, then re-runs settlement so the DB / NAV reflect the payout.
+  app.post("/pools/:poolId/positions/redeem", requireAdmin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const marketId = String((req.body as any)?.marketId ?? "").trim();
+    let conditionId = String((req.body as any)?.conditionId ?? "").trim();
+    if (!marketId && !conditionId) {
+      return res.status(400).json({ error: "marketId or conditionId required" });
+    }
+
+    const [pool, account] = await Promise.all([
+      prisma.club_pools.findUnique({ where: { id: poolId } }),
+      (prisma as any).pool_limitless_accounts
+        ? (prisma as any).pool_limitless_accounts.findUnique({ where: { poolId } })
+        : Promise.resolve(null),
+    ]);
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+
+    const profileId = account?.limitlessProfileId ?? null;
+    if (!profileId) return res.status(400).json({ error: "Pool has no Limitless server wallet" });
+
+    if (!/^0x[0-9a-fA-F]{64}$/.test(conditionId)) {
+      const resolved = marketId ? await resolveConditionId(env, poolId, marketId) : null;
+      if (resolved) conditionId = resolved;
+    }
+    if (!/^0x[0-9a-fA-F]{64}$/.test(conditionId)) {
+      return res.status(422).json({
+        error: "Could not resolve a valid bytes32 conditionId for this market",
+        conditionId: conditionId || null,
+      });
+    }
+
+    try {
+      const result = await redeemResolvedPosition(env, conditionId, profileId);
+      // Refresh fills + settlement so the payout is reflected in DB/NAV.
+      try {
+        await syncLimitlessFillsAndSettle(env);
+      } catch {
+        /* best-effort: redemption already landed on-chain */
+      }
+      return res.json({ ok: true, poolId, conditionId, result });
+    } catch (err) {
+      return res.status(502).json({ ok: false, error: (err as Error).message });
+    }
   });
 
   // ─── User holdings across all pools ──────────────────────────────────────────
@@ -2962,11 +3012,24 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       if (!book.asks.length || !Number.isFinite(bestAsk) || bestAsk <= 0 || bestAsk >= 1) {
         return res.status(400).json({ ok: false, error: "No valid market / no liquidity" });
       }
-      if (body.maxPrice !== undefined && bestAsk > body.maxPrice + 1e-12) {
+      // FOK pre-flight: simulate the fill against ask depth. FOK is all-or-nothing
+      // with no on-chain price limit, so we enforce full fill + maxPrice off-chain.
+      const fillSim = simulateMarketBuy(book, body.amountUsd);
+      if (!fillSim.fullyFilled) {
         return res.status(409).json({
           ok: false,
-          error: "Best ask exceeds maxPrice",
-          bestAsk,
+          error: "Insufficient order-book depth to fully fill FOK order",
+          amountUsd: body.amountUsd,
+          filledShares: fillSim.filledShares,
+          spentUsd: fillSim.spentUsd,
+        });
+      }
+      if (body.maxPrice !== undefined && fillSim.worstPrice > body.maxPrice + 1e-12) {
+        return res.status(409).json({
+          ok: false,
+          error: "FOK fill price exceeds maxPrice",
+          worstPrice: fillSim.worstPrice,
+          avgPrice: fillSim.avgPrice,
           maxPrice: body.maxPrice,
         });
       }
@@ -2978,7 +3041,9 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       }
       const collateralToken =
         ((marketDetail as any)?.collateralToken?.address as string | undefined) ?? env.BASE_USDC_ADDRESS;
-      const orderQuote = quoteLimitlessOrderAmounts(bestAsk, body.amountUsd, "BUY");
+      // FOK market BUY: makerAmount is the full USDC to spend (= amountUsd). `price` is kept
+      // for display/logging only (FOK fills at best available price, not a signed limit).
+      const orderQuote = { price: bestAsk, ...quoteLimitlessFokAmounts(body.amountUsd) };
       const serverWalletBalance = await getErc20Balance(env, collateralToken, serverWallet.walletAddress);
       const fundingNeeded =
         serverWalletBalance < orderQuote.makerAmount ? orderQuote.makerAmount - serverWalletBalance : 0n;
@@ -3018,7 +3083,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         price: bestAsk,
         size: body.amountUsd,
         side: "BUY",
-        orderType: "GTC",
+        orderType: "FOK",
         signingMode: "server-wallet",
         onBehalfOf: ownerId,
         makerAddress: serverWallet.walletAddress,
@@ -3042,7 +3107,16 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       const plannedQuantity = body.amountUsd / bestAsk;
       const clobOrderId = getLimitlessOrderId(orderResult);
       const makerAmountUsdc = usdcUnitsNumber(orderQuote.makerAmount);
-      const takerQuantity = usdcUnitsNumber(orderQuote.takerAmount);
+      // FOK takerAmount is a constant sentinel (1); the expected shares are the estimate above.
+      const takerQuantity = plannedQuantity;
+
+      // Realized fill (FOK fills immediately). Fall back to the pre-flight book
+      // simulation when the API response omits execution totals.
+      const fill = extractLimitlessFill(orderResult);
+      const filledStakeUsd = fill?.investedUsd ?? fillSim.spentUsd;
+      const filledQuantity = fill && fill.shares > 0 ? fill.shares : fillSim.filledShares;
+      const entryPrice =
+        fill && fill.fillPrice > 0 ? fill.fillPrice : fillSim.avgPrice > 0 ? fillSim.avgPrice : bestAsk;
 
       const position = await prisma.club_pool_positions.create({
         data: {
@@ -3051,14 +3125,14 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
           marketId: marketSlug,
           tokenId: `${marketSlug}:${outcomeIndex}`,
           side: side as any,
-          entryPrice: String(bestAsk),
+          entryPrice: String(entryPrice),
           clobOrderId,
           plannedStake: String(body.amountUsd),
           plannedQuantity: String(plannedQuantity),
-          stake: "0",
-          quantity: "0",
-          investedAmount: "0",
-          currentValue: "0",
+          stake: String(filledStakeUsd),
+          quantity: String(filledQuantity),
+          investedAmount: String(filledStakeUsd),
+          currentValue: String(filledStakeUsd),
           realizedPnl: "0",
           status: "OPEN",
         },

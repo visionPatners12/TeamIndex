@@ -88,13 +88,112 @@ export interface OrderLogger {
 
 const noopLogger: OrderLogger = { info: () => {}, warn: () => {}, error: () => {} };
 
+/** Raw integer-string execution totals (Limitless delegated /orders response). */
+export interface LimitlessExecutionTotalsRaw {
+  contractsFee?: string;
+  contractsGross?: string;
+  contractsNet?: string;
+  usdFee?: string;
+  usdGross?: string;
+  usdNet?: string;
+}
+
 export interface LimitlessOrderResult {
   orderId?: string;
   id?: string;
   status?: string;   // "live" | "matched" | "rejected" | "cancelled" | "open"
   success?: boolean;
   errorMsg?: string;
+  execution?: {
+    matched?: boolean;
+    settlementStatus?: string; // "MATCHED" | "UNMATCHED" | "MINED" | "DELAYED" | ...
+    totalsRaw?: LimitlessExecutionTotalsRaw;
+    [k: string]: unknown;
+  };
+  makerMatches?: Array<{ id?: string; matchedSize?: string; orderId?: string }>;
   [k: string]: unknown;
+}
+
+/** Realized fill extracted from a FOK/market order response. */
+export interface LimitlessFill {
+  investedUsd: number; // USDC spent (gross, pre-fee)
+  shares: number;      // contracts received (net of fee)
+  feeUsd: number;
+  fillPrice: number;   // effective entry price = investedUsd / shares
+  matched: boolean;
+}
+
+/**
+ * Extract the realized fill from a FOK/market order response.
+ * Prefers `execution.totalsRaw`; falls back to summing `makerMatches`.
+ * Returns null when the response carries no usable fill information.
+ */
+export function extractLimitlessFill(result: LimitlessOrderResult | null): LimitlessFill | null {
+  if (!result) return null;
+  const num = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const totals =
+    (result.execution?.totalsRaw as LimitlessExecutionTotalsRaw | undefined) ??
+    ((result as any).order?.execution?.totalsRaw as LimitlessExecutionTotalsRaw | undefined);
+  if (totals && (totals.usdGross != null || totals.contractsNet != null)) {
+    const investedUsd = num(totals.usdGross) / 1e6;
+    const feeUsd = num(totals.usdFee) / 1e6;
+    const shares = num(totals.contractsNet ?? totals.contractsGross) / 1e6;
+    const fillPrice = shares > 0 ? investedUsd / shares : 0;
+    return { investedUsd, shares, feeUsd, fillPrice, matched: shares > 0 && investedUsd > 0 };
+  }
+  const matches = result.makerMatches;
+  if (Array.isArray(matches) && matches.length) {
+    const investedUsd = matches.reduce((s, m) => s + num(m.matchedSize), 0) / 1e6;
+    if (investedUsd > 0) {
+      return { investedUsd, shares: 0, feeUsd: 0, fillPrice: 0, matched: true };
+    }
+  }
+  return null;
+}
+
+/** Result of simulating a market BUY against order-book depth. */
+export interface MarketBuySimulation {
+  fullyFilled: boolean;
+  filledShares: number;
+  spentUsd: number;
+  worstPrice: number; // highest ask level consumed (conservative slippage bound)
+  avgPrice: number;   // volume-weighted average price
+}
+
+/**
+ * Simulate a market BUY spending `budgetUsd` against the ask side of `book`.
+ * Used to give pure FOK orders a meaningful pre-flight slippage / depth check:
+ * FOK fills at whatever the book offers (no on-chain price limit), so we verify
+ * off-chain that the requested size fully fills within an acceptable price.
+ */
+export function simulateMarketBuy(book: LimitlessOrderBook, budgetUsd: number): MarketBuySimulation {
+  const asks = [...book.asks]
+    .filter((a) => Number.isFinite(a.price) && Number.isFinite(a.size) && a.price > 0 && a.size > 0)
+    .sort((a, b) => a.price - b.price);
+  let remaining = budgetUsd;
+  let filledShares = 0;
+  let worstPrice = 0;
+  for (const level of asks) {
+    if (remaining <= 1e-12) break;
+    const levelCost = level.price * level.size;
+    if (remaining >= levelCost) {
+      filledShares += level.size;
+      remaining -= levelCost;
+      worstPrice = level.price;
+    } else {
+      filledShares += remaining / level.price;
+      worstPrice = level.price;
+      remaining = 0;
+      break;
+    }
+  }
+  const spentUsd = budgetUsd - Math.max(remaining, 0);
+  const fullyFilled = remaining <= 1e-9;
+  const avgPrice = filledShares > 0 ? spentUsd / filledShares : 0;
+  return { fullyFilled, filledShares, spentUsd, worstPrice, avgPrice };
 }
 
 async function getJson<T>(env: Env, path: string, params?: Record<string, unknown>): Promise<T> {
@@ -353,6 +452,25 @@ export function quoteLimitlessOrderAmounts(
 }
 
 /**
+ * FOK (Fill-Or-Kill / market) order amounts. Per the Limitless SDK OrderBuilder:
+ *   • makerAmount = amount to spend, scaled by 1e6
+ *       - BUY:  USDC to spend
+ *       - SELL: shares to sell
+ *   • takerAmount = 1 (constant)
+ *   • no price (price is not part of the signed EIP-712 payload; omitted for FOK)
+ *
+ * The order fills immediately at best available price or is cancelled entirely —
+ * no partial fills, no resting on the book.
+ */
+export function quoteLimitlessFokAmounts(
+  size: number
+): { makerAmount: bigint; takerAmount: bigint } {
+  const makerAmount = BigInt(Math.round(size * 1e6));
+  if (makerAmount <= 0n) throw new Error(`Invalid FOK makerAmount from size ${size}`);
+  return { makerAmount, takerAmount: 1n };
+}
+
+/**
  * Post a GTC limit order to Limitless Exchange.
  *
  * Required env vars:
@@ -379,11 +497,11 @@ export async function postLimitlessOrder(
   const verifyingContract = market.venue.exchange;
 
   // ── Compute amounts ───────────────────────────────────────────────────────
-  const { price, makerAmount, takerAmount } = quoteLimitlessOrderAmounts(
-    params.price,
-    params.size,
-    params.side
-  );
+  // FOK (market, immediate) is the default. GTC is only used when explicitly requested.
+  const orderType: LimitlessOrderType = params.orderType ?? "FOK";
+  const { price, makerAmount, takerAmount } = orderType === "FOK"
+    ? { price: undefined as number | undefined, ...quoteLimitlessFokAmounts(params.size) }
+    : quoteLimitlessOrderAmounts(params.price, params.size, params.side);
 
   // ── Build + sign ──────────────────────────────────────────────────────────
   // Limitless GTC requires expiration "0" and nonce 0 (non-zero values are rejected).
@@ -409,7 +527,7 @@ export async function postLimitlessOrder(
     const requestBody = {
       ownerId,
       onBehalfOf: ownerId,
-      orderType: params.orderType ?? "GTC",
+      orderType,
       marketSlug: params.marketSlug,
       order: {
         salt: String(salt),
@@ -421,7 +539,7 @@ export async function postLimitlessOrder(
         takerAmount: Number(takerAmount),
         expiration: String(expiration),
         nonce,
-        price,
+        ...(price !== undefined ? { price } : {}),
         feeRateBps,
         side: sideInt,
       },
@@ -565,7 +683,7 @@ export async function postLimitlessOrder(
     const requestBody = {
       ownerId,
       ...(onBehalfOf !== undefined ? { onBehalfOf } : {}),
-      orderType: params.orderType ?? "GTC",
+      orderType,
       marketSlug: params.marketSlug,
       order: {
         // Limitless expects: salt/tokenId/expiration as strings, but
@@ -580,7 +698,7 @@ export async function postLimitlessOrder(
         takerAmount: Number(takerAmount),
         expiration: String(expiration),
         nonce: nonce,
-        price,
+        ...(price !== undefined ? { price } : {}),
         feeRateBps: feeRateBps,
         side: sideInt,
         signatureType: attemptSignatureType,
@@ -758,10 +876,11 @@ export function isAcceptedOrderResult(result: LimitlessOrderResult | null): bool
   ]
     .map(status => String(status ?? "").toLowerCase())
     .filter(Boolean);
-  const rejectedStatuses = new Set(["rejected", "reject", "cancelled", "canceled", "failed", "failure", "error"]);
+  // "unmatched" = a FOK/FAK order that found no liquidity and was killed → not accepted.
+  const rejectedStatuses = new Set(["rejected", "reject", "cancelled", "canceled", "failed", "failure", "error", "unmatched"]);
   if (statuses.some(status => rejectedStatuses.has(status))) return false;
 
-  const acceptedStatuses = new Set(["live", "matched", "open", "pending", "delayed"]);
+  const acceptedStatuses = new Set(["live", "matched", "mined", "confirmed", "open", "pending", "delayed"]);
   if (statuses.some(status => acceptedStatuses.has(status))) return true;
 
   return getLimitlessOrderId(result) !== null && !(result as any).error && !(result as any).message;
