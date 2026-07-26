@@ -51,7 +51,7 @@ import {
 } from "../limitless/limitlessSyncService";
 import { discoverLimitlessClubCandidates } from "../limitless/limitlessDiscoveryService";
 import { syncLimitlessFillsAndSettle } from "../limitless/limitlessPositionSync";
-import { redeemResolvedPosition, resolveConditionId } from "../limitless/limitlessRedeem";
+import { redeemResolvedPosition, resolveConditionId, getMarketResolution } from "../limitless/limitlessRedeem";
 import { executeLimitlessTranche } from "../limitless/limitlessExecutor";
 import { fetchLimitlessMarketData, fetchLimitlessMarketDataBatch } from "../limitless/limitlessMarketData";
 import {
@@ -79,7 +79,11 @@ import {
   sameAddress,
 } from "../limitless/partnerAccounts";
 import { syncLimitlessPortfolioForPool } from "../limitless/limitlessPortfolio";
-import { assertUuid, getLimitlessMarketsForTeam, listLimitlessTeams } from "../sportsData/limitlessTeams";
+import {
+  assertUuid,
+  getLimitlessMarketsForTeam,
+  listSportsDataTeams,
+} from "../sportsData/limitlessTeams";
 import {
   getBaseBlockNumber,
   getBaseProvider,
@@ -87,6 +91,33 @@ import {
   isBaseRpcRateLimitError,
   isBaseRpcUnavailableError,
 } from "../onchain/rpc";
+import {
+  LEGACY_DISABLED_RESPONSE,
+  POLYMARKET_VAULT_DIRECT_CAPABILITY,
+  PolymarketVaultDirectUnsupportedError,
+} from "../polymarket/constants";
+import {
+  bootstrapPoolPolymarketAccount,
+  bootstrapPoolPolymarketAccountLocal,
+  ensurePoolDepositWalletApprovals,
+  ensurePoolDepositWalletApprovalsLocal,
+} from "../polymarket/poolAccountService";
+import {
+  confirmPoolDepositIntent,
+  createPoolDepositIntent,
+} from "../polymarket/depositService";
+import { activateAllocationProposalV2 } from "../polymarket/tradeIntentService";
+import { executeNextTradeIntent, returnIdlePusdToVault } from "../polymarket/tradeExecutor";
+import { reconcileAndValuePool } from "../polymarket/accountingService";
+import { createPoolClobClient } from "../polymarket/poolClobClient";
+import { fetchPolymarketMarketData } from "../polymarket/marketData";
+import { CdpPolymarketSigner } from "../polymarket/cdpSigner";
+import {
+  getPusdVaultV2,
+  makePoolRedemptionClaimable,
+  pausePoolVaultV2,
+  unpausePoolVaultV2,
+} from "../onchain/polygonV2";
 
 declare global {
   namespace Express {
@@ -122,11 +153,70 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     next();
   });
 
+  if (env.PROCESS_ROLE === "signer") {
+    app.use((req, res, next) => {
+      if (req.path === "/health" || req.path.startsWith("/internal/polymarket/")) return next();
+      return res.status(404).json({ error: "Not found" });
+    });
+  }
+
+  // Legacy code remains in the repository, but no Limitless/Base/Chiliz route is
+  // allowed to reach an execution handler in the active Polygon/pUSD runtime.
+  app.use((req, res, next) => {
+    const path = req.path;
+    const isLegacyPath =
+      path.startsWith("/admin/limitless")
+      || path.startsWith("/base/")
+      || path.startsWith("/chiliz/")
+      || path.startsWith("/admin/base/")
+      || path.startsWith("/admin/chiliz/")
+      || path.startsWith("/chz/")
+      || path.startsWith("/webhooks/cdp/")
+      || /\/limitless(?:-|\/)/.test(path)
+      || /^\/pools\/[^/]+\/(candidates|queue)$/.test(path)
+      || /^\/pools\/[^/]+\/positions\/redeem$/.test(path)
+      || /^\/pools\/[^/]+\/(tx\/(deposit|mint|withdraw|redeem|deposit-wrapchz)|deposit\/confirm)$/.test(path)
+      || /^\/users\/[^/]+\/(holdings|pending-base-deposits)$/.test(path)
+      || path === "/admin/pools/tx/deploy-vault"
+      || /^\/admin\/pools\/[^/]+\/redeploy-vault$/.test(path)
+      || /^\/admin\/[^/]+\/(discover|schedule|execute-tranche|vault\/execute|reprice|sync)$/.test(path)
+      || /^\/admin\/(operators|whitelist|trusted-strategies)/.test(path)
+      || /^\/admin\/[^/]+\/(operator|whitelist|trusted-strategy|order-signer)/.test(path);
+    if (isLegacyPath) return res.status(410).json(LEGACY_DISABLED_RESPONSE);
+    return next();
+  });
+
   function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
     if (!env.ADMIN_API_KEY) return next();
     const key = String(req.headers["x-admin-key"] ?? "");
     if (!key || key !== env.ADMIN_API_KEY) return res.status(403).json({ error: "Forbidden" });
     return next();
+  }
+
+  function sendPolymarketMutationError(
+    res: express.Response,
+    error: any,
+    fallback: string,
+  ) {
+    const status = error instanceof PolymarketVaultDirectUnsupportedError
+      ? error.statusCode
+      : 409;
+    return res.status(status).json({
+      error: error?.message ?? fallback,
+      code: error?.code,
+      trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
+    });
+  }
+
+  function requireInternalSigner(req: express.Request, res: express.Response, next: express.NextFunction) {
+    if (!env.POLYMARKET_SIGNER_TOKEN) {
+      return res.status(503).json({ error: "POLYMARKET_SIGNER_TOKEN is not configured" });
+    }
+    const authorization = String(req.headers.authorization ?? "");
+    const expected = `Bearer ${env.POLYMARKET_SIGNER_TOKEN}`;
+    if (authorization.length !== expected.length) return res.status(403).json({ error: "Forbidden" });
+    const valid = timingSafeEqual(Buffer.from(authorization), Buffer.from(expected));
+    return valid ? next() : res.status(403).json({ error: "Forbidden" });
   }
 
   async function ensureVaultOrderSignerAuthorized(pool: {
@@ -411,7 +501,11 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       .$queryRaw`SELECT 1`
       .then(() => true)
       .catch(() => false);
-    res.json({ ok: true, db: dbOk });
+    res.json({
+      ok: true,
+      db: dbOk,
+      trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
+    });
   });
 
   const cdpWebhookEventSchema = z.object({
@@ -690,11 +784,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   app.get("/teams", async (_req, res) => {
     try {
-      const rawLimitlessOnly = _req.query.limitlessOnly;
-      const limitlessOnly = rawLimitlessOnly === undefined
-        ? true
-        : !["0", "false", "no"].includes(String(rawLimitlessOnly).toLowerCase());
-      const teams = await listLimitlessTeams(prisma, { onlyWithLimitlessMarkets: limitlessOnly });
+      const teams = await listSportsDataTeams(prisma);
       res.json({ ok: true, teams });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e?.message ?? "teams_error" });
@@ -740,6 +830,31 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
 
   app.get("/pools/:poolId/positions", async (req, res) => {
     const poolId = req.params.poolId;
+
+    if (env.TRADING_PROVIDER === "polymarket") {
+      const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
+      if (!pool) return res.status(404).json({ error: "Pool not found" });
+      const [positions, orders] = await Promise.all([
+        prisma.pool_polymarket_positions.findMany({
+          where: { poolId },
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.pool_polymarket_orders.findMany({
+          where: { poolId },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+      ]);
+      return res.json({
+        ok: true,
+        provider: "polymarket-v2",
+        chainId: 137,
+        trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
+        positions,
+        orders,
+        openPositionCount: positions.filter((position) => position.status === "OPEN").length,
+      });
+    }
 
     const [pool, rawPositions, selectedMarkets] = await Promise.all([
       prisma.club_pools.findUnique({ where: { id: poolId } }),
@@ -842,6 +957,25 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       };
     });
 
+    // Enrich OPEN positions with market resolution (cached; 1 fetch per market).
+    const openMarketIds = [
+      ...new Set(positions.filter((pos) => pos.status === "open").map((pos) => pos.marketId)),
+    ];
+    const resolutionByMarket = new Map<string, Awaited<ReturnType<typeof getMarketResolution>>>();
+    await Promise.all(
+      openMarketIds.map(async (mid) => resolutionByMarket.set(mid, await getMarketResolution(env, mid))),
+    );
+    for (const pos of positions) {
+      const resolution = pos.status === "open" ? resolutionByMarket.get(pos.marketId) : undefined;
+      const outcomeIndex = pos.selectedSide === "YES" ? 0 : 1;
+      (pos as any).resolved = Boolean(resolution?.resolved);
+      (pos as any).redeemable = Boolean(resolution?.resolved);
+      (pos as any).won =
+        resolution?.resolved && resolution.winningOutcomeIndex != null
+          ? resolution.winningOutcomeIndex === outcomeIndex
+          : null;
+    }
+
     const balances = await readPoolBalanceBreakdown(env, pool);
     const openPositionsValue = positions
       .filter((pos) => pos.status === "open")
@@ -855,6 +989,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       openPositionCount: positions.filter((pos) => pos.status === "open").length,
       settledPositionCount: positions.filter((pos) => pos.status === "settled").length,
       cancelledPositionCount: positions.filter((pos) => pos.status === "cancelled").length,
+      redeemableCount: positions.filter((pos) => (pos as any).redeemable).length,
       formatted: {
         openPositionsValue: fixed4(openPositionsValue),
         realizedPnl: fixed4(realizedPnl),
@@ -1095,11 +1230,15 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.get("/pools/:poolId/price-snapshots/latest", async (req, res) => {
-    const latest = await prisma.club_pool_price_snapshots.findFirst({
-      where: { poolId: req.params.poolId },
-      orderBy: { snapshotTime: "desc" }
+    const latest = await prisma.pool_valuation_snapshots.findFirst({
+      where: { poolId: req.params.poolId, source: "POLYMARKET_V2" },
+      orderBy: { createdAt: "desc" },
     });
-    res.json({ ok: true, latest });
+    res.json({
+      ok: true,
+      provider: "polymarket-v2",
+      latest: latest ? { ...latest, sequence: latest.sequence?.toString() ?? null } : null,
+    });
   });
 
   const poolCreateSchema = z.object({
@@ -1244,7 +1383,61 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       if (!primarySportsDataTeamId) {
         return res.status(400).json({ ok: false, error: "primarySportsDataTeamId is required" });
       }
+      if (
+        env.TRADING_PROVIDER === "polymarket"
+        && body.deployOnchain
+        && !POLYMARKET_VAULT_DIRECT_CAPABILITY.canBootstrap
+      ) {
+        return res.status(501).json({
+          ok: false,
+          error: POLYMARKET_VAULT_DIRECT_CAPABILITY.reason,
+          code: POLYMARKET_VAULT_DIRECT_CAPABILITY.code,
+          trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
+        });
+      }
       const riskParams = body.riskParams ?? { maxPerMatchPct: 3, maxTotalExposurePct: 20, liquidityMinUsd: 50_000 };
+
+      if (env.TRADING_PROVIDER === "polymarket") {
+        const pool = await prisma.$transaction(async (tx) => {
+          const created = await tx.club_pools.create({
+            data: {
+              clubName: body.clubName,
+              symbol: body.symbol,
+              primarySportsDataTeamId,
+              sportsDataTeamId: primarySportsDataTeamId,
+              vaultAddress: body.vaultAddress ?? null,
+              depositCap: body.depositCap.toString(),
+              cash: "0",
+              openPositionsValue: "0",
+              realizedPnl: "0",
+              totalPoolValue: "0",
+              totalTokenSupply: "0",
+              officialTokenPrice: "1",
+              riskParams,
+              status: "ACTIVE",
+            },
+          });
+          await tx.pool_teams.create({
+            data: {
+              poolId: created.id,
+              sportsDataTeamId: primarySportsDataTeamId,
+              role: "PRIMARY",
+              weight: "1",
+            },
+          });
+          return created;
+        });
+        const polymarketAccount = body.deployOnchain
+          ? await bootstrapPoolPolymarketAccount(env, pool.id)
+          : null;
+        return res.status(201).json({
+          ok: true,
+          provider: "polymarket-v2",
+          pool,
+          polymarketAccount,
+          limitlessAccount: null,
+        });
+      }
 
       let vaultDeployment: { vaultAddress: string; created: boolean } | null = null;
       if (body.deployOnchain) {
@@ -1601,7 +1794,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       const snapshots = await Promise.all(
         selectedMarkets.map(async (m) => {
           try {
-            const data = await fetchLimitlessMarketData(env, m.marketId, m.conditionId);
+            const data = await fetchPolymarketMarketData(env, m);
             return [m.conditionId, data] as const;
           } catch (err) {
             logger.warn({ err, conditionId: m.conditionId }, "market-data fetch failed for allocation run");
@@ -1689,16 +1882,18 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     const poolId = req.params.poolId;
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
-    await adminPause(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
-    res.json({ ok: true });
+    if (!pool.vaultAddress) return res.status(400).json({ error: "Pool V2 vault missing" });
+    const txHash = await pausePoolVaultV2(env, pool.vaultAddress);
+    res.json({ ok: true, provider: "polymarket-v2", txHash });
   });
 
   app.post("/admin/:poolId/unpause", requireAdmin, async (req, res) => {
     const poolId = req.params.poolId;
     const pool = await prisma.club_pools.findUnique({ where: { id: poolId } });
     if (!pool) return res.status(404).json({ error: "Pool not found" });
-    await adminUnpause(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress ?? undefined });
-    res.json({ ok: true });
+    if (!pool.vaultAddress) return res.status(400).json({ error: "Pool V2 vault missing" });
+    const txHash = await unpausePoolVaultV2(env, pool.vaultAddress);
+    res.json({ ok: true, provider: "polymarket-v2", txHash });
   });
 
   const opAuthSchema = z.object({
@@ -3314,6 +3509,339 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   app.get("/admin/limitless/readiness", requireAdmin, (_req, res) => {
     const readiness = isLimitlessTradingReady(env);
     res.json({ ok: true, ...readiness });
+  });
+
+  // =========================
+  // Private CDP signer service
+  // =========================
+
+  app.post("/internal/polymarket/sign", requireInternalSigner, async (req, res) => {
+    try {
+      const body = z
+        .object({
+          poolId: z.string().min(1),
+          domain: z.record(z.any()),
+          types: z.record(z.array(z.object({ name: z.string(), type: z.string() }))),
+          value: z.record(z.any()),
+          primaryType: z.string().min(1),
+        })
+        .parse(req.body);
+      const account = await prisma.pool_polymarket_accounts.findUnique({ where: { poolId: body.poolId } });
+      if (!account) return res.status(404).json({ error: "Pool signing account not found" });
+      const signer = new CdpPolymarketSigner(env, {
+        ownerAddress: account.cdpOwnerAddress,
+        depositWalletAddress: account.depositWalletAddress,
+        vaultAddress: account.vaultAddress,
+      });
+      const signature = await signer.signTypedData(
+        body.domain,
+        body.types,
+        body.value,
+        body.primaryType,
+      );
+      res.json({ signature });
+    } catch (error: any) {
+      logger.warn({ err: error }, "CDP signer rejected typed data");
+      res.status(error instanceof z.ZodError ? 400 : 403).json({ error: error?.message ?? "Signing rejected" });
+    }
+  });
+
+  app.post("/internal/polymarket/bootstrap", requireInternalSigner, async (req, res) => {
+    try {
+      const { poolId } = z.object({ poolId: z.string().min(1) }).parse(req.body);
+      res.json(await bootstrapPoolPolymarketAccountLocal(env, poolId));
+    } catch (error: any) {
+      sendPolymarketMutationError(res, error, "Bootstrap failed");
+    }
+  });
+
+  app.post("/internal/polymarket/approvals", requireInternalSigner, async (req, res) => {
+    try {
+      const { poolId } = z.object({ poolId: z.string().min(1) }).parse(req.body);
+      res.json(await ensurePoolDepositWalletApprovalsLocal(env, poolId));
+    } catch (error: any) {
+      sendPolymarketMutationError(res, error, "Approvals failed");
+    }
+  });
+
+  // =========================
+  // Active Polymarket V2 API
+  // =========================
+
+  app.get("/pools/:poolId/nav", async (req, res) => {
+    try {
+      const [pool, account, snapshot] = await Promise.all([
+        prisma.club_pools.findUnique({ where: { id: req.params.poolId } }),
+        prisma.pool_polymarket_accounts.findUnique({ where: { poolId: req.params.poolId } }),
+        prisma.pool_valuation_snapshots.findFirst({
+          where: { poolId: req.params.poolId, source: "POLYMARKET_V2" },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
+      if (!pool) return res.status(404).json({ error: "Pool not found" });
+      let onchain: Record<string, string | boolean> | null = null;
+      if (pool.vaultAddress && env.POLYGON_RPC_URL) {
+        const vault = getPusdVaultV2(env, pool.vaultAddress);
+        const [totalAssets, totalCash, externalAssets, sequence, fresh] = await Promise.all([
+          (vault as any).totalAssets(),
+          (vault as any).totalCash(),
+          (vault as any).externalAssetsValue(),
+          (vault as any).valuationSequence(),
+          (vault as any).isValuationFresh(),
+        ]);
+        onchain = {
+          totalAssets: totalAssets.toString(),
+          totalCash: totalCash.toString(),
+          externalAssetsValue: externalAssets.toString(),
+          valuationSequence: sequence.toString(),
+          valuationFresh: Boolean(fresh),
+        };
+      }
+      res.json({
+        ok: true,
+        provider: "polymarket-v2",
+        chainId: 137,
+        trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
+        pool,
+        account: account
+          ? {
+              cdpOwnerAddress: account.cdpOwnerAddress,
+              depositWalletAddress: account.depositWalletAddress,
+              vaultAddress: account.vaultAddress,
+              status: account.status,
+              approvalsReady: account.approvalsReady,
+              lastReconciledAt: account.lastReconciledAt,
+            }
+          : null,
+        snapshot: snapshot ? { ...snapshot, sequence: snapshot.sequence?.toString() ?? null } : null,
+        onchain,
+      });
+    } catch (error: any) {
+      res.status(502).json({ error: error?.message ?? "NAV read failed" });
+    }
+  });
+
+  const depositIntentSchema = z.object({
+    idempotencyKey: z.string().min(8).max(200),
+    userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+    depositWalletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+    receiverAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+    assets: z.string().regex(/^\d+$/),
+  });
+
+  app.post("/pools/:poolId/deposit-intents", async (req, res) => {
+    try {
+      const body = depositIntentSchema.parse(req.body);
+      const intent = await createPoolDepositIntent(env, { poolId: req.params.poolId, ...body });
+      res.status(201).json({ ok: true, ...intent });
+    } catch (error: any) {
+      const status = error instanceof z.ZodError ? 400 : 409;
+      res.status(status).json({ error: error?.message ?? "Deposit intent failed" });
+    }
+  });
+
+  app.get("/pools/:poolId/deposit-intents/:intentId", async (req, res) => {
+    const intent = await prisma.pool_deposit_intents.findUnique({ where: { id: req.params.intentId } });
+    if (!intent || intent.poolId !== req.params.poolId) return res.status(404).json({ error: "Deposit intent not found" });
+    res.json({ ok: true, intent });
+  });
+
+  app.post("/pools/:poolId/deposit-intents/:intentId/confirm", async (req, res) => {
+    try {
+      const body = z
+        .object({
+          txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+          mode: z.enum(["DIRECT", "ESCROW"]),
+        })
+        .parse(req.body);
+      const intent = await confirmPoolDepositIntent(env, req.params.intentId, body.txHash, body.mode);
+      if (intent.poolId !== req.params.poolId) return res.status(404).json({ error: "Deposit intent not found" });
+      res.json({ ok: true, intent });
+    } catch (error: any) {
+      res.status(error instanceof z.ZodError ? 400 : 409).json({ error: error?.message ?? "Deposit confirmation failed" });
+    }
+  });
+
+  app.post("/pools/:poolId/redemptions", async (req, res) => {
+    try {
+      const body = z
+        .object({
+          ownerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+          receiverAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+          shares: z.string().regex(/^\d+$/).refine((value) => BigInt(value) > 0n),
+          minAssets: z.string().regex(/^\d+$/).default("0"),
+        })
+        .parse(req.body);
+      const pool = await prisma.club_pools.findUnique({ where: { id: req.params.poolId } });
+      if (!pool?.vaultAddress) return res.status(404).json({ error: "Pool V2 vault not found" });
+      const request = await prisma.pool_redemption_requests.create({
+        data: {
+          poolId: req.params.poolId,
+          ownerAddress: body.ownerAddress,
+          receiverAddress: body.receiverAddress,
+          shares: body.shares,
+          minAssets: body.minAssets,
+        },
+      });
+      const vault = getPusdVaultV2(env, pool.vaultAddress);
+      const data = vault.interface.encodeFunctionData("requestRedeem", [
+        BigInt(body.shares),
+        body.receiverAddress,
+        body.ownerAddress,
+        BigInt(body.minAssets),
+      ]);
+      res.status(201).json({
+        ok: true,
+        redemptionId: request.id,
+        chainId: 137,
+        tx: { to: pool.vaultAddress, data, value: "0" },
+      });
+    } catch (error: any) {
+      res.status(error instanceof z.ZodError ? 400 : 409).json({ error: error?.message ?? "Redemption request failed" });
+    }
+  });
+
+  app.post("/pools/:poolId/redemptions/:redemptionId/confirm", async (req, res) => {
+    try {
+      const body = z.object({ txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/) }).parse(req.body);
+      const request = await prisma.pool_redemption_requests.findUnique({ where: { id: req.params.redemptionId } });
+      const pool = await prisma.club_pools.findUnique({ where: { id: req.params.poolId } });
+      if (!request || request.poolId !== req.params.poolId || !pool?.vaultAddress) {
+        return res.status(404).json({ error: "Redemption request not found" });
+      }
+      const receipt = await (getPusdVaultV2(env, pool.vaultAddress).runner as any).getTransactionReceipt(body.txHash);
+      if (!receipt || receipt.status !== 1) throw new Error("Redemption transaction is not successful");
+      const vault = getPusdVaultV2(env, pool.vaultAddress);
+      let onchainRequestId: bigint | null = null;
+      for (const log of receipt.logs) {
+        try {
+          const parsed = vault.interface.parseLog(log);
+          if (parsed?.name === "RedemptionRequested" && String(parsed.args.owner).toLowerCase() === request.ownerAddress.toLowerCase()) {
+            onchainRequestId = BigInt(parsed.args.requestId.toString());
+            break;
+          }
+        } catch {
+          // Ignore unrelated logs.
+        }
+      }
+      if (onchainRequestId === null) throw new Error("RedemptionRequested event not found");
+      const updated = await prisma.pool_redemption_requests.update({
+        where: { id: request.id },
+        data: { onchainRequestId, requestTxHash: receipt.hash, status: "PENDING_LIQUIDITY" },
+      });
+      res.json({ ok: true, redemption: { ...updated, onchainRequestId: onchainRequestId.toString() } });
+    } catch (error: any) {
+      res.status(error instanceof z.ZodError ? 400 : 409).json({ error: error?.message ?? "Redemption confirmation failed" });
+    }
+  });
+
+  app.get("/pools/:poolId/redemptions/:redemptionId", async (req, res) => {
+    const request = await prisma.pool_redemption_requests.findUnique({ where: { id: req.params.redemptionId } });
+    if (!request || request.poolId !== req.params.poolId) return res.status(404).json({ error: "Redemption request not found" });
+    res.json({
+      ok: true,
+      redemption: { ...request, onchainRequestId: request.onchainRequestId?.toString() ?? null },
+    });
+  });
+
+  app.post("/admin/pools/:poolId/polymarket/bootstrap", requireAdmin, async (req, res) => {
+    try {
+      const result = await bootstrapPoolPolymarketAccount(env, req.params.poolId);
+      res.json({ ok: true, ...result });
+    } catch (error: any) {
+      sendPolymarketMutationError(res, error, "Polymarket bootstrap failed");
+    }
+  });
+
+  app.post("/admin/pools/:poolId/polymarket/approvals", requireAdmin, async (req, res) => {
+    try {
+      const result = await ensurePoolDepositWalletApprovals(env, req.params.poolId);
+      res.json({ ok: true, ...result });
+    } catch (error: any) {
+      sendPolymarketMutationError(res, error, "Polymarket approvals failed");
+    }
+  });
+
+  app.post("/admin/pools/:poolId/proposals/:proposalId/activate", requireAdmin, async (req, res) => {
+    try {
+      const result = await activateAllocationProposalV2(
+        env,
+        req.params.poolId,
+        req.params.proposalId,
+      );
+      res.json({ ok: true, ...result });
+    } catch (error: any) {
+      sendPolymarketMutationError(res, error, "Proposal activation failed");
+    }
+  });
+
+  app.post("/admin/polymarket/execute-next", requireAdmin, async (_req, res) => {
+    try {
+      const result = await executeNextTradeIntent(env, `admin:${process.pid}`);
+      res.json({ ok: true, result });
+    } catch (error: any) {
+      sendPolymarketMutationError(res, error, "Trade execution failed");
+    }
+  });
+
+  app.post("/admin/pools/:poolId/polymarket/reconcile", requireAdmin, async (req, res) => {
+    try {
+      const result = await reconcileAndValuePool(env, req.params.poolId);
+      res.json({ ok: true, ...result });
+    } catch (error: any) {
+      res.status(502).json({ error: error?.message ?? "Reconciliation failed" });
+    }
+  });
+
+  app.post("/admin/pools/:poolId/polymarket/return-idle", requireAdmin, async (req, res) => {
+    try {
+      const result = await returnIdlePusdToVault(env, req.params.poolId);
+      res.json({ ok: true, ...result });
+    } catch (error: any) {
+      res.status(409).json({ error: error?.message ?? "Capital return failed" });
+    }
+  });
+
+  app.post("/admin/pools/:poolId/polymarket/cancel-all", requireAdmin, async (req, res) => {
+    try {
+      const account = await prisma.pool_polymarket_accounts.findUnique({ where: { poolId: req.params.poolId } });
+      if (!account) return res.status(404).json({ error: "Pool Polymarket account not found" });
+      const result = await createPoolClobClient(env, account).cancelAll();
+      await prisma.pool_polymarket_orders.updateMany({
+        where: { poolId: req.params.poolId, status: { in: ["OPEN", "LIVE", "SUBMITTED"] } },
+        data: { status: "CANCELLED", closedAt: new Date() },
+      });
+      const returned = await returnIdlePusdToVault(env, req.params.poolId);
+      res.json({ ok: true, result, returned });
+    } catch (error: any) {
+      res.status(409).json({ error: error?.message ?? "Cancel all failed" });
+    }
+  });
+
+  app.post("/admin/pools/:poolId/redemptions/:redemptionId/make-claimable", requireAdmin, async (req, res) => {
+    try {
+      const [request, pool] = await Promise.all([
+        prisma.pool_redemption_requests.findUnique({ where: { id: req.params.redemptionId } }),
+        prisma.club_pools.findUnique({ where: { id: req.params.poolId } }),
+      ]);
+      if (!request?.onchainRequestId || request.poolId !== req.params.poolId || !pool?.vaultAddress) {
+        return res.status(404).json({ error: "Confirmed redemption request not found" });
+      }
+      const txHash = await makePoolRedemptionClaimable(
+        env,
+        pool.vaultAddress,
+        request.onchainRequestId,
+      );
+      const vault = getPusdVaultV2(env, pool.vaultAddress);
+      const onchain = await (vault as any).redemptionRequests(request.onchainRequestId);
+      const updated = await prisma.pool_redemption_requests.update({
+        where: { id: request.id },
+        data: { status: "CLAIMABLE", claimableAssets: onchain.claimableAssets.toString() },
+      });
+      res.json({ ok: true, txHash, redemption: { ...updated, onchainRequestId: request.onchainRequestId.toString() } });
+    } catch (error: any) {
+      res.status(409).json({ error: error?.message ?? "Redemption fulfillment failed" });
+    }
   });
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;

@@ -1,562 +1,221 @@
 import type { Express } from "express";
 
+const poolId = { name: "poolId", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+const proposalId = { name: "proposalId", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+const intentId = { name: "intentId", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+const redemptionId = { name: "redemptionId", in: "path", required: true, schema: { type: "string", format: "uuid" } };
+
+const adminOperation = (summary: string, parameters: any[] = [poolId]) => ({
+  post: {
+    tags: ["admin"],
+    summary,
+    security: [{ adminApiKey: [] }],
+    parameters,
+    responses: {
+      200: { description: "Operation completed" },
+      409: { description: "Operation rejected by a fail-closed invariant" },
+    },
+  },
+});
+
 export const swaggerSpec = {
   openapi: "3.0.3",
   info: {
-    title: "Club Pool Backend API",
-    version: "0.1.0",
-    description: "MVP API for club pool asset connected to Limitless markets"
+    title: "TeamIndex Polygon / Polymarket V2 API",
+    version: "2.0.0",
+    description:
+      "Polygon pUSD ERC-4626 API. Direct Polymarket trading is fail-closed because the public CLOB API does not document custom TeamIndex ERC-1271 vaults as maker/funder. Deposit Wallet funding is disabled so assets remain in the vault.",
   },
   servers: [{ url: "http://localhost:3001" }],
   components: {
     securitySchemes: {
-      adminApiKey: {
-        type: "apiKey",
-        in: "header",
-        name: "x-admin-key",
-        description: "Admin API key (set ADMIN_API_KEY)."
-      }
-    }
+      adminApiKey: { type: "apiKey", in: "header", name: "x-admin-key" },
+    },
+    schemas: {
+      Address: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+      BaseUnits: { type: "string", pattern: "^\\d+$", example: "1000000" },
+      Transaction: {
+        type: "object",
+        properties: {
+          to: { $ref: "#/components/schemas/Address" },
+          data: { type: "string" },
+          value: { type: "string", example: "0" },
+        },
+      },
+    },
   },
-  security: [],
   tags: [
     { name: "health" },
     { name: "read" },
+    { name: "deposits" },
+    { name: "redemptions" },
     { name: "admin" },
-    { name: "limitless" },
-    { name: "user-tx" },
-    { name: "base" }
   ],
   paths: {
     "/health": {
-      get: {
-        tags: ["health"],
-        summary: "Health check",
-        responses: {
-          200: { description: "OK" }
-        }
-      }
+      get: { tags: ["health"], summary: "Runtime and database health", responses: { 200: { description: "OK" } } },
     },
     "/pools": {
+      get: { tags: ["read"], summary: "List pools", responses: { 200: { description: "Pools" } } },
+    },
+    "/teams": {
       get: {
         tags: ["read"],
-        summary: "List all club pools",
-        responses: {
-          200: { description: "Array of pools" }
-        }
-      }
+        summary: "List canonical teams from the shared sports_data schema",
+        responses: { 200: { description: "Teams" } },
+      },
     },
     "/pools/{poolId}": {
-      get: {
-        tags: ["read"],
-        summary: "Get pool",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Pool" } }
-      }
+      get: { tags: ["read"], summary: "Get a pool", parameters: [poolId], responses: { 200: { description: "Pool" } } },
     },
-    "/pools/{poolId}/candidates": {
+    "/pools/{poolId}/nav": {
       get: {
         tags: ["read"],
-        summary: "Get club market candidates",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Candidates" } }
-      }
-    },
-    "/pools/{poolId}/queue": {
-      get: {
-        tags: ["read"],
-        summary: "Get tranche execution queue",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Queue" } }
-      }
+        summary: "Read Polymarket V2 account, latest accounting snapshot and on-chain NAV",
+        parameters: [poolId],
+        responses: { 200: { description: "NAV" } },
+      },
     },
     "/pools/{poolId}/positions": {
       get: {
         tags: ["read"],
-        summary: "Get open positions",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Positions" } }
-      }
+        summary: "Read reconciled Polymarket positions and orders",
+        parameters: [poolId],
+        responses: { 200: { description: "Positions and orders" } },
+      },
     },
     "/pools/{poolId}/price-snapshots/latest": {
       get: {
         tags: ["read"],
-        summary: "Get latest price snapshot",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Latest snapshot" } }
-      }
+        summary: "Read the latest POLYMARKET_V2 valuation snapshot",
+        parameters: [poolId],
+        responses: { 200: { description: "Snapshot" } },
+      },
     },
-
-    "/admin/pools": {
+    "/pools/{poolId}/deposit-intents": {
       post: {
-        tags: ["admin"],
-        summary: "Create pool",
-        security: [{ adminApiKey: [] }],
+        tags: ["deposits"],
+        summary: "Blocked: Deposit Wallet deposits are disabled in Vault-direct custody mode",
+        parameters: [poolId],
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
+                required: ["idempotencyKey", "userAddress", "depositWalletAddress", "receiverAddress", "assets"],
                 properties: {
-                  clubName: { type: "string" },
-                  symbol: { type: "string" },
-                  sportsDataTeamId: { type: "string", format: "uuid" },
-                  totalTokenSupply: { type: "number", example: 0 },
-                  deployOnchain: { type: "boolean", example: true, default: false },
-                  depositCap: { type: "string", example: "0" },
-                  riskParams: {
-                    type: "object",
-                    properties: {
-                      maxPerMatchPct: { type: "number", example: 3 },
-                      maxTotalExposurePct: { type: "number", example: 20 },
-                      liquidityMinUsd: { type: "number", example: 50000 }
-                    }
-                  }
+                  idempotencyKey: { type: "string" },
+                  userAddress: { $ref: "#/components/schemas/Address" },
+                  depositWalletAddress: { $ref: "#/components/schemas/Address" },
+                  receiverAddress: { $ref: "#/components/schemas/Address" },
+                  assets: { $ref: "#/components/schemas/BaseUnits" },
                 },
-                required: ["clubName", "symbol", "sportsDataTeamId"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "Created poolId" } }
-      }
-    },
-
-    "/admin/{poolId}/discover": {
-      post: {
-        tags: ["admin"],
-        summary: "Discover eligible Limitless markets by sports_data team id and create candidates",
-        security: [{ adminApiKey: [] }],
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  clubName: { type: "string" },
-                  sportsDataTeamId: { type: "string", format: "uuid" },
-                  riskPerMatchPct: { type: "number", example: 3 },
-                  liquidityMinUsd: { type: "number", example: 50000 }
-                },
-                required: ["clubName"]
-              }
-            }
-          }
-        },
-        responses: {
-          200: { description: "Execution result" },
-          409: { description: "Tranche is already processing/executed or otherwise not executable" }
-        }
-      }
-    },
-
-    "/admin/{poolId}/schedule": {
-      post: {
-        tags: ["admin"],
-        summary: "Create scheduled queue entries (T-48h and T-24h)",
-        security: [{ adminApiKey: [] }],
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "OK" } }
-      }
-    },
-
-    "/admin/{poolId}/execute-tranche": {
-      post: {
-        tags: ["admin"],
-        summary: "Manually execute a tranche (for testing)",
-        security: [{ adminApiKey: [] }],
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  candidateId: { type: "string" },
-                  tranche: { type: "number", enum: [1, 2] }
-                },
-                required: ["candidateId", "tranche"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "OK" } }
-      }
-    },
-
-    "/admin/{poolId}/pause": {
-      post: {
-        tags: ["admin"],
-        summary: "Pause vault (onchain)",
-        security: [{ adminApiKey: [] }],
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "OK" } }
-      }
-    },
-
-    "/admin/{poolId}/unpause": {
-      post: {
-        tags: ["admin"],
-        summary: "Unpause vault (onchain)",
-        security: [{ adminApiKey: [] }],
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "OK" } }
-      }
-    },
-
-    "/pools/{poolId}/tx/deposit": {
-      post: {
-        tags: ["user-tx"],
-        summary: "Prepare ERC4626 deposit transaction (populateTransaction)",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  assets: { type: "string", example: "1000000" },
-                  receiver: { type: "string" }
-                },
-                required: ["assets", "receiver"]
-              }
-            }
-          }
-        },
-        responses: {
-          200: {
-            description: "Prepared native Polygon USDC approval and ERC4626 deposit transactions",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    ok: { type: "boolean" },
-                    vaultAddress: { type: "string" },
-                    assetAddress: { type: "string" },
-                    tx: { type: "object" },
-                    txs: {
-                      type: "object",
-                      properties: {
-                        approveTx: { type: "object" },
-                        depositTx: { type: "object" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+              },
+            },
           },
-          409: {
-            description: "Pool vault asset is not the configured native Polygon USDC address",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    ok: { type: "boolean", example: false },
-                    code: { type: "string", example: "VAULT_ASSET_MISMATCH" },
-                    error: { type: "string" },
-                    vaultAddress: { type: "string" },
-                    assetAddress: { type: "string" },
-                    expectedAssetAddress: { type: "string" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pools/{poolId}/tx/deposit-wrapchz": {
-      post: {
-        tags: ["user-tx"],
-        summary: "Prepare WrapCHZ->USDC swap + vault deposit txs (unsigned)",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  sender: { type: "string", description: "Swap output recipient (signing wallet address)" },
-                  receiver: { type: "string", description: "Vault share receiver" },
-                  wrapChzAmountIn: { type: "string", example: "1000000000000000000" },
-                  usdcAmountOutMin: { type: "string", example: "1000000" },
-                  depositAssets: { type: "string", example: "1000000", description: "Optional; defaults to usdcAmountOutMin" }
-                },
-                required: ["sender", "receiver", "wrapChzAmountIn", "usdcAmountOutMin"]
-              }
-            }
-          }
         },
-        responses: { 200: { description: "Sequence of TransactionRequests" } }
-      }
+        responses: { 201: { description: "Deposit intent and transaction data" }, 409: { description: "Rejected" } },
+      },
     },
-    "/base/tx/deposit-usdc": {
-      post: {
-        tags: ["base"],
-        summary: "Prepare unsigned approve + Base USDC deposit transactions",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  poolId: { type: "string" },
-                  amount: { type: "string", example: "1000000" }
-                },
-                required: ["poolId", "amount"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "Base approve/deposit TransactionRequests" } }
-      }
-    },
-    "/base/deposits/{depositId}": {
+    "/pools/{poolId}/deposit-intents/{intentId}": {
       get: {
-        tags: ["base"],
-        summary: "Get Base deposit status",
-        parameters: [{ name: "depositId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Deposit status" } }
-      }
+        tags: ["deposits"],
+        summary: "Read deposit status",
+        parameters: [poolId, intentId],
+        responses: { 200: { description: "Deposit intent" } },
+      },
     },
-    "/base/deposits/confirm": {
+    "/pools/{poolId}/deposit-intents/{intentId}/confirm": {
       post: {
-        tags: ["base"],
-        summary: "Confirm and ingest a successful Base deposit transaction",
+        tags: ["deposits"],
+        summary: "Verify and settle a direct or escrow deposit transaction",
+        parameters: [poolId, intentId],
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
+                required: ["txHash", "mode"],
                 properties: {
-                  txHash: { type: "string", example: "0xd33d703c9592e377c02c9c7b2ccfc30c3ae4579c7570cb30a1f638f88a49f878" }
+                  txHash: { type: "string" },
+                  mode: { type: "string", enum: ["DIRECT", "ESCROW"] },
                 },
-                required: ["txHash"]
-              }
-            }
-          }
+              },
+            },
+          },
         },
-        responses: { 200: { description: "Ingested Base deposit rows" } }
-      }
+        responses: { 200: { description: "Confirmed deposit" }, 409: { description: "Invalid transaction" } },
+      },
     },
-    "/base/deposits/user/{userAddress}": {
+    "/pools/{poolId}/redemptions": {
+      post: {
+        tags: ["redemptions"],
+        summary: "Prepare an asynchronous vault redemption request",
+        parameters: [poolId],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["ownerAddress", "receiverAddress", "shares"],
+                properties: {
+                  ownerAddress: { $ref: "#/components/schemas/Address" },
+                  receiverAddress: { $ref: "#/components/schemas/Address" },
+                  shares: { $ref: "#/components/schemas/BaseUnits" },
+                  minAssets: { $ref: "#/components/schemas/BaseUnits" },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: "Redemption transaction" } },
+      },
+    },
+    "/pools/{poolId}/redemptions/{redemptionId}": {
       get: {
-        tags: ["base"],
-        summary: "List Base deposits for a user",
-        parameters: [{ name: "userAddress", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Deposits" } }
-      }
+        tags: ["redemptions"],
+        summary: "Read redemption status",
+        parameters: [poolId, redemptionId],
+        responses: { 200: { description: "Redemption" } },
+      },
     },
-    "/admin/base/retry-failed": {
+    "/pools/{poolId}/redemptions/{redemptionId}/confirm": {
       post: {
-        tags: ["admin", "base"],
-        summary: "Safely retry FAILED Base deposits from their persisted stage",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "Retry summary with retried/manual/completed counts" } }
-      }
-    },
-    "/admin/base/reset-failed": {
-      post: {
-        tags: ["admin", "base"],
-        summary: "Deprecated alias for safe Base retry; does not reset to RECEIVED",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "Retry summary with deprecated=true" } }
-      }
-    },
-    "/pools/{poolId}/tx/mint": {
-      post: {
-        tags: ["user-tx"],
-        summary: "Prepare ERC4626 mint transaction (populateTransaction)",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
+        tags: ["redemptions"],
+        summary: "Verify the on-chain redemption request",
+        parameters: [poolId, redemptionId],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  shares: { type: "string", example: "1000000" },
-                  receiver: { type: "string" }
-                },
-                required: ["shares", "receiver"]
-              }
-            }
-          }
+              schema: { type: "object", required: ["txHash"], properties: { txHash: { type: "string" } } },
+            },
+          },
         },
-        responses: { 200: { description: "TransactionRequest" } }
-      }
+        responses: { 200: { description: "Confirmed redemption" } },
+      },
     },
-    "/pools/{poolId}/tx/withdraw": {
-      post: {
-        tags: ["user-tx"],
-        summary: "Prepare ERC4626 withdraw transaction (populateTransaction)",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  assets: { type: "string", example: "1000000" },
-                  receiver: { type: "string" },
-                  owner: { type: "string" }
-                },
-                required: ["assets", "receiver", "owner"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "TransactionRequest" } }
-      }
-    },
-    "/pools/{poolId}/tx/redeem": {
-      post: {
-        tags: ["user-tx"],
-        summary: "Prepare ERC4626 redeem transaction (populateTransaction)",
-        parameters: [{ name: "poolId", in: "path", required: true, schema: { type: "string" } }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  shares: { type: "string", example: "1000000" },
-                  receiver: { type: "string" },
-                  owner: { type: "string" }
-                },
-                required: ["shares", "receiver", "owner"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "TransactionRequest" } }
-      }
-    },
-
-    "/chiliz/tx/deposit-chz": {
-      post: {
-        tags: ["chiliz"],
-        summary: "Prepare unsigned tx for depositCHZ on Chiliz chain",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  poolId: { type: "string", description: "Backend pool ID" }
-                },
-                required: ["poolId"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "Unsigned tx for depositCHZ" } }
-      }
-    },
-    "/chiliz/tx/deposit-token": {
-      post: {
-        tags: ["chiliz"],
-        summary: "Prepare unsigned txs (approve + depositToken) on Chiliz chain",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  poolId: { type: "string" },
-                  token: { type: "string", description: "Fan token address on Chiliz" },
-                  amount: { type: "string", example: "1000000000000000000" }
-                },
-                required: ["poolId", "token", "amount"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "Unsigned txs (approve + deposit)" } }
-      }
-    },
-    "/chiliz/deposits/{depositId}": {
-      get: {
-        tags: ["chiliz"],
-        summary: "Get cross-chain deposit status",
-        parameters: [{ name: "depositId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Deposit record with status" } }
-      }
-    },
-    "/chiliz/deposits/user/{userAddress}": {
-      get: {
-        tags: ["chiliz"],
-        summary: "List cross-chain deposits for a user",
-        parameters: [{ name: "userAddress", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Array of deposit records" } }
-      }
-    },
-    "/admin/chiliz/retry-failed": {
-      post: {
-        tags: ["admin", "chiliz"],
-        summary: "Safely retry FAILED Chiliz deposits from their persisted stage",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "Retry summary with retried/manual/completed counts" } }
-      }
-    },
-    "/admin/chiliz/reset-failed": {
-      post: {
-        tags: ["admin", "chiliz"],
-        summary: "Deprecated alias for safe Chiliz retry; does not reset to RECEIVED",
-        security: [{ adminApiKey: [] }],
-        responses: { 200: { description: "Retry summary with deprecated=true" } }
-      }
-    },
-    "/chiliz/redeem": {
-      post: {
-        tags: ["chiliz"],
-        summary: "Request redemption: burn wrapped shares on Chiliz",
-        security: [{ adminApiKey: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  poolId: { type: "string" },
-                  userAddress: { type: "string" },
-                  shares: { type: "string", example: "1000000000000000000" }
-                },
-                required: ["poolId", "userAddress", "shares"]
-              }
-            }
-          }
-        },
-        responses: { 200: { description: "Redemption record" } }
-      }
-    },
-    "/chiliz/redemptions/{redemptionId}": {
-      get: {
-        tags: ["chiliz"],
-        summary: "Get redemption status",
-        parameters: [{ name: "redemptionId", in: "path", required: true, schema: { type: "string" } }],
-        responses: { 200: { description: "Redemption record with status" } }
-      }
-    }
-  }
+    "/admin/pools/{poolId}/polymarket/bootstrap": adminOperation("Blocked until Polymarket supports the TeamIndex vault as maker/funder"),
+    "/admin/pools/{poolId}/polymarket/approvals": adminOperation("Blocked: Deposit Wallet funding is disabled"),
+    "/admin/pools/{poolId}/polymarket/reconcile": adminOperation("Reconcile CLOB state and attest aggregate external valuation"),
+    "/admin/pools/{poolId}/polymarket/return-idle": adminOperation("Return idle pUSD from the Deposit Wallet to the vault"),
+    "/admin/pools/{poolId}/polymarket/cancel-all": adminOperation("Cancel open CLOB orders and return idle pUSD"),
+    "/admin/pools/{poolId}/proposals/{proposalId}/activate": adminOperation(
+      "Hash and activate an accepted allocation proposal, then create capped FAK intents",
+      [poolId, proposalId],
+    ),
+    "/admin/polymarket/execute-next": adminOperation("Claim and execute the next idempotent Polymarket trade intent", []),
+    "/admin/pools/{poolId}/redemptions/{redemptionId}/make-claimable": adminOperation(
+      "Reserve liquid pUSD and make a confirmed redemption claimable",
+      [poolId, redemptionId],
+    ),
+  },
 } as const;
 
-export function registerSwagger(app: Express) {
-  // Client/renderer is done in http.ts. This file only exports spec.
+export function registerSwaggerDocs(_app: Express) {
+  // Swagger UI is mounted by server/http.ts so the signer-only process can
+  // reject it before any public application routes are exposed.
 }

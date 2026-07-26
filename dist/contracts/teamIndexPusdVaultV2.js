@@ -1,0 +1,33 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TEAM_INDEX_PUSD_VAULT_V2_ABI = void 0;
+exports.TEAM_INDEX_PUSD_VAULT_V2_ABI = [
+    "function asset() view returns (address)",
+    "function totalAssets() view returns (uint256)",
+    "function totalCash() view returns (uint256)",
+    "function totalSupply() view returns (uint256)",
+    "function depositWallet() view returns (address)",
+    "function valuationSequence() view returns (uint256)",
+    "function valuedAt() view returns (uint64)",
+    "function externalAssetsValue() view returns (uint256)",
+    "function externalCapitalOutstanding() view returns (uint256)",
+    "function reservedCollateral() view returns (uint256)",
+    "function isValuationFresh() view returns (bool)",
+    "function activateProposal(bytes32 proposalHash, uint256 allocation)",
+    "function revokeProposal(bytes32 proposalHash)",
+    "function allocateToDepositWallet(uint256 amount, bytes32 proposalHash)",
+    "function syncReturnedCapital() returns (uint256)",
+    "function recordExternalValuation(uint256 sequence, uint256 externalAssetsValue, uint256 reservedCollateral, uint64 valuedAt, bytes32 snapshotHash)",
+    "function requestRedeem(uint256 shares, address receiver, address owner, uint256 minAssets) returns (uint256)",
+    "function makeRedemptionClaimable(uint256 requestId) returns (uint256)",
+    "function claimRedemption(uint256 requestId) returns (uint256)",
+    "function pause()",
+    "function unpause()",
+    "function redemptionRequests(uint256 requestId) view returns (address owner,address receiver,uint256 shares,uint256 minAssets,uint256 claimableAssets,uint64 requestedAt,uint8 state)",
+    "function deposit(uint256 assets, address receiver) returns (uint256)",
+    "event CapitalAllocated(bytes32 indexed proposalHash,address indexed depositWallet,uint256 amount)",
+    "event CapitalReturned(address indexed depositWallet,uint256 amount,uint256 outstandingAfter)",
+    "event ExternalValuationRecorded(uint256 indexed sequence,uint256 externalAssetsValue,uint256 reservedCollateral,uint64 valuedAt,bytes32 indexed snapshotHash)",
+    "event RedemptionRequested(uint256 indexed requestId,address indexed owner,address indexed receiver,uint256 shares,uint256 minAssets)",
+    "event RedemptionMadeClaimable(uint256 indexed requestId,uint256 sharesBurned,uint256 assets)",
+];

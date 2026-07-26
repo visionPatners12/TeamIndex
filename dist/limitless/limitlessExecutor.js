@@ -262,6 +262,20 @@ async function executeLimitlessTranche(params) {
         if (!Number.isFinite(trancheStakeUsd) || trancheStakeUsd <= 0) {
             throw new Error("Invalid trancheStakeUsd");
         }
+        // ── FOK pre-flight: verify the order book can fully fill this size ─────
+        // FOK is all-or-nothing with no on-chain price limit, so simulate the fill
+        // against ask depth and skip if it can't fully fill (would be killed) or if
+        // the worst consumed price breaches the pool's slippage tolerance.
+        const fillSim = (0, limitlessOrderClient_1.simulateMarketBuy)(book, trancheStakeUsd);
+        if (!fillSim.fullyFilled) {
+            await finishQueue(queue.id, "SKIPPED", `Insufficient ask depth to fully fill FOK ($${trancheStakeUsd})`);
+            return { skipped: true, reason: "insufficient_depth", fillSim };
+        }
+        const maxSlippagePct = Number(pool.riskParams?.maxSlippagePct ?? 0);
+        if (maxSlippagePct > 0 && fillSim.worstPrice > bestAsk * (1 + maxSlippagePct / 100)) {
+            await finishQueue(queue.id, "SKIPPED", `FOK slippage too high: worst ${fillSim.worstPrice} vs ask ${bestAsk}`);
+            return { skipped: true, reason: "slippage", fillSim };
+        }
         // ── Resolve the pool's Limitless server wallet ─────────────────────────
         const serverWallet = await ensurePoolLimitlessServerWallet(env, pool);
         const ownerId = Number(serverWallet.ownerId);
@@ -279,7 +293,9 @@ async function executeLimitlessTranche(params) {
             return { skipped: true, reason: "missing_limitless_exchange" };
         }
         const collateralToken = marketDetail?.collateralToken?.address ?? env.BASE_USDC_ADDRESS;
-        const orderQuote = (0, limitlessOrderClient_1.quoteLimitlessOrderAmounts)(bestAsk, trancheStakeUsd, "BUY");
+        // FOK market BUY: makerAmount is the full USDC to spend (= trancheStakeUsd), so the
+        // server wallet must be funded for the whole stake, not stake × price.
+        const orderQuote = (0, limitlessOrderClient_1.quoteLimitlessFokAmounts)(trancheStakeUsd);
         const serverWalletBalance = await (0, vaultExecutor_1.getErc20Balance)(env, collateralToken, serverWallet.walletAddress);
         const fundingNeeded = serverWalletBalance < orderQuote.makerAmount ? orderQuote.makerAmount - serverWalletBalance : 0n;
         await (0, vaultExecutor_1.fundTradingWalletFromVault)(env, { clubName: pool.clubName, vaultAddress: pool.vaultAddress }, {
@@ -296,7 +312,7 @@ async function executeLimitlessTranche(params) {
                 price: bestAsk,
                 size: trancheStakeUsd,
                 side: "BUY",
-                orderType: "GTC",
+                orderType: "FOK",
                 signingMode: "server-wallet",
                 onBehalfOf: ownerId,
                 makerAddress: serverWallet.walletAddress,
@@ -315,7 +331,15 @@ async function executeLimitlessTranche(params) {
         const clobOrderId = (0, limitlessOrderClient_1.getLimitlessOrderId)(orderResult) ?? undefined;
         const plannedQuantity = trancheStakeUsd / bestAsk;
         const makerAmountUsdc = base6ToNumber(orderQuote.makerAmount);
-        const takerQuantity = base6ToNumber(orderQuote.takerAmount);
+        // FOK takerAmount is a constant sentinel (1); the expected shares are the estimate above.
+        const takerQuantity = plannedQuantity;
+        // ── Realized fill (FOK fills immediately) ─────────────────────────────
+        // Capture the actual fill from the order response; fall back to the
+        // pre-flight book simulation if the API omitted execution totals.
+        const fill = (0, limitlessOrderClient_1.extractLimitlessFill)(orderResult);
+        const filledStakeUsd = fill?.investedUsd ?? fillSim.spentUsd;
+        const filledQuantity = fill && fill.shares > 0 ? fill.shares : fillSim.filledShares;
+        const entryPrice = fill && fill.fillPrice > 0 ? fill.fillPrice : fillSim.avgPrice > 0 ? fillSim.avgPrice : bestAsk;
         const orderDetails = {
             id: clobOrderId ?? null,
             status: String(orderResult.status ?? (orderResult.success ? "accepted" : "unknown")),
@@ -333,19 +357,26 @@ async function executeLimitlessTranche(params) {
                 created: serverWallet.created,
             },
             quote: {
-                price: orderQuote.price,
+                price: bestAsk,
                 makerAmount: orderQuote.makerAmount.toString(),
                 takerAmount: orderQuote.takerAmount.toString(),
                 makerAmountUsdc,
                 takerQuantity,
             },
+            filled: {
+                stakeUsd: filledStakeUsd,
+                quantity: filledQuantity,
+                entryPrice,
+            },
             formatted: {
-                price: fixed4(bestAsk),
+                price: fixed4(entryPrice),
                 amountUsd: fixed4(trancheStakeUsd),
                 plannedQuantity: fixed4(plannedQuantity),
+                filledStakeUsd: fixed4(filledStakeUsd),
+                filledQuantity: fixed4(filledQuantity),
                 makerAmountUsdc: fixed4(makerAmountUsdc),
                 takerQuantity: fixed4(takerQuantity),
-                fillPct: percent4(0),
+                fillPct: percent4(plannedQuantity > 0 ? filledQuantity / plannedQuantity : 0),
             },
         };
         // ── Persist position + close queue atomically ─────────────────────────
@@ -360,14 +391,14 @@ async function executeLimitlessTranche(params) {
                     marketId: marketSlug, // store the slug as marketId
                     tokenId: candidate.tokenId, // keep encoded form "<slug>:yes|no"
                     side: candidate.side,
-                    entryPrice: String(bestAsk),
+                    entryPrice: String(entryPrice),
                     clobOrderId: clobOrderId ?? null,
                     plannedStake: trancheStakeUsd.toString(),
                     plannedQuantity: plannedQuantity.toString(),
-                    stake: "0",
-                    quantity: "0",
-                    investedAmount: "0",
-                    currentValue: "0",
+                    stake: String(filledStakeUsd),
+                    quantity: String(filledQuantity),
+                    investedAmount: String(filledStakeUsd),
+                    currentValue: String(filledStakeUsd),
                     realizedPnl: "0",
                     status: "OPEN",
                 },

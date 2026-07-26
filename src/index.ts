@@ -1,56 +1,49 @@
 import { createLogger } from "./config/log";
 import { loadEnv } from "./config/env";
 import { startHttpServer } from "./server/http";
-import { startWorker } from "./workers/startWorker";
 import { initDb } from "./db/initDb";
-import { startPriceTicker } from "./workers/priceTicker";
-import { startVaultSyncTicker } from "./workers/vaultSyncTicker";
-import { startLimitlessPortfolioPollingTicker } from "./workers/limitlessPortfolioPollingTicker";
+import {
+  startPolymarketAccountingTicker,
+  startPolymarketExecutorTicker,
+} from "./workers/polymarketV2Ticker";
+import { startPolymarketPoolWs } from "./workers/polymarketPoolWs";
 
 async function main() {
   const env = loadEnv();
   const logger = createLogger();
 
   await initDb();
-  logger.info({ env: { NODE_ENV: env.NODE_ENV } }, "backend init");
+  logger.info(
+    { env: { NODE_ENV: env.NODE_ENV, tradingProvider: env.TRADING_PROVIDER, processRole: env.PROCESS_ROLE } },
+    "backend init",
+  );
 
-  // HTTP API (optional)
-  try {
-    startHttpServer({ env, logger });
-  } catch (err: any) {
-    logger.error({ err }, "HTTP server crashed");
-    process.exit(1);
+  if (env.TRADING_PROVIDER !== "polymarket") {
+    throw new Error("No active trading provider: Limitless is legacy-disabled and Polymarket is required");
   }
 
-  // Worker for scheduled executions
-  if (env.REDIS_URL) {
+  if (["all", "api", "signer"].includes(env.PROCESS_ROLE)) {
     try {
-      startWorker({ env, logger });
+      startHttpServer({ env, logger });
     } catch (err: any) {
-      logger.error({ err }, "Worker crashed");
+      logger.error({ err }, "HTTP server crashed");
       process.exit(1);
     }
-  } else {
-    logger.warn("Redis/queue disabled: REDIS_URL missing");
   }
 
-  try {
-    startPriceTicker({ env, logger });
-  } catch (err: any) {
-    logger.error({ err }, "Price ticker crashed");
+  if (["all", "executor"].includes(env.PROCESS_ROLE)) {
+    startPolymarketExecutorTicker(env, logger);
   }
 
-  try {
-    startVaultSyncTicker({ env, logger });
-  } catch (err: any) {
-    logger.error({ err }, "Vault sync ticker crashed");
+  if (["all", "accounting"].includes(env.PROCESS_ROLE)) {
+    startPolymarketAccountingTicker(env, logger);
   }
 
-  try {
-    startLimitlessPortfolioPollingTicker({ env, logger });
-  } catch (err: any) {
-    logger.error({ err }, "Limitless portfolio polling ticker crashed");
+  if (["all", "pool-ws"].includes(env.PROCESS_ROLE)) {
+    startPolymarketPoolWs(env, logger);
   }
+
+  logger.info("Limitless workers are legacy-disabled; no Limitless runtime was started");
 }
 
 // Prevent unhandled promise rejections (e.g. RPC rate limits) from crashing the process

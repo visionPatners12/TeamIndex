@@ -26,6 +26,38 @@ export async function redeemResolvedPosition(
   );
 }
 
+export type MarketResolution = {
+  resolved: boolean;
+  status: string | null;
+  winningOutcomeIndex: number | null;
+};
+
+const RESOLUTION_TTL_MS = 60_000;
+const resolutionCache = new Map<string, { at: number; value: MarketResolution }>();
+
+/**
+ * Cached resolution status for a Limitless market. One live fetch per distinct
+ * market per TTL window — safe to call on the (polled) positions route.
+ */
+export async function getMarketResolution(env: Env, marketId: string): Promise<MarketResolution> {
+  const hit = resolutionCache.get(marketId);
+  if (hit && Date.now() - hit.at < RESOLUTION_TTL_MS) return hit.value;
+
+  let value: MarketResolution = { resolved: false, status: null, winningOutcomeIndex: null };
+  try {
+    const market = await getMarketBySlug(env, marketId);
+    if (market) {
+      const status = typeof market.status === "string" ? market.status : null;
+      const win = typeof market.winningOutcomeIndex === "number" ? market.winningOutcomeIndex : null;
+      value = { resolved: status === "RESOLVED" || win !== null, status, winningOutcomeIndex: win };
+    }
+  } catch {
+    /* best-effort — treat as unresolved on failure */
+  }
+  resolutionCache.set(marketId, { at: Date.now(), value });
+  return value;
+}
+
 /**
  * Resolve the on-chain CTF `conditionId` (bytes32, `0x…`) for a pool market.
  * The redeem API needs the real bytes32 — `club_pool_positions.marketId` is a

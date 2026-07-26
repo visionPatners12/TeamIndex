@@ -6,6 +6,63 @@ const EnvSchema = zod_1.z.object({
     NODE_ENV: zod_1.z.string().optional().default("development"),
     DATABASE_URL: zod_1.z.string().min(1),
     ADMIN_API_KEY: zod_1.z.string().optional(),
+    TRADING_PROVIDER: zod_1.z.enum(["polymarket", "legacy-disabled"]).optional().default("polymarket"),
+    PROCESS_ROLE: zod_1.z
+        .enum(["all", "api", "executor", "signer", "accounting", "pool-ws"])
+        .optional()
+        .default("all"),
+    // ─── Active chain: Polygon / Polymarket CLOB V2 / pUSD ──────────────────
+    POLYGON_RPC_URL: zod_1.z.string().url().optional(),
+    POLYGON_EXECUTOR_PRIVATE_KEY: zod_1.z.string().optional(),
+    POLYMARKET_CLOB_URL: zod_1.z.string().url().optional().default("https://clob.polymarket.com"),
+    POLYMARKET_GAMMA_URL: zod_1.z.string().url().optional().default("https://gamma-api.polymarket.com"),
+    POLYMARKET_DATA_API_URL: zod_1.z.string().url().optional().default("https://data-api.polymarket.com"),
+    POLYMARKET_RELAYER_URL: zod_1.z.string().url().optional().default("https://relayer-v2.polymarket.com"),
+    POLYMARKET_USER_WS_URL: zod_1.z
+        .string()
+        .url()
+        .optional()
+        .default("wss://ws-subscriptions-clob.polymarket.com/ws/user"),
+    POLYMARKET_BUILDER_CODE: zod_1.z.string().optional(),
+    POLYMARKET_PUSD_ADDRESS: zod_1.z
+        .string()
+        .optional()
+        .default("0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB"),
+    POLYMARKET_CTF_ADDRESS: zod_1.z
+        .string()
+        .optional()
+        .default("0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"),
+    POLYMARKET_CTF_EXCHANGE_ADDRESS: zod_1.z
+        .string()
+        .optional()
+        .default("0xE111180000d2663C0091e4f400237545B87B996B"),
+    POLYMARKET_NEG_RISK_EXCHANGE_ADDRESS: zod_1.z
+        .string()
+        .optional()
+        .default("0xe2222d279d744050d28e00520010520000310F59"),
+    POLYMARKET_DEPOSIT_WALLET_FACTORY: zod_1.z
+        .string()
+        .optional()
+        .default("0x00000000000Fb5C9ADea0298D729A0CB3823Cc07"),
+    TEAM_INDEX_V2_FACTORY_ADDRESS: zod_1.z.string().optional(),
+    TEAM_INDEX_DEPOSIT_ESCROW_ADDRESS: zod_1.z.string().optional(),
+    POLYMARKET_CREDENTIALS_ENCRYPTION_KEY: zod_1.z.string().optional(),
+    POLYMARKET_MAX_ORDER_PUSD: zod_1.z.string().optional().default("25"),
+    POLYMARKET_PILOT_TVL_PUSD: zod_1.z.string().optional().default("1000"),
+    POLYMARKET_ACCOUNTING_INTERVAL_MS: zod_1.z.string().optional().default("60000"),
+    POLYMARKET_EXECUTOR_INTERVAL_MS: zod_1.z.string().optional().default("5000"),
+    POLYMARKET_RECONCILE_INTERVAL_MS: zod_1.z.string().optional().default("30000"),
+    POLYMARKET_EGRESS_CHECK_ENABLED: zod_1.z.string().optional().default("true"),
+    // CDP secures one EOA owner per pool. No private key is persisted by TeamIndex.
+    CDP_API_KEY_ID: zod_1.z.string().optional(),
+    CDP_API_KEY_SECRET: zod_1.z.string().optional(),
+    CDP_WALLET_SECRET: zod_1.z.string().optional(),
+    POLYMARKET_SIGNER_URL: zod_1.z.string().url().optional(),
+    POLYMARKET_SIGNER_TOKEN: zod_1.z.string().optional(),
+    // Hosted relayer authentication for Deposit Wallet deploy/approval batches.
+    POLY_BUILDER_API_KEY: zod_1.z.string().optional(),
+    POLY_BUILDER_SECRET: zod_1.z.string().optional(),
+    POLY_BUILDER_PASSPHRASE: zod_1.z.string().optional(),
     // ─── Base chain (primary chain — everything runs here) ───────────────────
     BASE_RPC_URL: zod_1.z.string().optional(),
     BASE_RPC_FALLBACK_URLS: zod_1.z.string().optional(),
@@ -47,7 +104,7 @@ const EnvSchema = zod_1.z.object({
     LIMITLESS_WS_URL: zod_1.z.string().optional().default("wss://ws.limitless.exchange/markets"),
     LIMITLESS_WS_ENABLED: zod_1.z.string().optional().default("false"),
     LIMITLESS_WS_RECONCILE_INTERVAL_MS: zod_1.z.string().optional().default("600000"),
-    LIMITLESS_PORTFOLIO_POLL_ENABLED: zod_1.z.string().optional().default("true"),
+    LIMITLESS_PORTFOLIO_POLL_ENABLED: zod_1.z.string().optional().default("false"),
     LIMITLESS_PORTFOLIO_POLL_INTERVAL_MS: zod_1.z.string().optional().default("900000"),
     LIMITLESS_PORTFOLIO_POLL_INITIAL_DELAY_MS: zod_1.z.string().optional().default("5000"),
     LIMITLESS_PARTNER_ACCOUNT_CREATION_ENABLED: zod_1.z
@@ -82,6 +139,38 @@ function loadEnv() {
         NODE_ENV: process.env.NODE_ENV,
         DATABASE_URL: process.env.DATABASE_URL,
         ADMIN_API_KEY: process.env.ADMIN_API_KEY,
+        TRADING_PROVIDER: process.env.TRADING_PROVIDER,
+        PROCESS_ROLE: process.env.PROCESS_ROLE,
+        POLYGON_RPC_URL: process.env.POLYGON_RPC_URL ?? process.env.RPC_URL,
+        POLYGON_EXECUTOR_PRIVATE_KEY: process.env.POLYGON_EXECUTOR_PRIVATE_KEY ?? process.env.EXECUTOR_PRIVATE_KEY,
+        POLYMARKET_CLOB_URL: process.env.POLYMARKET_CLOB_URL ?? process.env.CLOB_BASE_URL,
+        POLYMARKET_GAMMA_URL: process.env.POLYMARKET_GAMMA_URL ?? process.env.GAMMA_BASE_URL,
+        POLYMARKET_DATA_API_URL: process.env.POLYMARKET_DATA_API_URL,
+        POLYMARKET_RELAYER_URL: process.env.POLYMARKET_RELAYER_URL ?? process.env.POLY_RELAYER_URL,
+        POLYMARKET_USER_WS_URL: process.env.POLYMARKET_USER_WS_URL ?? process.env.PM_USER_WS_URL,
+        POLYMARKET_BUILDER_CODE: process.env.POLYMARKET_BUILDER_CODE,
+        POLYMARKET_PUSD_ADDRESS: process.env.POLYMARKET_PUSD_ADDRESS ?? process.env.POLY_PUSD_ADDRESS,
+        POLYMARKET_CTF_ADDRESS: process.env.POLYMARKET_CTF_ADDRESS,
+        POLYMARKET_CTF_EXCHANGE_ADDRESS: process.env.POLYMARKET_CTF_EXCHANGE_ADDRESS ?? process.env.POLY_CTF_EXCHANGE,
+        POLYMARKET_NEG_RISK_EXCHANGE_ADDRESS: process.env.POLYMARKET_NEG_RISK_EXCHANGE_ADDRESS ?? process.env.POLY_NEG_RISK_CTF_EXCHANGE,
+        POLYMARKET_DEPOSIT_WALLET_FACTORY: process.env.POLYMARKET_DEPOSIT_WALLET_FACTORY ?? process.env.POLY_DEPOSIT_WALLET_FACTORY,
+        TEAM_INDEX_V2_FACTORY_ADDRESS: process.env.TEAM_INDEX_V2_FACTORY_ADDRESS,
+        TEAM_INDEX_DEPOSIT_ESCROW_ADDRESS: process.env.TEAM_INDEX_DEPOSIT_ESCROW_ADDRESS,
+        POLYMARKET_CREDENTIALS_ENCRYPTION_KEY: process.env.POLYMARKET_CREDENTIALS_ENCRYPTION_KEY,
+        POLYMARKET_MAX_ORDER_PUSD: process.env.POLYMARKET_MAX_ORDER_PUSD,
+        POLYMARKET_PILOT_TVL_PUSD: process.env.POLYMARKET_PILOT_TVL_PUSD,
+        POLYMARKET_ACCOUNTING_INTERVAL_MS: process.env.POLYMARKET_ACCOUNTING_INTERVAL_MS,
+        POLYMARKET_EXECUTOR_INTERVAL_MS: process.env.POLYMARKET_EXECUTOR_INTERVAL_MS,
+        POLYMARKET_RECONCILE_INTERVAL_MS: process.env.POLYMARKET_RECONCILE_INTERVAL_MS,
+        POLYMARKET_EGRESS_CHECK_ENABLED: process.env.POLYMARKET_EGRESS_CHECK_ENABLED,
+        CDP_API_KEY_ID: process.env.CDP_API_KEY_ID,
+        CDP_API_KEY_SECRET: process.env.CDP_API_KEY_SECRET,
+        CDP_WALLET_SECRET: process.env.CDP_WALLET_SECRET,
+        POLYMARKET_SIGNER_URL: process.env.POLYMARKET_SIGNER_URL,
+        POLYMARKET_SIGNER_TOKEN: process.env.POLYMARKET_SIGNER_TOKEN,
+        POLY_BUILDER_API_KEY: process.env.POLY_BUILDER_API_KEY,
+        POLY_BUILDER_SECRET: process.env.POLY_BUILDER_SECRET,
+        POLY_BUILDER_PASSPHRASE: process.env.POLY_BUILDER_PASSPHRASE,
         BASE_RPC_URL: process.env.BASE_RPC_URL,
         BASE_RPC_FALLBACK_URLS: process.env.BASE_RPC_FALLBACK_URLS,
         BASE_EXECUTOR_PRIVATE_KEY: process.env.BASE_EXECUTOR_PRIVATE_KEY,

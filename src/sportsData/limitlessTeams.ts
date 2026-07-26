@@ -195,10 +195,7 @@ async function getLimitlessTeamCountsFromEntityLinks(prisma: PrismaClient) {
   `) as Array<{ id: string; limitlessMarketsCount: number }>;
 }
 
-export async function listLimitlessTeams(
-  prisma: PrismaClient,
-  options?: { onlyWithLimitlessMarkets?: boolean }
-): Promise<SportsDataTeam[]> {
+export async function listSportsDataTeams(prisma: PrismaClient): Promise<SportsDataTeam[]> {
   const columns = await sportsDataColumns(prisma);
   requireColumns(columns, "teams", ["id"]);
   const teamColumns = columns.get("teams") ?? new Set<string>();
@@ -216,6 +213,14 @@ export async function listLimitlessTeams(
   `;
 
   const teams = z.array(TeamRow).parse(rows);
+  return teams;
+}
+
+export async function listLimitlessTeams(
+  prisma: PrismaClient,
+  options?: { onlyWithLimitlessMarkets?: boolean }
+): Promise<SportsDataTeam[]> {
+  const teams = await listSportsDataTeams(prisma);
   if (!options?.onlyWithLimitlessMarkets) return teams;
 
   let linkedRows: Array<{ id: string; limitlessMarketsCount: number }>;

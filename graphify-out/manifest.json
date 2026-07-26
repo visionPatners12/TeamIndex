@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1783033315.1758993,
-    "ast_hash": "fc32c7d4bb30f02f729b9f28c7cd4199",
+    "mtime": 1784078738.8578563,
+    "ast_hash": "e717ee2c3bb61678fa724278434bcacd",
     "semantic_hash": ""
   },
   "prisma/migration_polymarket_features.sql": {
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1783033434.0908327,
-    "ast_hash": "0a4abd25138a32b0a160050dcf2d2bb4",
+    "mtime": 1784078738.005636,
+    "ast_hash": "9f37ea3e35f41265f81467fcde2e5cbf",
     "semantic_hash": ""
   },
   "src/config/log.ts": {
@@ -135,8 +135,8 @@
     "semantic_hash": ""
   },
   "src/db/initDb.ts": {
-    "mtime": 1781813807.6422572,
-    "ast_hash": "9e824eb7e89c569fbefb7d71a1e5c6d5",
+    "mtime": 1784077869.8127844,
+    "ast_hash": "72e5b6b5c652b731a85a3bd2e951b343",
     "semantic_hash": ""
   },
   "src/db/prisma.ts": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "src/index.ts": {
-    "mtime": 1783033424.141353,
-    "ast_hash": "a10c10a176047c8997b3c967ef339b56",
+    "mtime": 1784078560.453669,
+    "ast_hash": "23afee44b7f035b8e30f4a763511e3ba",
     "semantic_hash": ""
   },
   "src/limitless/limitlessClient.ts": {
@@ -160,8 +160,8 @@
     "semantic_hash": ""
   },
   "src/limitless/limitlessExecutor.ts": {
-    "mtime": 1782960378.962206,
-    "ast_hash": "5648561ac338de7878d6004d948f823a",
+    "mtime": 1783053137.9110878,
+    "ast_hash": "4197b671b45e3c89424a89523aeedcf2",
     "semantic_hash": ""
   },
   "src/limitless/limitlessMarketData.ts": {
@@ -170,8 +170,8 @@
     "semantic_hash": ""
   },
   "src/limitless/limitlessOrderClient.ts": {
-    "mtime": 1782953194.0932481,
-    "ast_hash": "c124d8faca15c9167b62f48978e44d0e",
+    "mtime": 1783053082.5025563,
+    "ast_hash": "4c30e3ceffc0975a8e52b7d5ec428c7d",
     "semantic_hash": ""
   },
   "src/limitless/limitlessPositionSync.ts": {
@@ -205,13 +205,13 @@
     "semantic_hash": ""
   },
   "src/polymarket/allocationEngine.ts": {
-    "mtime": 1780058789.4916751,
-    "ast_hash": "47f8e388aeea4e7542f67a0e01832250",
+    "mtime": 1784078112.3238156,
+    "ast_hash": "9d6cefd05af45204a6b3dc93879e2632",
     "semantic_hash": ""
   },
   "src/polymarket/allocationTypes.ts": {
-    "mtime": 1780058066.8297381,
-    "ast_hash": "1cc5e4312b4f134da772f2c32312db07",
+    "mtime": 1784078111.1465952,
+    "ast_hash": "b011b1e40f0ff58994ce6aef34944219",
     "semantic_hash": ""
   },
   "src/queues/bull.ts": {
@@ -220,13 +220,13 @@
     "semantic_hash": ""
   },
   "src/server/http.ts": {
-    "mtime": 1783033349.921641,
-    "ast_hash": "edebc8a565fcacd8950e1837c386829f",
+    "mtime": 1784956609.10062,
+    "ast_hash": "914d5c27966bd9cb6890123426d5859c",
     "semantic_hash": ""
   },
   "src/server/swagger.ts": {
-    "mtime": 1781910525.5528948,
-    "ast_hash": "4772d08039f9bcadbd2989f7d2060ae5",
+    "mtime": 1784957149.586863,
+    "ast_hash": "1596781c32095658bbd3b91481591acd",
     "semantic_hash": ""
   },
   "src/services/priceEngine.ts": {
@@ -285,8 +285,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1779689273.911719,
-    "ast_hash": "20756f517186d48c5e0f2c6d0954fb0d",
+    "mtime": 1784957164.3885162,
+    "ast_hash": "660ae93a7bec41af2c4180c8d64dfcbf",
     "semantic_hash": ""
   },
   "prisma/migrations/20260606000000_add_sports_data_team_id/migration.sql": {
@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "src/sportsData/limitlessTeams.ts": {
-    "mtime": 1782235740.559604,
-    "ast_hash": "8d0f37acf5245fede552df2bc55858f1",
+    "mtime": 1784078738.2764568,
+    "ast_hash": "051cec5caaf988eb308d35e42b468ab5",
     "semantic_hash": ""
   },
   "test/contracts/shareExchange.test.ts": {
@@ -402,6 +402,126 @@
   "prisma/migrations/20260702000000_limitless_realtime_positions/migration.sql": {
     "mtime": 1783041525.1807587,
     "ast_hash": "328f2c38b36b38e4f3dfafec49467c1f",
+    "semantic_hash": ""
+  },
+  "prisma/migrations/20260715000000_polymarket_v2_polygon_pusd/migration.sql": {
+    "mtime": 1784077174.6533325,
+    "ast_hash": "b27dd53b5ddd068c40902c90e815bfa6",
+    "semantic_hash": ""
+  },
+  "scripts/deployPolygonV2.ts": {
+    "mtime": 1784077552.6858962,
+    "ast_hash": "7a463d094869acefc7c46ea1f0dd1b2e",
+    "semantic_hash": ""
+  },
+  "src/contracts/teamIndexPusdVaultV2.ts": {
+    "mtime": 1784077879.2883081,
+    "ast_hash": "ed7b9611af88fa5350f972d69a18c2f1",
+    "semantic_hash": ""
+  },
+  "src/limitless/limitlessRedeem.ts": {
+    "mtime": 1783185386.3053877,
+    "ast_hash": "ee4d5a2b37e742f94f4103d51fc94d07",
+    "semantic_hash": ""
+  },
+  "src/onchain/polygonV2.ts": {
+    "mtime": 1784078336.5357156,
+    "ast_hash": "b49c55e1b5e0eca57beccb5fb108428f",
+    "semantic_hash": ""
+  },
+  "src/polymarket/accountingService.ts": {
+    "mtime": 1784077800.7257822,
+    "ast_hash": "3d3b7b8328d154ba335e2369f2a0b8fb",
+    "semantic_hash": ""
+  },
+  "src/polymarket/cdpSigner.ts": {
+    "mtime": 1784076995.4232602,
+    "ast_hash": "8dcfb2dd47f484c34e4dd859ab4a326f",
+    "semantic_hash": ""
+  },
+  "src/polymarket/constants.ts": {
+    "mtime": 1784956630.6225276,
+    "ast_hash": "bc7ca1d904644fcb61b45c1984d10790",
+    "semantic_hash": ""
+  },
+  "src/polymarket/credentialCrypto.ts": {
+    "mtime": 1784076995.2810175,
+    "ast_hash": "2c5a1ce596c3ccc0ffdd59f6d28a43c3",
+    "semantic_hash": ""
+  },
+  "src/polymarket/depositService.ts": {
+    "mtime": 1784957149.4525557,
+    "ast_hash": "638e2d6c4af793ea98f49aab84333d18",
+    "semantic_hash": ""
+  },
+  "src/polymarket/egress.ts": {
+    "mtime": 1784077061.4092374,
+    "ast_hash": "eb7100762f2128655981a2758b32b8e7",
+    "semantic_hash": ""
+  },
+  "src/polymarket/marketData.ts": {
+    "mtime": 1784078112.7242255,
+    "ast_hash": "1a91a9781ad81504d9b205a773770e4d",
+    "semantic_hash": ""
+  },
+  "src/polymarket/money.ts": {
+    "mtime": 1784077713.549378,
+    "ast_hash": "b080a78b755c655e575066305633ec77",
+    "semantic_hash": ""
+  },
+  "src/polymarket/poolAccountService.ts": {
+    "mtime": 1784956563.506112,
+    "ast_hash": "d0575d940ebcc90fa87209b97e7d2e37",
+    "semantic_hash": ""
+  },
+  "src/polymarket/poolClobClient.ts": {
+    "mtime": 1784078155.1088798,
+    "ast_hash": "60a2c2f913be8db02de630758e28c2f0",
+    "semantic_hash": ""
+  },
+  "src/polymarket/remoteSigner.ts": {
+    "mtime": 1784078154.6209702,
+    "ast_hash": "30b80006d1ab86de340392b5da156ebe",
+    "semantic_hash": ""
+  },
+  "src/polymarket/stableJson.ts": {
+    "mtime": 1784077647.667664,
+    "ast_hash": "b5c17ae7cfd350eb6adc2f3a1f8669f7",
+    "semantic_hash": ""
+  },
+  "src/polymarket/tradeExecutor.ts": {
+    "mtime": 1784956563.7856326,
+    "ast_hash": "0e9e713be8b98ad1af743003860d24e5",
+    "semantic_hash": ""
+  },
+  "src/polymarket/tradeIntentService.ts": {
+    "mtime": 1784956563.649723,
+    "ast_hash": "faca61c91655d6631d57b5b50de82ecc",
+    "semantic_hash": ""
+  },
+  "src/workers/polymarketPoolWs.ts": {
+    "mtime": 1784078559.9692833,
+    "ast_hash": "90192118d58dc89e4be678b9eb46d854",
+    "semantic_hash": ""
+  },
+  "src/workers/polymarketV2Ticker.ts": {
+    "mtime": 1784956563.9211233,
+    "ast_hash": "5d377f4bc9a6114684c1d82babd07ded",
+    "semantic_hash": ""
+  },
+  "test/contracts/vaultV2.test.ts": {
+    "mtime": 1784078361.8425872,
+    "ast_hash": "5089f6fc281b178d862df458fc8a4523",
+    "semantic_hash": ""
+  },
+  "test/polymarket/v2Architecture.test.ts": {
+    "mtime": 1784956639.5816188,
+    "ast_hash": "cbd137a2164a1bcab232e533c43bec2f",
+    "semantic_hash": ""
+  },
+  "docs/POLYMARKET_V2_RUNBOOK.md": {
+    "mtime": 1784957149.7243657,
+    "ast_hash": "2d2b0a4598c90065f3b2e019ead66397",
     "semantic_hash": ""
   }
 }

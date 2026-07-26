@@ -29,20 +29,20 @@ enum QueueStatus {
 }
 
 enum CrossChainDepositStatus {
-  RECEIVED        // Source-chain funds landed on receiver contract
-  BRIDGING        // Funds being bridged/swapped to Polygon USDC
-  DEPOSITING      // USDC being deposited into Polygon vault
-  MINTING_SHARES  // Wrapped shares being minted on source chain
-  COMPLETED       // Done — user has wrapped shares
-  FAILED          // Permanent failure
+  RECEIVED // Source-chain funds landed on receiver contract
+  BRIDGING // Funds being bridged/swapped to Polygon USDC
+  DEPOSITING // USDC being deposited into Polygon vault
+  MINTING_SHARES // Wrapped shares being minted on source chain
+  COMPLETED // Done — user has wrapped shares
+  FAILED // Permanent failure
   NEEDS_MANUAL_RECONCILIATION // A tx may have landed without a persisted hash
 }
 
 enum CrossChainRedemptionStatus {
-  BURN_REQUESTED  // User wants to burn wrapped shares
-  BURNED          // Shares burned on Chiliz
-  WITHDRAWING     // USDC being withdrawn from Polygon vault
-  SETTLING        // Value being sent back to user on Chiliz
+  BURN_REQUESTED // User wants to burn wrapped shares
+  BURNED // Shares burned on Chiliz
+  WITHDRAWING // USDC being withdrawn from Polygon vault
+  SETTLING // Value being sent back to user on Chiliz
   COMPLETED
   FAILED
 }
@@ -53,44 +53,52 @@ enum Side {
 }
 
 model club_pools {
-  id                     String   @id @default(cuid())
-  clubName               String
-  symbol                 String
+  id                      String     @id @default(cuid())
+  clubName                String
+  symbol                  String
   // Canonical sports_data.teams.id for the pool's primary team.
-  primarySportsDataTeamId String? @db.Uuid
+  primarySportsDataTeamId String?    @db.Uuid
   // Back-compat alias used by the current frontend/backend while primarySportsDataTeamId rolls out.
-  sportsDataTeamId       String?  @db.Uuid
+  sportsDataTeamId        String?    @db.Uuid
   // Legacy Polymarket mapping kept only for old rows.
-  polymarketTeamId       String?
+  polymarketTeamId        String?
   // If using `ClubVaultFactory`, this is the deployed per-club vault address.
   // Used so `tx/deposit` and admin vault calls always target the same vault.
-  vaultAddress          String?
-  depositCap             Decimal  @db.Decimal(78, 18) @default(0)
-  cash                   Decimal  @db.Decimal(78, 18) @default(0)
-  openPositionsValue    Decimal  @db.Decimal(78, 18) @default(0)
-  realizedPnl            Decimal  @db.Decimal(78, 18) @default(0)
-  totalPoolValue         Decimal  @db.Decimal(78, 18) @default(0)
-  totalTokenSupply       Decimal  @db.Decimal(78, 18) @default(0)
-  officialTokenPrice     Decimal  @db.Decimal(78, 18) @default(0)
-  riskParams             Json     @default("{}")
-  status                 PoolStatus @default(ACTIVE)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  vaultAddress            String?
+  depositCap              Decimal    @default(0) @db.Decimal(78, 18)
+  cash                    Decimal    @default(0) @db.Decimal(78, 18)
+  openPositionsValue      Decimal    @default(0) @db.Decimal(78, 18)
+  realizedPnl             Decimal    @default(0) @db.Decimal(78, 18)
+  totalPoolValue          Decimal    @default(0) @db.Decimal(78, 18)
+  totalTokenSupply        Decimal    @default(0) @db.Decimal(78, 18)
+  officialTokenPrice      Decimal    @default(0) @db.Decimal(78, 18)
+  riskParams              Json       @default("{}")
+  status                  PoolStatus @default(ACTIVE)
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
 
-  users                club_pool_users[]
-  transactions         club_pool_transactions[]
-  positions            club_pool_positions[]
-  snapshots            club_pool_price_snapshots[]
-  candidates           club_market_candidates[]
-  matchQueue           club_match_queue[]
-  selectedMarkets      pool_selected_markets[]
-  allocationProposals  pool_allocation_proposals[]
-  poolTeams            pool_teams[]
-  limitlessAccount     pool_limitless_accounts?
-  valuationSnapshots   pool_valuation_snapshots[]
+  users                      club_pool_users[]
+  transactions               club_pool_transactions[]
+  positions                  club_pool_positions[]
+  snapshots                  club_pool_price_snapshots[]
+  candidates                 club_market_candidates[]
+  matchQueue                 club_match_queue[]
+  selectedMarkets            pool_selected_markets[]
+  allocationProposals        pool_allocation_proposals[]
+  poolTeams                  pool_teams[]
+  limitlessAccount           pool_limitless_accounts?
+  valuationSnapshots         pool_valuation_snapshots[]
   limitlessPositionSnapshots pool_limitless_position_snapshots[]
-  limitlessTrades      pool_limitless_trades[]
-  limitlessPnlSnapshots pool_limitless_pnl_snapshots[]
+  limitlessTrades            pool_limitless_trades[]
+  limitlessPnlSnapshots      pool_limitless_pnl_snapshots[]
+  polymarketAccount          pool_polymarket_accounts?
+  tradeIntents               pool_trade_intents[]
+  polymarketOrders           pool_polymarket_orders[]
+  polymarketTrades           pool_polymarket_trades[]
+  polymarketPositions        pool_polymarket_positions[]
+  capitalMovements           pool_capital_movements[]
+  redemptionRequests         pool_redemption_requests[]
+  depositIntents             pool_deposit_intents[]
 
   @@index([primarySportsDataTeamId])
   @@index([sportsDataTeamId])
@@ -101,7 +109,7 @@ model pool_teams {
   poolId           String
   sportsDataTeamId String   @db.Uuid
   role             String   @default("PRIMARY")
-  weight           Decimal  @db.Decimal(20, 8) @default(1)
+  weight           Decimal  @default(1) @db.Decimal(20, 8)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -113,18 +121,18 @@ model pool_teams {
 }
 
 model pool_limitless_accounts {
-  id                    String   @id @default(cuid())
-  poolId                String   @unique
-  limitlessProfileId    String?
-  accountAddress        String?
-  displayName           String
-  serverWallet          Boolean  @default(true)
-  allowanceStatus       String   @default("PENDING")
-  status                String   @default("PENDING")
-  rawJson               Json?
-  lastAllowanceCheckAt  DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  poolId               String    @unique
+  limitlessProfileId   String?
+  accountAddress       String?
+  displayName          String
+  serverWallet         Boolean   @default(true)
+  allowanceStatus      String    @default("PENDING")
+  status               String    @default("PENDING")
+  rawJson              Json?
+  lastAllowanceCheckAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -143,12 +151,12 @@ model pool_selected_markets {
   tokenId         String
   eventId         String   @default("")
   question        String
-  marketType      String   @default("game")   // "game" | "future"
+  marketType      String   @default("game") // "game" | "future"
   selectedSide    Side     @default(YES)
   manualClusterId String?
   endDateIso      String?
-  liquidity       Decimal  @db.Decimal(78, 18) @default(0)
-  yesPrice        Decimal  @db.Decimal(78, 18) @default(0)
+  liquidity       Decimal  @default(0) @db.Decimal(78, 18)
+  yesPrice        Decimal  @default(0) @db.Decimal(78, 18)
   enabled         Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -161,19 +169,19 @@ model pool_selected_markets {
 
 // Accepted allocation proposals saved by admin
 model pool_allocation_proposals {
-  id               String   @id @default(cuid())
-  poolId           String
-  nav              Decimal  @db.Decimal(78, 18)
-  targetExposure   Decimal  @db.Decimal(78, 18)
-  cashWeight       Decimal  @db.Decimal(78, 18)
-  cashAmount       Decimal  @db.Decimal(78, 18)
-  portfolioQuality Decimal  @db.Decimal(78, 18) @default(0)
-  proposalJson     Json
+  id                  String   @id @default(cuid())
+  poolId              String
+  nav                 Decimal  @db.Decimal(78, 18)
+  targetExposure      Decimal  @db.Decimal(78, 18)
+  cashWeight          Decimal  @db.Decimal(78, 18)
+  cashAmount          Decimal  @db.Decimal(78, 18)
+  portfolioQuality    Decimal  @default(0) @db.Decimal(78, 18)
+  proposalJson        Json
   selectedMarketsJson Json
   /// Snapshot of the CLOB/Gamma market data the engine consumed (keyed by conditionId).
-  marketDataJson   Json?
-  status           String   @default("ACCEPTED")
-  createdAt        DateTime @default(now())
+  marketDataJson      Json?
+  status              String   @default("ACCEPTED")
+  createdAt           DateTime @default(now())
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -181,18 +189,18 @@ model pool_allocation_proposals {
 }
 
 model club_pool_users {
-  id          String   @id @default(cuid())
-  poolId      String
-  userId      String?  @db.Uuid
-  userAddress String
-  tokenBalance Decimal @db.Decimal(78, 18) @default(0)
-  sharesRaw    Decimal @db.Decimal(78, 18) @default(0)
-  lastTransferTxHash String?
+  id                   String    @id @default(cuid())
+  poolId               String
+  userId               String?   @db.Uuid
+  userAddress          String
+  tokenBalance         Decimal   @default(0) @db.Decimal(78, 18)
+  sharesRaw            Decimal   @default(0) @db.Decimal(78, 18)
+  lastTransferTxHash   String?
   lastTransferLogIndex Int?
-  lastSyncedBlock BigInt?
-  lastSyncedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  lastSyncedBlock      BigInt?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -203,22 +211,22 @@ model club_pool_users {
 }
 
 model club_pool_transactions {
-  id             String   @id @default(cuid())
-  poolId         String
-  userId         String?  @db.Uuid
-  onchainEventId String?
-  type           String   @default("DEPOSIT")
+  id               String   @id @default(cuid())
+  poolId           String
+  userId           String?  @db.Uuid
+  onchainEventId   String?
+  type             String   @default("DEPOSIT")
   /// On-chain tx hash (lowercase) for idempotent ingest after user deposit.
-  txHash         String?
-  userAddress    String
-  depositAmount  Decimal  @db.Decimal(78, 18)
-  netPoolAmount  Decimal  @db.Decimal(78, 18)
-  feeAmount      Decimal  @db.Decimal(78, 18)
-  tokenPriceAtMint Decimal @db.Decimal(78, 18)
-  tokensMinted   Decimal  @db.Decimal(78, 18)
-  createdAt      DateTime @default(now())
+  txHash           String?
+  userAddress      String
+  depositAmount    Decimal  @db.Decimal(78, 18)
+  netPoolAmount    Decimal  @db.Decimal(78, 18)
+  feeAmount        Decimal  @db.Decimal(78, 18)
+  tokenPriceAtMint Decimal  @db.Decimal(78, 18)
+  tokensMinted     Decimal  @db.Decimal(78, 18)
+  createdAt        DateTime @default(now())
 
-  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  pool         club_pools      @relation(fields: [poolId], references: [id], onDelete: Cascade)
   onchainEvent onchain_events? @relation(fields: [onchainEventId], references: [id], onDelete: SetNull)
 
   @@unique([poolId, txHash])
@@ -228,47 +236,47 @@ model club_pool_transactions {
 }
 
 model club_pool_positions {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   poolId          String
-  queueId         String?  @unique
+  queueId         String? @unique
   eventId         String
   marketId        String
   tokenId         String
-  clobOrderId    String?
+  clobOrderId     String?
   side            Side
   entryPrice      Decimal @db.Decimal(78, 18)
   // Planned execution (based on tranche sizing at creation time).
-  plannedStake    Decimal @db.Decimal(78, 18) @default(0)
-  plannedQuantity Decimal @db.Decimal(78, 18) @default(0)
+  plannedStake    Decimal @default(0) @db.Decimal(78, 18)
+  plannedQuantity Decimal @default(0) @db.Decimal(78, 18)
 
   // Filled execution (updated by CLOB fill sync).
-  stake           Decimal @db.Decimal(78, 18) @default(0)
-  quantity        Decimal @db.Decimal(78, 18) @default(0)
+  stake    Decimal @default(0) @db.Decimal(78, 18)
+  quantity Decimal @default(0) @db.Decimal(78, 18)
 
   // Cash already deducted from pool.cash for invested stake.
-  investedAmount  Decimal @db.Decimal(78, 18) @default(0)
+  investedAmount Decimal @default(0) @db.Decimal(78, 18)
 
-  currentValue    Decimal @db.Decimal(78, 18) @default(0)
-  realizedPnl     Decimal @db.Decimal(78, 18) @default(0)
-  status          PositionStatus @default(OPEN)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  currentValue Decimal        @default(0) @db.Decimal(78, 18)
+  realizedPnl  Decimal        @default(0) @db.Decimal(78, 18)
+  status       PositionStatus @default(OPEN)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  pool  club_pools        @relation(fields: [poolId], references: [id], onDelete: Cascade)
   queue club_match_queue? @relation(fields: [queueId], references: [id], onDelete: SetNull)
 
   @@index([poolId, tokenId])
 }
 
 model club_pool_price_snapshots {
-  id               String   @id @default(cuid())
-  poolId           String
-  cash             Decimal  @db.Decimal(78, 18)
-  positionsValue   Decimal  @db.Decimal(78, 18)
-  realizedPnl      Decimal  @db.Decimal(78, 18)
-  totalPoolValue   Decimal  @db.Decimal(78, 18)
-  officialTokenPrice Decimal @db.Decimal(78, 18)
-  snapshotTime     DateTime @default(now())
+  id                 String   @id @default(cuid())
+  poolId             String
+  cash               Decimal  @db.Decimal(78, 18)
+  positionsValue     Decimal  @db.Decimal(78, 18)
+  realizedPnl        Decimal  @db.Decimal(78, 18)
+  totalPoolValue     Decimal  @db.Decimal(78, 18)
+  officialTokenPrice Decimal  @db.Decimal(78, 18)
+  snapshotTime       DateTime @default(now())
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -276,7 +284,7 @@ model club_pool_price_snapshots {
 }
 
 model onchain_events {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   network          String
   transactionHash  String
   logIndex         Int
@@ -288,11 +296,11 @@ model onchain_events {
   timestamp        DateTime?
   parametersJson   Json?
   rawJson          Json
-  processingStatus String   @default("PENDING")
+  processingStatus String    @default("PENDING")
   processedAt      DateTime?
   lastError        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   transactions club_pool_transactions[]
 
@@ -303,15 +311,15 @@ model onchain_events {
 }
 
 model pool_limitless_position_snapshots {
-  id          String   @id @default(cuid())
-  poolId      String
-  accountId   String?
-  asOf        DateTime @default(now())
+  id            String   @id @default(cuid())
+  poolId        String
+  accountId     String?
+  asOf          DateTime @default(now())
   positionsJson Json
-  marketValue Decimal  @db.Decimal(78, 18) @default(0)
-  unrealizedPnl Decimal @db.Decimal(78, 18) @default(0)
-  rawJson     Json?
-  createdAt   DateTime @default(now())
+  marketValue   Decimal  @default(0) @db.Decimal(78, 18)
+  unrealizedPnl Decimal  @default(0) @db.Decimal(78, 18)
+  rawJson       Json?
+  createdAt     DateTime @default(now())
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -319,19 +327,19 @@ model pool_limitless_position_snapshots {
 }
 
 model pool_limitless_trades {
-  id          String   @id @default(cuid())
-  poolId      String
-  accountId   String?
+  id              String    @id @default(cuid())
+  poolId          String
+  accountId       String?
   externalTradeId String?
-  marketId    String?
-  side        String?
-  outcomeIndex Int?
-  price       Decimal? @db.Decimal(78, 18)
-  size        Decimal? @db.Decimal(78, 18)
-  fee         Decimal? @db.Decimal(78, 18)
-  executedAt  DateTime?
-  rawJson     Json
-  createdAt   DateTime @default(now())
+  marketId        String?
+  side            String?
+  outcomeIndex    Int?
+  price           Decimal?  @db.Decimal(78, 18)
+  size            Decimal?  @db.Decimal(78, 18)
+  fee             Decimal?  @db.Decimal(78, 18)
+  executedAt      DateTime?
+  rawJson         Json
+  createdAt       DateTime  @default(now())
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -341,15 +349,15 @@ model pool_limitless_trades {
 }
 
 model pool_limitless_pnl_snapshots {
-  id          String   @id @default(cuid())
-  poolId      String
-  accountId   String?
-  asOf        DateTime @default(now())
-  pnlJson     Json
-  realizedPnl Decimal  @db.Decimal(78, 18) @default(0)
-  unrealizedPnl Decimal @db.Decimal(78, 18) @default(0)
-  rawJson     Json?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  poolId        String
+  accountId     String?
+  asOf          DateTime @default(now())
+  pnlJson       Json
+  realizedPnl   Decimal  @default(0) @db.Decimal(78, 18)
+  unrealizedPnl Decimal  @default(0) @db.Decimal(78, 18)
+  rawJson       Json?
+  createdAt     DateTime @default(now())
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -357,46 +365,264 @@ model pool_limitless_pnl_snapshots {
 }
 
 model pool_valuation_snapshots {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   poolId             String
-  cash               Decimal  @db.Decimal(78, 18) @default(0)
-  positionsValue     Decimal  @db.Decimal(78, 18) @default(0)
-  realizedPnl        Decimal  @db.Decimal(78, 18) @default(0)
-  totalPoolValue     Decimal  @db.Decimal(78, 18) @default(0)
-  totalTokenSupply   Decimal  @db.Decimal(78, 18) @default(0)
-  officialTokenPrice Decimal  @db.Decimal(78, 18) @default(1)
-  source             String   @default("LIMITLESS_REST")
+  sequence           BigInt?
+  snapshotHash       String?
+  valuedAt           DateTime?
+  cash               Decimal   @default(0) @db.Decimal(78, 18)
+  positionsValue     Decimal   @default(0) @db.Decimal(78, 18)
+  reservedCollateral Decimal   @default(0) @db.Decimal(78, 18)
+  realizedPnl        Decimal   @default(0) @db.Decimal(78, 18)
+  totalPoolValue     Decimal   @default(0) @db.Decimal(78, 18)
+  totalTokenSupply   Decimal   @default(0) @db.Decimal(78, 18)
+  officialTokenPrice Decimal   @default(1) @db.Decimal(78, 18)
+  source             String    @default("LIMITLESS_REST")
   rawJson            Json?
-  createdAt          DateTime @default(now())
+  createdAt          DateTime  @default(now())
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, sequence])
+  @@index([poolId, createdAt])
+}
+
+// ============================
+// Active Polymarket V2 pipeline (Polygon / pUSD)
+// ============================
+
+model pool_polymarket_accounts {
+  id                       String    @id @default(cuid())
+  poolId                   String    @unique
+  cdpAccountName           String    @unique
+  cdpOwnerAddress          String    @unique
+  depositWalletAddress     String    @unique
+  vaultAddress             String
+  clobApiKeyCiphertext     String?
+  clobSecretCiphertext     String?
+  clobPassphraseCiphertext String?
+  credentialsVersion       Int       @default(1)
+  approvalsReady           Boolean   @default(false)
+  status                   String    @default("PENDING")
+  lastReconciledAt         DateTime?
+  rawJson                  Json?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  pool   club_pools               @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  orders pool_polymarket_orders[]
+  trades pool_polymarket_trades[]
+
+  @@index([status])
+}
+
+model pool_trade_intents {
+  id             String    @id @default(cuid())
+  poolId         String
+  proposalId     String?
+  idempotencyKey String    @unique
+  proposalHash   String
+  conditionId    String
+  tokenId        String
+  side           Side
+  orderType      String    @default("FAK")
+  limitPrice     Decimal   @db.Decimal(20, 8)
+  amount         Decimal   @db.Decimal(78, 18)
+  maxSlippageBps Int
+  reservedPusd   Decimal   @db.Decimal(78, 18)
+  status         String    @default("PENDING")
+  attempts       Int       @default(0)
+  lockedAt       DateTime?
+  lockedBy       String?
+  lastError      String?
+  metadataJson   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  pool   club_pools               @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  orders pool_polymarket_orders[]
+
+  @@index([poolId, status, createdAt])
+  @@index([proposalHash])
+}
+
+model pool_polymarket_orders {
+  id              String    @id @default(cuid())
+  poolId          String
+  accountId       String
+  intentId        String
+  externalOrderId String?   @unique
+  conditionId     String
+  tokenId         String
+  side            Side
+  orderType       String
+  price           Decimal   @db.Decimal(20, 8)
+  originalSize    Decimal   @db.Decimal(78, 18)
+  matchedSize     Decimal   @default(0) @db.Decimal(78, 18)
+  feeRateBps      Int       @default(0)
+  status          String    @default("PENDING")
+  submittedAt     DateTime?
+  closedAt        DateTime?
+  rawJson         Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  pool    club_pools               @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  account pool_polymarket_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  intent  pool_trade_intents       @relation(fields: [intentId], references: [id], onDelete: Restrict)
+  trades  pool_polymarket_trades[]
+
+  @@unique([intentId])
+  @@index([poolId, status])
+  @@index([tokenId])
+}
+
+model pool_polymarket_trades {
+  id              String   @id @default(cuid())
+  poolId          String
+  accountId       String
+  orderId         String?
+  externalTradeId String   @unique
+  conditionId     String
+  tokenId         String
+  side            Side
+  price           Decimal  @db.Decimal(20, 8)
+  size            Decimal  @db.Decimal(78, 18)
+  fee             Decimal  @default(0) @db.Decimal(78, 18)
+  status          String
+  executedAt      DateTime
+  rawJson         Json?
+  createdAt       DateTime @default(now())
+
+  pool    club_pools               @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  account pool_polymarket_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  order   pool_polymarket_orders?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([poolId, executedAt])
+  @@index([tokenId])
+}
+
+model pool_polymarket_positions {
+  id               String   @id @default(cuid())
+  poolId           String
+  conditionId      String
+  tokenId          String
+  outcome          String?
+  quantity         Decimal  @default(0) @db.Decimal(78, 18)
+  averagePrice     Decimal  @default(0) @db.Decimal(20, 8)
+  currentPrice     Decimal  @default(0) @db.Decimal(20, 8)
+  currentValue     Decimal  @default(0) @db.Decimal(78, 18)
+  realizedPnl      Decimal  @default(0) @db.Decimal(78, 18)
+  unrealizedPnl    Decimal  @default(0) @db.Decimal(78, 18)
+  status           String   @default("OPEN")
+  lastReconciledAt DateTime
+  rawJson          Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, tokenId])
+  @@index([poolId, status])
+}
+
+model pool_capital_movements {
+  id             String   @id @default(cuid())
+  poolId         String
+  idempotencyKey String   @unique
+  type           String
+  amount         Decimal  @db.Decimal(78, 18)
+  proposalHash   String?
+  txHash         String?
+  status         String   @default("PENDING")
+  rawJson        Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
   @@index([poolId, createdAt])
+  @@index([status])
+}
+
+model pool_deposit_intents {
+  id                   String   @id @default(cuid())
+  poolId               String
+  idempotencyKey       String   @unique
+  userAddress          String
+  depositWalletAddress String
+  receiverAddress      String
+  assets               Decimal  @db.Decimal(78, 18)
+  status               String   @default("CREATED")
+  txHash               String?
+  lastError            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@index([poolId, status])
+  @@index([userAddress, createdAt])
+}
+
+model pool_redemption_requests {
+  id               String   @id @default(cuid())
+  poolId           String
+  onchainRequestId BigInt?
+  ownerAddress     String
+  receiverAddress  String
+  shares           Decimal  @db.Decimal(78, 18)
+  minAssets        Decimal  @default(0) @db.Decimal(78, 18)
+  claimableAssets  Decimal  @default(0) @db.Decimal(78, 18)
+  requestTxHash    String?
+  claimTxHash      String?
+  status           String   @default("REQUESTED")
+  lastError        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, onchainRequestId])
+  @@index([ownerAddress, status])
+  @@index([poolId, status])
+}
+
+model pool_worker_leases {
+  key          String   @id
+  owner        String
+  expiresAt    DateTime
+  heartbeatAt  DateTime @default(now())
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([expiresAt])
 }
 
 model club_teams_map {
-  id             String @id @default(cuid())
+  id               String   @id @default(cuid())
   internalClubName String
   polymarketTeamId String
-  createdAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
 
   @@unique([internalClubName, polymarketTeamId])
 }
 
 model club_market_candidates {
-  id            String @id @default(cuid())
-  poolId        String
-  clubName      String
-  eventId       String
-  marketId      String
-  tokenId       String
-  side          Side
-  kickoffTime   DateTime?
-  entryWindow   DateTime?
-  liquidityUsd  Decimal @db.Decimal(78, 18) @default(0)
-  status        String @default("CANDIDATE")
-  discoveredAt   DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String    @id @default(cuid())
+  poolId       String
+  clubName     String
+  eventId      String
+  marketId     String
+  tokenId      String
+  side         Side
+  kickoffTime  DateTime?
+  entryWindow  DateTime?
+  liquidityUsd Decimal   @default(0) @db.Decimal(78, 18)
+  status       String    @default("CANDIDATE")
+  discoveredAt DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
 
@@ -404,26 +630,26 @@ model club_market_candidates {
 }
 
 model club_match_queue {
-  id              String     @id @default(cuid())
-  poolId          String
-  candidateId    String
-  executionTime  DateTime
-  tranche         Int // 48h=1, 24h=2
-  stakeUsd        Decimal  @db.Decimal(78, 18)
-  status          QueueStatus @default(SCHEDULED)
-  lockedAt        DateTime?
-  lockedBy        String?
-  attempts        Int       @default(0)
-  executedAt      DateTime?
-  lastError       String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String      @id @default(cuid())
+  poolId        String
+  candidateId   String
+  executionTime DateTime
+  tranche       Int // 48h=1, 24h=2
+  stakeUsd      Decimal     @db.Decimal(78, 18)
+  status        QueueStatus @default(SCHEDULED)
+  lockedAt      DateTime?
+  lockedBy      String?
+  attempts      Int         @default(0)
+  executedAt    DateTime?
+  lastError     String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  pool club_pools @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  pool     club_pools           @relation(fields: [poolId], references: [id], onDelete: Cascade)
   position club_pool_positions?
 
-  @@index([poolId, executionTime, status])
   @@unique([poolId, candidateId, tranche])
+  @@index([poolId, executionTime, status])
 }
 
 // ============================
@@ -431,102 +657,102 @@ model club_match_queue {
 // ============================
 
 model cross_chain_deposits {
-  id                  String   @id @default(cuid())
-  poolId              String
-  userAddress         String   // user wallet on Chiliz
-  sourceToken         String   // address(0) = native CHZ, else fan token address
-  sourceAmount        Decimal  @db.Decimal(78, 18)
-  chilizDepositId     BigInt   // on-chain depositId from ChilizDepositReceiver
-  chilizTxHash        String?  // tx hash on Chiliz chain
+  id              String  @id @default(cuid())
+  poolId          String
+  userAddress     String // user wallet on Chiliz
+  sourceToken     String // address(0) = native CHZ, else fan token address
+  sourceAmount    Decimal @db.Decimal(78, 18)
+  chilizDepositId BigInt // on-chain depositId from ChilizDepositReceiver
+  chilizTxHash    String? // tx hash on Chiliz chain
 
-  usdcAmount          Decimal? @db.Decimal(78, 18) // USDC received after bridge/swap
+  usdcAmount           Decimal? @db.Decimal(78, 18) // USDC received after bridge/swap
   polygonDepositTxHash String? // vault deposit tx on Polygon
-  sharesMinted        Decimal? @db.Decimal(78, 18)
-  chilizMintTxHash    String?  // wrapped share mint tx on Chiliz
+  sharesMinted         Decimal? @db.Decimal(78, 18)
+  chilizMintTxHash     String? // wrapped share mint tx on Chiliz
 
-  status              CrossChainDepositStatus @default(RECEIVED)
-  processingLockedAt  DateTime?
-  processingLockedBy  String?
-  processingStep      String?
-  attempts            Int      @default(0)
-  lastError           String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  status             CrossChainDepositStatus @default(RECEIVED)
+  processingLockedAt DateTime?
+  processingLockedBy String?
+  processingStep     String?
+  attempts           Int                     @default(0)
+  lastError          String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
+  @@unique([chilizDepositId])
   @@index([poolId, userAddress])
   @@index([status])
   @@index([status, processingLockedAt])
-  @@unique([chilizDepositId])
 }
 
 model base_chain_deposits {
-  id                    String   @id @default(cuid())
-  poolIdHash            String   // bytes32 hash emitted by BaseDepositReceiver
-  clubPoolId            String?
-  userAddress           String   // user wallet on Base
-  sourceToken           String   // Base USDC address
-  sourceAmount          Decimal  @db.Decimal(78, 18)
-  baseDepositId         BigInt   // on-chain depositId from BaseDepositReceiver
-  baseTxHash            String?  // user deposit tx hash on Base
-  releaseTxHash         String?  // receiver release tx hash on Base
-  lifiBridgeTxHash      String?  // LI.FI bridge tx hash on Base
+  id                         String   @id @default(cuid())
+  poolIdHash                 String // bytes32 hash emitted by BaseDepositReceiver
+  clubPoolId                 String?
+  userAddress                String // user wallet on Base
+  sourceToken                String // Base USDC address
+  sourceAmount               Decimal  @db.Decimal(78, 18)
+  baseDepositId              BigInt // on-chain depositId from BaseDepositReceiver
+  baseTxHash                 String? // user deposit tx hash on Base
+  releaseTxHash              String? // receiver release tx hash on Base
+  lifiBridgeTxHash           String? // LI.FI bridge tx hash on Base
   polygonBalanceBeforeBridge Decimal? @db.Decimal(78, 18)
 
-  usdcAmount            Decimal? @db.Decimal(78, 18) // USDC received on Polygon
-  polygonDepositTxHash  String?  // vault deposit tx on Polygon
-  sharesMinted          Decimal? @db.Decimal(78, 18)
-  baseMintTxHash        String?  // wrapped share mint tx on Base
+  usdcAmount           Decimal? @db.Decimal(78, 18) // USDC received on Polygon
+  polygonDepositTxHash String? // vault deposit tx on Polygon
+  sharesMinted         Decimal? @db.Decimal(78, 18)
+  baseMintTxHash       String? // wrapped share mint tx on Base
 
-  status                CrossChainDepositStatus @default(RECEIVED)
-  processingLockedAt    DateTime?
-  processingLockedBy    String?
-  processingStep        String?
-  attempts              Int      @default(0)
-  lastError             String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  status             CrossChainDepositStatus @default(RECEIVED)
+  processingLockedAt DateTime?
+  processingLockedBy String?
+  processingStep     String?
+  attempts           Int                     @default(0)
+  lastError          String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
+  @@unique([baseDepositId])
   @@index([poolIdHash, userAddress])
   @@index([clubPoolId])
   @@index([status])
   @@index([status, processingLockedAt])
-  @@unique([baseDepositId])
 }
 
 model cross_chain_redemptions {
-  id                  String   @id @default(cuid())
-  poolId              String
-  userAddress         String   // user wallet on Chiliz
-  sharesBurned        Decimal  @db.Decimal(78, 18)
-  chilizBurnTxHash    String?
+  id               String  @id @default(cuid())
+  poolId           String
+  userAddress      String // user wallet on Chiliz
+  sharesBurned     Decimal @db.Decimal(78, 18)
+  chilizBurnTxHash String?
 
-  usdcWithdrawn       Decimal? @db.Decimal(78, 18)
+  usdcWithdrawn         Decimal? @db.Decimal(78, 18)
   polygonWithdrawTxHash String?
-  settlementToken     String?  // what user gets back (CHZ address or native)
-  settlementAmount    Decimal? @db.Decimal(78, 18)
-  chilizSettleTxHash  String?
+  settlementToken       String? // what user gets back (CHZ address or native)
+  settlementAmount      Decimal? @db.Decimal(78, 18)
+  chilizSettleTxHash    String?
 
-  status              CrossChainRedemptionStatus @default(BURN_REQUESTED)
-  lastError           String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  status    CrossChainRedemptionStatus @default(BURN_REQUESTED)
+  lastError String?
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
 
   @@index([poolId, userAddress])
   @@index([status])
 }
 
 model chain_event_cursors {
-  key                String   @id
+  key                String    @id
   chain              String
   contractAddress    String
   eventName          String
-  lastProcessedBlock BigInt   @default(0)
+  lastProcessedBlock BigInt    @default(0)
   lockedAt           DateTime?
   lockedBy           String?
   cooldownUntil      DateTime?
   lastError          String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([chain, contractAddress, eventName])
   @@index([lockedAt])
@@ -538,11 +764,11 @@ model chain_event_cursors {
 // ============================
 
 model system_settings {
-  key             String   @id @default("default")
+  key           String   @id @default("default")
   /// When false, the Chiliz deposit flow is hidden in the user-facing UI.
   /// The admin panel can still toggle it, and CHZ/USD price is always shown.
-  chilizEnabled   Boolean  @default(false)
-  updatedAt       DateTime @updatedAt
+  chilizEnabled Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
 }
 
 // ============================
@@ -567,14 +793,14 @@ model limitless_sync_state {
 
 /// Market categories fetched from Limitless API — pipeline only, not queried client-side.
 model limitless_categories {
-  id        String    @id
-  slug      String    @unique
+  id        String   @id
+  slug      String   @unique
   label     String
   rawJson   Json?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  markets   limitless_markets[]
+  markets limitless_markets[]
 }
 
 /// Raw markets fetched from Limitless API — pipeline only, not queried client-side.
@@ -588,20 +814,20 @@ model limitless_markets {
   /// Winning outcome title when the market is resolved.
   resolution  String?
   /// Implied probability for outcome[0] (YES / first outcome).
-  yesPrice    Decimal   @db.Decimal(10, 6) @default(0)
+  yesPrice    Decimal   @default(0) @db.Decimal(10, 6)
   /// Implied probability for outcome[1] (NO / second outcome).
-  noPrice     Decimal   @db.Decimal(10, 6) @default(0)
-  liquidity   Decimal   @db.Decimal(20, 6) @default(0)
-  volume      Decimal   @db.Decimal(20, 6) @default(0)
+  noPrice     Decimal   @default(0) @db.Decimal(10, 6)
+  liquidity   Decimal   @default(0) @db.Decimal(20, 6)
+  volume      Decimal   @default(0) @db.Decimal(20, 6)
   endDate     DateTime?
   rawJson     Json?
   syncedAt    DateTime  @default(now())
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  category    limitless_categories? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  prices      limitless_prices[]
-  game        lim_games?
+  category limitless_categories? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  prices   limitless_prices[]
+  game     lim_games?
 
   @@index([categoryId])
   @@index([status])
@@ -628,27 +854,27 @@ model limitless_prices {
 /// Sport/league/team enrichment for Limitless markets — populated by /sports pipeline.
 /// One row per market identified as a sports fixture. Not queried client-side.
 model lim_games {
-  id        String    @id @default(cuid())
-  marketId  String    @unique
+  id                   String    @id @default(cuid())
+  marketId             String    @unique
   /// e.g. "soccer", "basketball", "tennis"
-  sport     String?
+  sport                String?
   /// e.g. "Premier League", "NBA", "Champions League"
-  league    String?
+  league               String?
   /// Home team or first player name.
-  homeTeam  String?
+  homeTeam             String?
   /// Away team or second player name.
-  awayTeam  String?
+  awayTeam             String?
   /// Expected kick-off / start time of the fixture.
-  gameTime  DateTime?
+  gameTime             DateTime?
   /// Canonical sports_data.games.id when this Limitless market is linked to a known match.
-  sportsDataGameId String?
+  sportsDataGameId     String?
   /// Canonical sports_data.teams.id for the home/first team.
-  homeSportsDataTeamId String? @db.Uuid
+  homeSportsDataTeamId String?   @db.Uuid
   /// Canonical sports_data.teams.id for the away/second team.
-  awaySportsDataTeamId String? @db.Uuid
-  rawJson   Json?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  awaySportsDataTeamId String?   @db.Uuid
+  rawJson              Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   market limitless_markets @relation(fields: [marketId], references: [id], onDelete: Cascade)
 

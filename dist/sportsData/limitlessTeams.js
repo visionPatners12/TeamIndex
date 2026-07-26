@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.assertUuid = assertUuid;
+exports.listSportsDataTeams = listSportsDataTeams;
 exports.listLimitlessTeams = listLimitlessTeams;
 exports.getLimitlessMarketsForTeam = getLimitlessMarketsForTeam;
 const client_1 = require("@prisma/client");
@@ -173,7 +174,7 @@ async function getLimitlessTeamCountsFromEntityLinks(prisma) {
     group by team_id
   `);
 }
-async function listLimitlessTeams(prisma, options) {
+async function listSportsDataTeams(prisma) {
     const columns = await sportsDataColumns(prisma);
     requireColumns(columns, "teams", ["id"]);
     const teamColumns = columns.get("teams") ?? new Set();
@@ -189,6 +190,10 @@ async function listLimitlessTeams(prisma, options) {
     order by name asc
   `;
     const teams = zod_1.z.array(TeamRow).parse(rows);
+    return teams;
+}
+async function listLimitlessTeams(prisma, options) {
+    const teams = await listSportsDataTeams(prisma);
     if (!options?.onlyWithLimitlessMarkets)
         return teams;
     let linkedRows;

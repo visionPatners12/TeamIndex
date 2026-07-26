@@ -50,7 +50,6 @@ const MAX_DRAWDOWN_REJECT = 0.60;
 // Edge model (all small, documented priors)
 const FLB_KAPPA = 0.015; // max favorite-longshot probability tilt (≈1.5¢)
 const MOM_GAMMA = 0.020; // max momentum probability tilt (≈2¢)
-const TAKER_FEE = 0.0; // Polymarket taker fee hook (currently 0)
 const MAX_EDGE_DELTA = 0.05; // cap |q − p| at 5¢
 // Max lean toward the Kelly direction (< 1 ⇒ fractional Kelly; rest stays ERC).
 // True fractional-Kelly conservatism also lives in the conservative TARGET_VOL.
@@ -219,7 +218,8 @@ function momentumEdge(ts, volume24h) {
 }
 /** Round-trip transaction cost in price units. */
 function roundTripCost(clob) {
-    return clob.spread + clob.estimatedSlippage + 2 * TAKER_FEE;
+    const feeRate = Math.max(0, clob.feeRateBps ?? 0) / 10_000;
+    return clob.spread + clob.estimatedSlippage + 2 * feeRate;
 }
 function computeEdge(entryPrice, ts, clob) {
     const flb = favLongshotEdge(entryPrice);

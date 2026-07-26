@@ -33,6 +33,10 @@ export interface MarketClobData {
   daysToResolution: number;
   marketStatus: "open" | "closed";
   historicalPrices: Array<{ t: number; p: number }>;
+  tickSize?: string;
+  minOrderSize?: number;
+  feeRateBps?: number;
+  negRisk?: boolean;
 }
 
 /** Allocation result for a single market (passed). */

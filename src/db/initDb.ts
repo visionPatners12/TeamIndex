@@ -42,12 +42,24 @@ export async function initDb() {
 }
 
 async function assertRequiredTablesExist() {
-  const requiredTables = ["club_pools", "club_pool_positions"];
+  const requiredTables = [
+    "club_pools",
+    "pool_polymarket_accounts",
+    "pool_trade_intents",
+    "pool_polymarket_positions",
+    "pool_worker_leases",
+  ];
   const rows = await prisma.$queryRaw<Array<{ table_schema: string; table_name: string }>>`
     SELECT table_schema, table_name
     FROM information_schema.tables
     WHERE table_schema = current_schema()
-      AND table_name IN ('club_pools', 'club_pool_positions')
+      AND table_name IN (
+        'club_pools',
+        'pool_polymarket_accounts',
+        'pool_trade_intents',
+        'pool_polymarket_positions',
+        'pool_worker_leases'
+      )
   `;
   const existing = new Set(rows.map((row) => row.table_name));
   const missing = requiredTables.filter((table) => !existing.has(table));
