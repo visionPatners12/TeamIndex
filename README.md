@@ -67,3 +67,31 @@ Build every service with `npm run build`, then use one start command per service
 Only the private signer service receives CDP and builder credentials. It must not have a public Railway domain. API, executor and WebSocket services call it through `POLYMARKET_SIGNER_URL` with `POLYMARKET_SIGNER_TOKEN`. The Polygon operator/valuator key remains separate in `POLYGON_EXECUTOR_PRIVATE_KEY`; no key rotation is implemented.
 
 See [docs/POLYMARKET_V2_RUNBOOK.md](docs/POLYMARKET_V2_RUNBOOK.md) for rollout, invariants and recovery procedures. Active endpoints are documented at `/docs`.
+
+## pUSD deposit pilot (API only)
+
+The public API can prepare a user's own Polygon pUSD `approve` and ERC-4626
+`deposit` calls. The user signs both calls in their wallet. After the Polygon
+transaction succeeds, `POST /pools/:poolId/pusd-deposit/confirm` checks the
+vault's `Deposit` event and records the shares in Postgres. Repeating a
+confirmation with the same transaction hash is idempotent.
+
+For an API-only Railway service, build with `npm run build` and start with
+`npm run start:api`. Set `DATABASE_URL`, `TRADING_PROVIDER=polymarket`,
+`POLYGON_RPC_URL`, `ADMIN_API_KEY`, and `PROCESS_ROLE=api`. Run
+`npx prisma migrate deploy` against the intended database before enabling
+deposits. Check `/health`: `db` must be `true` and `deposits.chainId` must be
+`137`.
+
+Leave `TEAM_INDEX_PUSD_DEPOSITS_ENABLED=false` until the pool record points to
+a deployed `TeamIndexPUSDVaultV2` on Polygon with pUSD as its asset, and its
+on-chain deposit cap does not exceed the pilot limit. Then set
+`POLYMARKET_PILOT_TVL_PUSD` to the desired maximum and
+`TEAM_INDEX_PUSD_DEPOSITS_ENABLED=true`. The API rejects preparation above the
+pilot limit; the vault's on-chain cap is the final guard if deposits race.
+The preparation body is `{ "assets": "1000000", "receiver": "0x..." }`
+for 1 pUSD (6 decimals). The confirmation body is `{ "txHash": "0x..." }`.
+
+This pilot only accepts deposits into an existing vault. Factory deployment,
+pool creation and CLOB order execution are separate steps; order execution
+remains disabled by the vault-direct capability guard.

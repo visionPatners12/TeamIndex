@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1784078738.005636,
-    "ast_hash": "9f37ea3e35f41265f81467fcde2e5cbf",
+    "mtime": 1791129927.160954,
+    "ast_hash": "eebf9e915ac7ce8c11fe7168e16d3c98",
     "semantic_hash": ""
   },
   "src/config/log.ts": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/server/http.ts": {
-    "mtime": 1784956609.10062,
-    "ast_hash": "914d5c27966bd9cb6890123426d5859c",
+    "mtime": 1791132031.3356328,
+    "ast_hash": "99eab3e2ab36cae582d2e94344ceb66a",
     "semantic_hash": ""
   },
   "src/server/swagger.ts": {
@@ -522,6 +522,16 @@
   "docs/POLYMARKET_V2_RUNBOOK.md": {
     "mtime": 1784957149.7243657,
     "ast_hash": "2d2b0a4598c90065f3b2e019ead66397",
+    "semantic_hash": ""
+  },
+  "src/polymarket/directVaultDeposit.ts": {
+    "mtime": 1791130928.6853466,
+    "ast_hash": "2bc50ca346895d16e576a24e27258e10",
+    "semantic_hash": ""
+  },
+  "test/polymarket/directVaultDeposit.test.ts": {
+    "mtime": 1791130948.1902137,
+    "ast_hash": "1f2767f3d1bec1b891bfc3b93ce82488",
     "semantic_hash": ""
   }
 }

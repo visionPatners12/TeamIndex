@@ -106,6 +106,7 @@ import {
   confirmPoolDepositIntent,
   createPoolDepositIntent,
 } from "../polymarket/depositService";
+import { confirmDirectPusdDeposit, DirectDepositError, prepareDirectPusdDeposit } from "../polymarket/directVaultDeposit";
 import { activateAllocationProposalV2 } from "../polymarket/tradeIntentService";
 import { executeNextTradeIntent, returnIdlePusdToVault } from "../polymarket/tradeExecutor";
 import { reconcileAndValuePool } from "../polymarket/accountingService";
@@ -187,7 +188,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-    if (!env.ADMIN_API_KEY) return next();
+    if (!env.ADMIN_API_KEY) return res.status(503).json({ error: "Admin API is not configured" });
     const key = String(req.headers["x-admin-key"] ?? "");
     if (!key || key !== env.ADMIN_API_KEY) return res.status(403).json({ error: "Forbidden" });
     return next();
@@ -505,6 +506,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       ok: true,
       db: dbOk,
       trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
+      deposits: { enabled: env.TEAM_INDEX_PUSD_DEPOSITS_ENABLED === "true", asset: "pUSD", chainId: 137 },
     });
   });
 
@@ -812,6 +814,31 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     res.json({ ok: true, pool: { ...pool, holdersCount: _count.users } });
   });
 
+  // User-owned Polygon pUSD deposits go straight to the pool vault. CDP is not
+  // involved in this payment; the API only prepares calls and verifies events.
+  app.post("/pools/:poolId/tx/pusd-deposit", async (req, res) => {
+    try {
+      const body = z.object({
+        assets: z.string().regex(/^\d+$/),
+        receiver: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+      }).parse(req.body);
+      res.json(await prepareDirectPusdDeposit(env, req.params.poolId, body.assets, body.receiver));
+    } catch (error: any) {
+      res.status(error instanceof z.ZodError ? 400 : error instanceof DirectDepositError ? error.status : 502)
+        .json({ ok: false, error: error?.message ?? "pUSD deposit preparation failed" });
+    }
+  });
+
+  app.post("/pools/:poolId/pusd-deposit/confirm", async (req, res) => {
+    try {
+      const body = z.object({ txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/) }).parse(req.body);
+      res.json(await confirmDirectPusdDeposit(env, req.params.poolId, body.txHash));
+    } catch (error: any) {
+      res.status(error instanceof z.ZodError ? 400 : error instanceof DirectDepositError ? error.status : 502)
+        .json({ ok: false, error: error?.message ?? "pUSD deposit confirmation failed" });
+    }
+  });
+
   app.get("/pools/:poolId/candidates", async (req, res) => {
     const candidates = await prisma.club_market_candidates.findMany({
       where: { poolId: req.params.poolId },
@@ -849,6 +876,9 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
         ok: true,
         provider: "polymarket-v2",
         chainId: 137,
+        vaultAddress: pool.vaultAddress,
+        cashPusd: decimalNumber(pool.cash),
+        totalPoolValuePusd: decimalNumber(pool.totalPoolValue),
         trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
         positions,
         orders,
@@ -1239,6 +1269,66 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       provider: "polymarket-v2",
       latest: latest ? { ...latest, sequence: latest.sequence?.toString() ?? null } : null,
     });
+  });
+
+  // Windows the front-end price chart can ask for. `max` keeps every snapshot.
+  const PRICE_HISTORY_WINDOWS_MS: Record<string, number | null> = {
+    "1d": 24 * 60 * 60 * 1000,
+    "1w": 7 * 24 * 60 * 60 * 1000,
+    "1m": 30 * 24 * 60 * 60 * 1000,
+    "3m": 90 * 24 * 60 * 60 * 1000,
+    max: null,
+  };
+
+  const priceHistoryQuerySchema = z.object({
+    range: z.enum(["1d", "1w", "1m", "3m", "max"]).optional().default("1w"),
+    limit: z.coerce.number().int().min(2).max(2000).optional().default(400),
+  });
+
+  /**
+   * Token price / NAV history for a pool, feeding the index chart on the
+   * client. Snapshots are written by the price engine at a much finer grain
+   * than a chart can show, so the window is downsampled to `limit` evenly
+   * spaced buckets — the first and last snapshots are always kept so the
+   * quoted change matches the endpoints drawn on screen.
+   */
+  app.get("/pools/:poolId/price-history", async (req, res) => {
+    const parsed = priceHistoryQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "invalid_query", code: "invalid_query" });
+    }
+    const { range, limit } = parsed.data;
+    const windowMs = PRICE_HISTORY_WINDOWS_MS[range];
+    const since = windowMs === null ? undefined : new Date(Date.now() - windowMs);
+
+    const rows = await prisma.club_pool_price_snapshots.findMany({
+      where: { poolId: req.params.poolId, ...(since ? { snapshotTime: { gte: since } } : {}) },
+      orderBy: { snapshotTime: "asc" },
+      select: { snapshotTime: true, officialTokenPrice: true, totalPoolValue: true },
+    });
+
+    // Keep a fixed number of points: take one row per bucket, last row wins.
+    const step = rows.length > limit ? rows.length / limit : 1;
+    const sampled = step === 1
+      ? rows
+      : rows.filter(
+          (_, i) =>
+            i === 0 || i === rows.length - 1 || Math.floor(i / step) !== Math.floor((i + 1) / step),
+        );
+
+    const points = sampled.map((row) => ({
+      t: Math.floor(row.snapshotTime.getTime() / 1000),
+      price: Number(row.officialTokenPrice),
+      nav: Number(row.totalPoolValue),
+    }));
+
+    const first = points[0] ?? null;
+    const last = points[points.length - 1] ?? null;
+    const change = first && last && first.price > 0
+      ? { absolute: last.price - first.price, percent: (last.price - first.price) / first.price }
+      : null;
+
+    res.json({ ok: true, range, points, change });
   });
 
   const poolCreateSchema = z.object({
