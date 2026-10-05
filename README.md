@@ -46,6 +46,14 @@ npx prisma migrate deploy
 
 ## Polygon deployment
 
+The shared core was deployed on Polygon on 2026-10-05. The confirmed
+addresses and transaction hashes are in
+`deployments/polygon-v2-core-2026-10-05.json`. Set
+`TEAM_INDEX_V2_FACTORY_ADDRESS=0x943205635DC1144FE45BF1E090983E1480CabaF9`
+in the backend when creating a club vault. Leave
+`TEAM_INDEX_DEPOSIT_ESCROW_ADDRESS` unset until the optional escrow is deployed.
+The implementation is not a pool vault or a user deposit address.
+
 Set `RPC_URL` (or `POLYGON_RPC_URL`), Hardhat's Polygon deployer key
 `EXECUTOR_PRIVATE_KEY` (or `POLYGON_EXECUTOR_PRIVATE_KEY`),
 `POLYMARKET_OPERATOR_ADDRESS`, and `POLYMARKET_VALUATOR_ADDRESS`.
@@ -57,6 +65,13 @@ the full deployment budget:
 TEAM_INDEX_DEPLOY_DRY_RUN=true npm run contracts:deploy:polygon:v2
 ```
 
+The escrow is optional and skipped by default. Set `TEAM_INDEX_DEPLOY_ESCROW=true`
+only when deploying all four contracts together. To add just the escrow later,
+set `TEAM_INDEX_V2_REGISTRY_ADDRESS` to the deployed registry, check with
+`TEAM_INDEX_DEPLOY_DRY_RUN=true npm run contracts:deploy:polygon:escrow:v2`,
+then run `npm run contracts:deploy:polygon:escrow:v2`. Direct wallet-to-vault
+pUSD deposits do not need it.
+
 The deployment refuses to broadcast while gas exceeds
 `TEAM_INDEX_MAX_DEPLOY_GWEI` (default `60`) or the wallet lacks enough POL for
 the complete deployment with a 20% fee buffer. When the preflight passes, run:
@@ -66,8 +81,8 @@ npm run contracts:deploy:polygon:v2
 ```
 
 The script prints each confirmed transaction hash and address, then a final
-JSON manifest. The implementation, registry, factory and escrow are
-shared infrastructure; a **pool's vault address is different** and exists
+JSON manifest. The implementation, registry and factory are shared
+infrastructure; a **pool's vault address is different** and exists
 only after creating that pool with its own Polymarket Deposit Wallet. Do not
 use the implementation or factory address as a deposit receiver.
 

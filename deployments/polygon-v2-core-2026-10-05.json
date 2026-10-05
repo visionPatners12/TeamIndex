@@ -1,0 +1,20 @@
+{
+  "network": "polygon",
+  "chainId": 137,
+  "asset": "0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB",
+  "deployer": "0xfA267939abC2107Df0995b9571e5f5C695efE3aC",
+  "operator": "0xfA267939abC2107Df0995b9571e5f5C695efE3aC",
+  "valuator": "0xfA267939abC2107Df0995b9571e5f5C695efE3aC",
+  "vaultImplementation": "0x15Ba0b7a5E74E7B8b0410434d4a8802C853d7a84",
+  "registry": "0xe593f92a86fDFF96072B679f17277C3D420C2e49",
+  "factory": "0x943205635DC1144FE45BF1E090983E1480CabaF9",
+  "depositEscrow": null,
+  "transactions": {
+    "vaultImplementation": "0xa5e59fd661bdefdacbdb9457fb216bea819fb6e5aa8c7307fb4a84c797023f60",
+    "registry": "0x3cc6cd08c927218e4fb3b7fd119e97b8f91d50332a28a04a926a60ef98016b14",
+    "factory": "0x1c9c435c1fbd20f64c0b9ff601eafec6ddc3c639a9492cd9049f8ab07431a115",
+    "registrarAuthorization": "0x88bc6b9594da43a46ab68427c5771ba34c8225c5cc6493fae1ff6384ba457130"
+  },
+  "verifiedOnchain": true,
+  "gasPaidPOL": "1.352430904505262831"
+}

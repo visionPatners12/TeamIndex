@@ -10,6 +10,7 @@ async function main() {
   const pUSD = process.env.POLY_PUSD_ADDRESS || POLYMARKET_PUSD;
   const operator = process.env.POLYMARKET_OPERATOR_ADDRESS;
   const valuator = process.env.POLYMARKET_VALUATOR_ADDRESS;
+  const deployEscrow = process.env.TEAM_INDEX_DEPLOY_ESCROW === "true";
 
   if (!ethers.isAddress(pUSD)) throw new Error(`Invalid POLY_PUSD_ADDRESS: ${pUSD}`);
   if (!operator || !ethers.isAddress(operator)) {
@@ -35,13 +36,17 @@ async function main() {
 
   // Check the whole deployment budget before the first irreversible transaction.
   // Placeholder constructor addresses have the same calldata size as the final ones.
-  const deploymentTxs = await Promise.all([
+  const coreDeploymentTxs = await Promise.all([
     Vault.getDeployTransaction(),
     Registry.getDeployTransaction(pUSD, deployer.address),
     Factory.getDeployTransaction(pUSD, deployer.address, deployer.address, deployer.address, operator, valuator),
-    Escrow.getDeployTransaction(pUSD, deployer.address, deployer.address, operator),
   ]);
-  const deploymentGas = await Promise.all(deploymentTxs.map((tx) => deployer.estimateGas(tx)));
+  const escrowTx = deployEscrow
+    ? await Escrow.getDeployTransaction(pUSD, deployer.address, deployer.address, operator)
+    : null;
+  const deploymentGas = await Promise.all(
+    [...coreDeploymentTxs, ...(escrowTx ? [escrowTx] : [])].map((tx) => deployer.estimateGas(tx)),
+  );
   if (deploymentGas.some((gas) => gas <= 21_000n)) {
     throw new Error("Invalid contract deployment gas estimate; no transaction was sent");
   }
@@ -70,6 +75,14 @@ async function main() {
     currentGasPriceGwei: ethers.formatUnits(currentGasPrice, "gwei"),
     maxAllowedGasPriceGwei: maxDeployGwei,
     estimatedGasUnits: estimatedGas.toString(),
+    deploymentGasUnits: {
+      vaultImplementation: deploymentGas[0].toString(),
+      registry: deploymentGas[1].toString(),
+      factory: deploymentGas[2].toString(),
+      registrarAllowance: "100000",
+      ...(deployEscrow ? { optionalEscrow: deploymentGas[3].toString() } : {}),
+    },
+    optionalEscrowEnabled: deployEscrow,
     estimatedCostPOLAtCurrentGasPrice: ethers.formatEther(estimatedGas * currentGasPrice),
     requiredPOLWith20PercentBuffer: ethers.formatEther(requiredWei),
   }));
@@ -105,15 +118,19 @@ async function main() {
   await registrarTx.wait();
   console.log(JSON.stringify({ stage: "registrar", txHash: registrarTx.hash }));
 
-  const escrow = await Escrow.deploy(
-    pUSD,
-    await registry.getAddress(),
-    deployer.address,
-    operator,
-    txFees,
-  );
-  await escrow.waitForDeployment();
-  console.log(JSON.stringify({ stage: "escrow", address: await escrow.getAddress(), txHash: escrow.deploymentTransaction()?.hash }));
+  let escrowAddress: string | null = null;
+  if (deployEscrow) {
+    const escrow = await Escrow.deploy(
+      pUSD,
+      await registry.getAddress(),
+      deployer.address,
+      operator,
+      txFees,
+    );
+    await escrow.waitForDeployment();
+    escrowAddress = await escrow.getAddress();
+    console.log(JSON.stringify({ stage: "escrow", address: escrowAddress, txHash: escrow.deploymentTransaction()?.hash }));
+  }
 
   console.log(
     JSON.stringify(
@@ -125,7 +142,7 @@ async function main() {
         teamIndexPUSDVaultV2Implementation: await implementation.getAddress(),
         teamIndexRegistryV2: await registry.getAddress(),
         teamIndexVaultFactoryV2: await factory.getAddress(),
-        teamIndexDepositEscrowV2: await escrow.getAddress(),
+        teamIndexDepositEscrowV2: escrowAddress,
         operator,
         valuator,
         defaults: {

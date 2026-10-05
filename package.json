@@ -20,6 +20,7 @@
     "contracts:diagnose:polygon": "ts-node scripts/diagnosePolygon.ts",
     "contracts:deploy:polygon": "hardhat run scripts/deployPolygon.ts --network polygon",
     "contracts:deploy:polygon:v2": "hardhat run scripts/deployPolygonV2.ts --network polygon",
+    "contracts:deploy:polygon:escrow:v2": "hardhat run scripts/deployPolygonEscrowV2.ts --network polygon",
     "contracts:transfer-ownership:polygon": "hardhat run scripts/transferFactoryOwnership.ts --network polygon",
     "contracts:deploy:base": "hardhat run scripts/deployBase.ts --network base",
     "contracts:deploy:base:vault-factory": "hardhat run scripts/deployBaseVaultFactory.ts --network base",
