@@ -1,5 +1,5 @@
 import { CdpClient } from "@coinbase/cdp-sdk";
-import { createWalletClient, getAddress, http, isAddress, toFunctionSelector, type Address, type Hex } from "viem";
+import { createWalletClient, decodeAbiParameters, getAddress, http, isAddress, toFunctionSelector, type Address, type Hex } from "viem";
 import { toAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 import type { Env } from "../config/env";
@@ -24,7 +24,6 @@ const REDEEM_POSITIONS_SELECTOR = toFunctionSelector(
 const MERGE_POSITIONS_SELECTOR = toFunctionSelector(
   "mergePositions(address,bytes32,bytes32,uint256[],uint256)",
 );
-const VAULT_DEPOSIT_SELECTOR = toFunctionSelector("deposit(uint256,address)");
 
 function asChainId(value: unknown): number | undefined {
   if (typeof value === "number") return value;
@@ -92,7 +91,6 @@ export class CdpPolymarketSigner {
         env.POLYMARKET_CTF_ADDRESS.toLowerCase(),
         new Set([SET_APPROVAL_FOR_ALL_SELECTOR, REDEEM_POSITIONS_SELECTOR, MERGE_POSITIONS_SELECTOR]),
       ],
-      [this.vaultAddress.toLowerCase(), new Set([VAULT_DEPOSIT_SELECTOR])],
     ]);
   }
 
@@ -201,6 +199,27 @@ export class CdpPolymarketSigner {
     const selectors = this.allowedBatchTargets.get(target);
     if (!selectors || !selectors.has(data.slice(0, 10))) {
       throw new Error(`Signer rejected Deposit Wallet batch target or selector: ${target}/${data.slice(0, 10)}`);
+    }
+    const args = `0x${data.slice(10)}` as Hex;
+    if (target === this.env.POLYMARKET_PUSD_ADDRESS.toLowerCase()) {
+      const [recipient] = decodeAbiParameters([{ type: "address" }, { type: "uint256" }], args);
+      if (data.startsWith(TRANSFER_SELECTOR)) {
+        const allowed = [this.vaultAddress, this.env.TEAM_INDEX_DEPOSIT_ESCROW_ADDRESS]
+          .filter(Boolean).some((address) => sameAddress(recipient, address));
+        if (!allowed) throw new Error("Signer rejected pUSD transfer outside the registered vault or escrow");
+      } else if (data.startsWith(APPROVE_SELECTOR)) {
+        const allowed = [...this.allowedExchangeAddresses, this.vaultAddress.toLowerCase()];
+        if (!allowed.includes(recipient.toLowerCase())) {
+          throw new Error("Signer rejected pUSD approval for an unknown spender");
+        }
+      }
+    }
+    if (target === this.env.POLYMARKET_CTF_ADDRESS.toLowerCase()
+      && data.startsWith(SET_APPROVAL_FOR_ALL_SELECTOR)) {
+      const [operator, approved] = decodeAbiParameters([{ type: "address" }, { type: "bool" }], args);
+      if (!this.allowedExchangeAddresses.has(operator.toLowerCase()) || !approved) {
+        throw new Error("Signer rejected conditional-token approval for an unknown exchange");
+      }
     }
   }
 }

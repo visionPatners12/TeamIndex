@@ -81,7 +81,7 @@
       "source_file": "package.json",
       "source_location": "L1",
       "id": "package",
-      "community": 16,
+      "community": 22,
       "norm_label": "package.json"
     },
     {
@@ -90,7 +90,7 @@
       "source_file": "package.json",
       "source_location": "L2",
       "id": "package_name",
-      "community": 16,
+      "community": 22,
       "norm_label": "name"
     },
     {
@@ -99,7 +99,7 @@
       "source_file": "package.json",
       "source_location": "L3",
       "id": "package_version",
-      "community": 16,
+      "community": 22,
       "norm_label": "version"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "package.json",
       "source_location": "L4",
       "id": "package_private",
-      "community": 16,
+      "community": 22,
       "norm_label": "private"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "package.json",
       "source_location": "L5",
       "id": "package_type",
-      "community": 16,
+      "community": 22,
       "norm_label": "type"
     },
     {
@@ -351,7 +351,7 @@
       "source_file": "package.json",
       "source_location": "L32",
       "id": "package_prisma",
-      "community": 16,
+      "community": 22,
       "norm_label": "prisma"
     },
     {
@@ -360,7 +360,7 @@
       "source_file": "package.json",
       "source_location": "L33",
       "id": "package_prisma_seed",
-      "community": 16,
+      "community": 22,
       "norm_label": "seed"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "package.json",
       "source_location": "L53",
       "id": "package_devdependencies",
-      "community": 15,
+      "community": 16,
       "norm_label": "devdependencies"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "package.json",
       "source_location": "L54",
       "id": "package_devdependencies_nomicfoundation_hardhat_ethers",
-      "community": 15,
+      "community": 16,
       "norm_label": "@nomicfoundation/hardhat-ethers"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "package.json",
       "source_location": "L55",
       "id": "package_devdependencies_openzeppelin_contracts",
-      "community": 15,
+      "community": 16,
       "norm_label": "@openzeppelin/contracts"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "package.json",
       "source_location": "L56",
       "id": "package_devdependencies_openzeppelin_contracts_upgradeable",
-      "community": 15,
+      "community": 16,
       "norm_label": "@openzeppelin/contracts-upgradeable"
     },
     {
@@ -558,7 +558,7 @@
       "source_file": "package.json",
       "source_location": "L57",
       "id": "package_devdependencies_types_chai",
-      "community": 15,
+      "community": 16,
       "norm_label": "@types/chai"
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "package.json",
       "source_location": "L58",
       "id": "package_devdependencies_types_express",
-      "community": 15,
+      "community": 16,
       "norm_label": "@types/express"
     },
     {
@@ -576,7 +576,7 @@
       "source_file": "package.json",
       "source_location": "L59",
       "id": "package_devdependencies_types_mocha",
-      "community": 15,
+      "community": 16,
       "norm_label": "@types/mocha"
     },
     {
@@ -585,7 +585,7 @@
       "source_file": "package.json",
       "source_location": "L60",
       "id": "package_devdependencies_types_node",
-      "community": 15,
+      "community": 16,
       "norm_label": "@types/node"
     },
     {
@@ -594,7 +594,7 @@
       "source_file": "package.json",
       "source_location": "L61",
       "id": "package_devdependencies_types_swagger_ui_express",
-      "community": 15,
+      "community": 16,
       "norm_label": "@types/swagger-ui-express"
     },
     {
@@ -603,7 +603,7 @@
       "source_file": "package.json",
       "source_location": "L62",
       "id": "package_devdependencies_types_ws",
-      "community": 15,
+      "community": 16,
       "norm_label": "@types/ws"
     },
     {
@@ -612,7 +612,7 @@
       "source_file": "package.json",
       "source_location": "L63",
       "id": "package_devdependencies_chai",
-      "community": 15,
+      "community": 16,
       "norm_label": "chai"
     },
     {
@@ -621,7 +621,7 @@
       "source_file": "package.json",
       "source_location": "L64",
       "id": "package_devdependencies_hardhat",
-      "community": 15,
+      "community": 16,
       "norm_label": "hardhat"
     },
     {
@@ -630,7 +630,7 @@
       "source_file": "package.json",
       "source_location": "L65",
       "id": "package_devdependencies_prisma",
-      "community": 15,
+      "community": 16,
       "norm_label": "prisma"
     },
     {
@@ -639,7 +639,7 @@
       "source_file": "package.json",
       "source_location": "L66",
       "id": "package_devdependencies_ts_node",
-      "community": 15,
+      "community": 16,
       "norm_label": "ts-node"
     },
     {
@@ -648,7 +648,7 @@
       "source_file": "package.json",
       "source_location": "L67",
       "id": "package_devdependencies_tsc_watch",
-      "community": 15,
+      "community": 16,
       "norm_label": "tsc-watch"
     },
     {
@@ -657,7 +657,7 @@
       "source_file": "package.json",
       "source_location": "L68",
       "id": "package_devdependencies_typescript",
-      "community": 15,
+      "community": 16,
       "norm_label": "typescript"
     },
     {
@@ -924,7 +924,7 @@
       "label": "Env",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L146",
+      "source_location": "L156",
       "id": "config_env_env",
       "community": 3,
       "norm_label": "env"
@@ -933,7 +933,7 @@
       "label": "loadEnv()",
       "file_type": "code",
       "source_file": "src/config/env.ts",
-      "source_location": "L148",
+      "source_location": "L158",
       "id": "config_env_loadenv",
       "community": 3,
       "norm_label": "loadenv()"
@@ -1122,7 +1122,7 @@
       "label": "main()",
       "file_type": "code",
       "source_file": "src/index.ts",
-      "source_location": "L11",
+      "source_location": "L12",
       "id": "src_index_main",
       "community": 3,
       "norm_label": "main()"
@@ -2537,7 +2537,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L1",
       "id": "onchain_cdpsqlapi",
-      "community": 7,
+      "community": 15,
       "norm_label": "cdpsqlapi.ts"
     },
     {
@@ -2546,7 +2546,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L5",
       "id": "onchain_cdpsqlapi_cdptransferevent",
-      "community": 7,
+      "community": 15,
       "norm_label": "cdptransferevent"
     },
     {
@@ -2555,7 +2555,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L16",
       "id": "onchain_cdpsqlapi_cdpsqlresponse",
-      "community": 7,
+      "community": 15,
       "norm_label": "cdpsqlresponse"
     },
     {
@@ -2564,7 +2564,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L25",
       "id": "onchain_cdpsqlapi_tokenfromenv",
-      "community": 7,
+      "community": 15,
       "norm_label": "tokenfromenv()"
     },
     {
@@ -2573,7 +2573,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L29",
       "id": "onchain_cdpsqlapi_iscdpsqlconfigured",
-      "community": 7,
+      "community": 15,
       "norm_label": "iscdpsqlconfigured()"
     },
     {
@@ -2582,7 +2582,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L33",
       "id": "onchain_cdpsqlapi_assertaddress",
-      "community": 7,
+      "community": 15,
       "norm_label": "assertaddress()"
     },
     {
@@ -2591,7 +2591,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L40",
       "id": "onchain_cdpsqlapi_runcdpsqlquery",
-      "community": 7,
+      "community": 15,
       "norm_label": "runcdpsqlquery()"
     },
     {
@@ -2600,7 +2600,7 @@
       "source_file": "src/onchain/cdpSqlApi.ts",
       "source_location": "L68",
       "id": "onchain_cdpsqlapi_fetchvaulttransfereventsfromcdpsql",
-      "community": 7,
+      "community": 15,
       "norm_label": "fetchvaulttransfereventsfromcdpsql()"
     },
     {
@@ -2888,7 +2888,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L1",
       "id": "onchain_poolsync",
-      "community": 7,
+      "community": 15,
       "norm_label": "poolsync.ts"
     },
     {
@@ -2897,7 +2897,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L9",
       "id": "onchain_poolsync_syncinputs",
-      "community": 7,
+      "community": 15,
       "norm_label": "syncinputs"
     },
     {
@@ -2906,7 +2906,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L29",
       "id": "onchain_poolsync_vaultsyncsnapshot",
-      "community": 7,
+      "community": 15,
       "norm_label": "vaultsyncsnapshot"
     },
     {
@@ -2915,7 +2915,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L40",
       "id": "onchain_poolsync_dectostr",
-      "community": 7,
+      "community": 15,
       "norm_label": "dectostr()"
     },
     {
@@ -2924,7 +2924,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L49",
       "id": "onchain_poolsync_readvaultsyncsnapshot",
-      "community": 7,
+      "community": 15,
       "norm_label": "readvaultsyncsnapshot()"
     },
     {
@@ -2933,7 +2933,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L110",
       "id": "onchain_poolsync_transferposition",
-      "community": 7,
+      "community": 15,
       "norm_label": "transferposition()"
     },
     {
@@ -2942,7 +2942,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L117",
       "id": "onchain_poolsync_isaftertransfer",
-      "community": 7,
+      "community": 15,
       "norm_label": "isaftertransfer()"
     },
     {
@@ -2951,7 +2951,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L124",
       "id": "onchain_poolsync_addtouchedholder",
-      "community": 7,
+      "community": 15,
       "norm_label": "addtouchedholder()"
     },
     {
@@ -2960,7 +2960,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L137",
       "id": "onchain_poolsync_upsertsyncedholderbalance",
-      "community": 7,
+      "community": 15,
       "norm_label": "upsertsyncedholderbalance()"
     },
     {
@@ -2969,7 +2969,7 @@
       "source_file": "src/onchain/poolSync.ts",
       "source_location": "L176",
       "id": "onchain_poolsync_syncvaulteventstodb",
-      "community": 7,
+      "community": 5,
       "norm_label": "syncvaulteventstodb()"
     },
     {
@@ -3444,7 +3444,7 @@
       "label": "tradeOrderId()",
       "file_type": "code",
       "source_file": "src/polymarket/accountingService.ts",
-      "source_location": "L45",
+      "source_location": "L55",
       "id": "polymarket_accountingservice_tradeorderid",
       "community": 14,
       "norm_label": "tradeorderid()"
@@ -3453,7 +3453,7 @@
       "label": "reconcilePoolPolymarket()",
       "file_type": "code",
       "source_file": "src/polymarket/accountingService.ts",
-      "source_location": "L49",
+      "source_location": "L59",
       "id": "polymarket_accountingservice_reconcilepoolpolymarket",
       "community": 14,
       "norm_label": "reconcilepoolpolymarket()"
@@ -3462,7 +3462,7 @@
       "label": "refreshPoolAccounting()",
       "file_type": "code",
       "source_file": "src/polymarket/accountingService.ts",
-      "source_location": "L170",
+      "source_location": "L192",
       "id": "polymarket_accountingservice_refreshpoolaccounting",
       "community": 14,
       "norm_label": "refreshpoolaccounting()"
@@ -3471,7 +3471,7 @@
       "label": "reconcileAndValuePool()",
       "file_type": "code",
       "source_file": "src/polymarket/accountingService.ts",
-      "source_location": "L265",
+      "source_location": "L297",
       "id": "polymarket_accountingservice_reconcileandvaluepool",
       "community": 14,
       "norm_label": "reconcileandvaluepool()"
@@ -3972,19 +3972,10 @@
       "norm_label": "merge_positions_selector"
     },
     {
-      "label": "VAULT_DEPOSIT_SELECTOR",
-      "file_type": "code",
-      "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L27",
-      "id": "polymarket_cdpsigner_vault_deposit_selector",
-      "community": 20,
-      "norm_label": "vault_deposit_selector"
-    },
-    {
       "label": "asChainId()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L29",
+      "source_location": "L28",
       "id": "polymarket_cdpsigner_aschainid",
       "community": 20,
       "norm_label": "aschainid()"
@@ -3993,7 +3984,7 @@
       "label": "sameAddress()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L36",
+      "source_location": "L35",
       "id": "polymarket_cdpsigner_sameaddress",
       "community": 20,
       "norm_label": "sameaddress()"
@@ -4002,7 +3993,7 @@
       "label": "jsonSafe()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L40",
+      "source_location": "L39",
       "id": "polymarket_cdpsigner_jsonsafe",
       "community": 20,
       "norm_label": "jsonsafe()"
@@ -4011,7 +4002,7 @@
       "label": "requireAddress()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L49",
+      "source_location": "L48",
       "id": "polymarket_cdpsigner_requireaddress",
       "community": 20,
       "norm_label": "requireaddress()"
@@ -4020,7 +4011,7 @@
       "label": "CdpPolymarketSigner",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L58",
+      "source_location": "L57",
       "id": "polymarket_cdpsigner_cdppolymarketsigner",
       "community": 20,
       "norm_label": "cdppolymarketsigner"
@@ -4029,7 +4020,7 @@
       "label": ".constructor()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L66",
+      "source_location": "L65",
       "id": "polymarket_cdpsigner_cdppolymarketsigner_constructor",
       "community": 20,
       "norm_label": ".constructor()"
@@ -4038,7 +4029,7 @@
       "label": ".getAddress()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L99",
+      "source_location": "L97",
       "id": "polymarket_cdpsigner_cdppolymarketsigner_getaddress",
       "community": 20,
       "norm_label": ".getaddress()"
@@ -4047,7 +4038,7 @@
       "label": "._signTypedData()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L103",
+      "source_location": "L101",
       "id": "polymarket_cdpsigner_cdppolymarketsigner_signtypeddata",
       "community": 20,
       "norm_label": "._signtypeddata()"
@@ -4056,7 +4047,7 @@
       "label": ".createWalletClient()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L130",
+      "source_location": "L128",
       "id": "polymarket_cdpsigner_cdppolymarketsigner_createwalletclient",
       "community": 20,
       "norm_label": ".createwalletclient()"
@@ -4065,7 +4056,7 @@
       "label": ".validateTypedData()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L149",
+      "source_location": "L147",
       "id": "polymarket_cdpsigner_cdppolymarketsigner_validatetypeddata",
       "community": 20,
       "norm_label": ".validatetypeddata()"
@@ -4074,7 +4065,7 @@
       "label": ".validateBatchCall()",
       "file_type": "code",
       "source_file": "src/polymarket/cdpSigner.ts",
-      "source_location": "L196",
+      "source_location": "L194",
       "id": "polymarket_cdpsigner_cdppolymarketsigner_validatebatchcall",
       "community": 20,
       "norm_label": ".validatebatchcall()"
@@ -4938,7 +4929,7 @@
       "label": "Request",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L125",
+      "source_location": "L127",
       "id": "server_http_request",
       "community": 5,
       "norm_label": "request"
@@ -4947,7 +4938,7 @@
       "label": "startHttpServer()",
       "file_type": "code",
       "source_file": "src/server/http.ts",
-      "source_location": "L131",
+      "source_location": "L133",
       "id": "server_http_starthttpserver",
       "community": 3,
       "norm_label": "starthttpserver()"
@@ -4958,7 +4949,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L1",
       "id": "server_swagger",
-      "community": 22,
+      "community": 5,
       "norm_label": "swagger.ts"
     },
     {
@@ -4967,7 +4958,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L3",
       "id": "server_swagger_poolid",
-      "community": 22,
+      "community": 5,
       "norm_label": "poolid"
     },
     {
@@ -4976,7 +4967,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L4",
       "id": "server_swagger_proposalid",
-      "community": 22,
+      "community": 5,
       "norm_label": "proposalid"
     },
     {
@@ -4985,7 +4976,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L5",
       "id": "server_swagger_intentid",
-      "community": 22,
+      "community": 5,
       "norm_label": "intentid"
     },
     {
@@ -4994,7 +4985,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L6",
       "id": "server_swagger_redemptionid",
-      "community": 22,
+      "community": 5,
       "norm_label": "redemptionid"
     },
     {
@@ -5003,7 +4994,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L8",
       "id": "server_swagger_adminoperation",
-      "community": 22,
+      "community": 5,
       "norm_label": "adminoperation()"
     },
     {
@@ -5012,7 +5003,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L21",
       "id": "server_swagger_swaggerspec",
-      "community": 22,
+      "community": 5,
       "norm_label": "swaggerspec"
     },
     {
@@ -5021,7 +5012,7 @@
       "source_file": "src/server/swagger.ts",
       "source_location": "L218",
       "id": "server_swagger_registerswaggerdocs",
-      "community": 22,
+      "community": 5,
       "norm_label": "registerswaggerdocs()"
     },
     {
@@ -5412,10 +5403,19 @@
       "norm_label": "listsportsdatateams()"
     },
     {
+      "label": "sportsDataTeamExists()",
+      "file_type": "code",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L220",
+      "id": "sportsdata_limitlessteams_sportsdatateamexists",
+      "community": 1,
+      "norm_label": "sportsdatateamexists()"
+    },
+    {
       "label": "listLimitlessTeams()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L219",
+      "source_location": "L228",
       "id": "sportsdata_limitlessteams_listlimitlessteams",
       "community": 1,
       "norm_label": "listlimitlessteams()"
@@ -5424,7 +5424,7 @@
       "label": "textValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L243",
+      "source_location": "L252",
       "id": "sportsdata_limitlessteams_textvalue",
       "community": 1,
       "norm_label": "textvalue()"
@@ -5433,7 +5433,7 @@
       "label": "numberValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L251",
+      "source_location": "L260",
       "id": "sportsdata_limitlessteams_numbervalue",
       "community": 1,
       "norm_label": "numbervalue()"
@@ -5442,7 +5442,7 @@
       "label": "dateValue()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L261",
+      "source_location": "L270",
       "id": "sportsdata_limitlessteams_datevalue",
       "community": 1,
       "norm_label": "datevalue()"
@@ -5451,7 +5451,7 @@
       "label": "normalizeTeamName()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L271",
+      "source_location": "L280",
       "id": "sportsdata_limitlessteams_normalizeteamname",
       "community": 1,
       "norm_label": "normalizeteamname()"
@@ -5460,7 +5460,7 @@
       "label": "normalizedContainsTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L280",
+      "source_location": "L289",
       "id": "sportsdata_limitlessteams_normalizedcontainsteam",
       "community": 1,
       "norm_label": "normalizedcontainsteam()"
@@ -5469,7 +5469,7 @@
       "label": "sideHintFromText()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L290",
+      "source_location": "L299",
       "id": "sportsdata_limitlessteams_sidehintfromtext",
       "community": 1,
       "norm_label": "sidehintfromtext()"
@@ -5478,7 +5478,7 @@
       "label": "getSportsDataTeamName()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L302",
+      "source_location": "L311",
       "id": "sportsdata_limitlessteams_getsportsdatateamname",
       "community": 1,
       "norm_label": "getsportsdatateamname()"
@@ -5487,7 +5487,7 @@
       "label": "mapRowsToMarkets()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L322",
+      "source_location": "L331",
       "id": "sportsdata_limitlessteams_maprowstomarkets",
       "community": 1,
       "norm_label": "maprowstomarkets()"
@@ -5496,7 +5496,7 @@
       "label": "getCachedLimitlessMarketsForTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L394",
+      "source_location": "L403",
       "id": "sportsdata_limitlessteams_getcachedlimitlessmarketsforteam",
       "community": 1,
       "norm_label": "getcachedlimitlessmarketsforteam()"
@@ -5505,7 +5505,7 @@
       "label": "getEntityLinkedLimitlessMarketsForTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L495",
+      "source_location": "L504",
       "id": "sportsdata_limitlessteams_getentitylinkedlimitlessmarketsforteam",
       "community": 1,
       "norm_label": "getentitylinkedlimitlessmarketsforteam()"
@@ -5514,7 +5514,7 @@
       "label": "getLimitlessMarketsForTeam()",
       "file_type": "code",
       "source_file": "src/sportsData/limitlessTeams.ts",
-      "source_location": "L565",
+      "source_location": "L574",
       "id": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
       "community": 1,
       "norm_label": "getlimitlessmarketsforteam()"
@@ -5851,6 +5851,60 @@
       "id": "workers_limitlesswebsocketticker_startlimitlesswebsocketticker",
       "community": 11,
       "norm_label": "startlimitlesswebsocketticker()"
+    },
+    {
+      "label": "polymarketMarketWs.ts",
+      "file_type": "code",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L1",
+      "id": "workers_polymarketmarketws",
+      "community": 3,
+      "norm_label": "polymarketmarketws.ts"
+    },
+    {
+      "label": "Logger",
+      "file_type": "code",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L6",
+      "id": "workers_polymarketmarketws_logger",
+      "community": 3,
+      "norm_label": "logger"
+    },
+    {
+      "label": "Quote",
+      "file_type": "code",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L7",
+      "id": "workers_polymarketmarketws_quote",
+      "community": 3,
+      "norm_label": "quote"
+    },
+    {
+      "label": "price()",
+      "file_type": "code",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L9",
+      "id": "workers_polymarketmarketws_price",
+      "community": 3,
+      "norm_label": "price()"
+    },
+    {
+      "label": "parseMarketQuotes()",
+      "file_type": "code",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L15",
+      "id": "workers_polymarketmarketws_parsemarketquotes",
+      "community": 3,
+      "norm_label": "parsemarketquotes()"
+    },
+    {
+      "label": "startPolymarketMarketWs()",
+      "file_type": "code",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L57",
+      "id": "workers_polymarketmarketws_startpolymarketmarketws",
+      "community": 3,
+      "norm_label": "startpolymarketmarketws()"
     },
     {
       "label": "polymarketPoolWs.ts",
@@ -6258,6 +6312,15 @@
       "norm_label": "directvaultdeposit.test.ts"
     },
     {
+      "label": "marketDataPipeline.test.ts",
+      "file_type": "code",
+      "source_file": "test/polymarket/marketDataPipeline.test.ts",
+      "source_location": "L1",
+      "id": "polymarket_marketdatapipeline_test",
+      "community": 14,
+      "norm_label": "marketdatapipeline.test.ts"
+    },
+    {
       "label": "v2Architecture.test.ts",
       "file_type": "code",
       "source_file": "test/polymarket/v2Architecture.test.ts",
@@ -6270,7 +6333,7 @@
       "label": "env()",
       "file_type": "code",
       "source_file": "test/polymarket/v2Architecture.test.ts",
-      "source_location": "L16",
+      "source_location": "L17",
       "id": "polymarket_v2architecture_test_env",
       "community": 14,
       "norm_label": "env()"
@@ -6477,10 +6540,19 @@
       "label": "Railway services",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L57",
+      "source_location": "L76",
       "id": "readme_railway_services",
       "community": 27,
       "norm_label": "railway services"
+    },
+    {
+      "label": "pUSD deposit pilot (API only)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L97",
+      "id": "readme_pusd_deposit_pilot_api_only",
+      "community": 27,
+      "norm_label": "pusd deposit pilot (api only)"
     },
     {
       "label": "POLYMARKET_V2_RUNBOOK.md",
@@ -6600,11 +6672,20 @@
       "norm_label": "pilot exit criteria"
     },
     {
+      "label": "VAULT_DEPOSIT_SELECTOR",
+      "file_type": "code",
+      "source_file": "src/polymarket/cdpSigner.ts",
+      "source_location": "L27",
+      "community": 20,
+      "norm_label": "vault_deposit_selector",
+      "id": "polymarket_cdpsigner_vault_deposit_selector"
+    },
+    {
       "label": "registerSwagger()",
       "file_type": "code",
       "source_file": "src/server/swagger.ts",
       "source_location": "L560",
-      "community": 22,
+      "community": 5,
       "norm_label": "registerswagger()",
       "id": "server_swagger_registerswagger"
     },
@@ -8050,9 +8131,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "config_env",
-      "confidence_score": 1.0
+      "target": "config_env"
     },
     {
       "relation": "imports_from",
@@ -8217,6 +8298,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "workers_limitlesswebsocketticker",
+      "target": "config_env"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
       "target": "config_env"
     },
     {
@@ -8523,9 +8615,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "config_env_env",
-      "confidence_score": 1.0
+      "target": "config_env_env"
     },
     {
       "relation": "imports",
@@ -8679,6 +8771,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "workers_limitlesswebsocketticker",
+      "target": "config_env_env"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
       "target": "config_env_env"
     },
     {
@@ -8858,6 +8961,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
+      "target": "config_log"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/workers/polymarketPoolWs.ts",
       "source_location": "L3",
       "weight": 1.0,
@@ -8973,6 +9087,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "src_index_ts_src_index",
+      "target": "config_log_createlogger"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
       "target": "config_log_createlogger"
     },
     {
@@ -9379,9 +9504,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "db_prisma",
-      "confidence_score": 1.0
+      "target": "db_prisma"
     },
     {
       "relation": "imports_from",
@@ -9480,6 +9605,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "workers_limitlesswebsocketticker",
+      "target": "db_prisma"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
       "target": "db_prisma"
     },
     {
@@ -9590,6 +9726,28 @@
       "confidence_score": 1.0,
       "source": "src_index",
       "target": "workers_limitlesswebsocketticker_startlimitlesswebsocketticker"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_index",
+      "target": "workers_polymarketmarketws"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_index",
+      "target": "workers_polymarketmarketws_startpolymarketmarketws"
     },
     {
       "relation": "imports_from",
@@ -9744,6 +9902,17 @@
       "confidence_score": 1.0,
       "source": "src_index_main",
       "target": "workers_limitlesswebsocketticker_startlimitlesswebsocketticker"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L47",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_index_main",
+      "target": "workers_polymarketmarketws_startpolymarketmarketws"
     },
     {
       "relation": "calls",
@@ -15916,9 +16085,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "onchain_polygonv2",
-      "confidence_score": 1.0
+      "target": "onchain_polygonv2"
     },
     {
       "relation": "imports_from",
@@ -16037,9 +16206,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "onchain_polygonv2_getpolygonprovider",
-      "confidence_score": 1.0
+      "target": "onchain_polygonv2_getpolygonprovider"
     },
     {
       "relation": "calls",
@@ -16048,9 +16217,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L50",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_loadvault",
-      "target": "onchain_polygonv2_getpolygonprovider",
-      "confidence_score": 1.0
+      "target": "onchain_polygonv2_getpolygonprovider"
     },
     {
       "relation": "imports",
@@ -16072,6 +16241,17 @@
       "source_location": "L34",
       "weight": 1.0,
       "source": "polymarket_tradeexecutor_returnidlepusdtovault",
+      "target": "onchain_polygonv2_getpolygonprovider"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L117",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "server_http",
       "target": "onchain_polygonv2_getpolygonprovider"
     },
     {
@@ -18490,6 +18670,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "test/polymarket/marketDataPipeline.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "polymarket_marketdatapipeline_test",
+      "target": "polymarket_accountingservice"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "src/server/http.ts",
       "source_location": "L111",
       "weight": 1.0,
@@ -18528,6 +18719,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "polymarket_accountingservice_reconcilepoolpolymarket",
+      "target": "polymarket_accountingservice_fetchdataapipositions"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/polymarket/marketDataPipeline.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "polymarket_marketdatapipeline_test",
       "target": "polymarket_accountingservice_fetchdataapipositions"
     },
     {
@@ -20720,9 +20922,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_confirmdirectpusddeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_confirmdirectpusddeposit"
     },
     {
       "relation": "contains",
@@ -20730,9 +20932,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_directdepositerror",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_directdepositerror"
     },
     {
       "relation": "contains",
@@ -20740,9 +20942,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_erc20",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_erc20"
     },
     {
       "relation": "contains",
@@ -20750,9 +20952,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_loadvault",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_loadvault"
     },
     {
       "relation": "contains",
@@ -20760,9 +20962,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_preparedirectpusddeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_preparedirectpusddeposit"
     },
     {
       "relation": "contains",
@@ -20770,9 +20972,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_readsinglevaultdeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_readsinglevaultdeposit"
     },
     {
       "relation": "contains",
@@ -20780,9 +20982,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_vaultabi",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_vaultabi"
     },
     {
       "relation": "contains",
@@ -20790,9 +20992,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit",
-      "target": "polymarket_directvaultdeposit_vaultinterface",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_vaultinterface"
     },
     {
       "relation": "imports_from",
@@ -20801,9 +21003,9 @@
       "source_file": "test/polymarket/directVaultDeposit.test.ts",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_test",
-      "target": "polymarket_directvaultdeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit"
     },
     {
       "relation": "imports_from",
@@ -20812,9 +21014,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "polymarket_directvaultdeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit"
     },
     {
       "relation": "calls",
@@ -20823,9 +21025,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_confirmdirectpusddeposit",
-      "target": "polymarket_directvaultdeposit_readsinglevaultdeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_readsinglevaultdeposit"
     },
     {
       "relation": "imports",
@@ -20834,9 +21036,9 @@
       "source_file": "test/polymarket/directVaultDeposit.test.ts",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_test",
-      "target": "polymarket_directvaultdeposit_readsinglevaultdeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_readsinglevaultdeposit"
     },
     {
       "relation": "method",
@@ -20844,9 +21046,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_directdepositerror",
-      "target": "polymarket_directvaultdeposit_directdepositerror_constructor",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_directdepositerror_constructor"
     },
     {
       "relation": "imports",
@@ -20855,9 +21057,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "polymarket_directvaultdeposit_directdepositerror",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_directdepositerror"
     },
     {
       "relation": "calls",
@@ -20866,9 +21068,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_confirmdirectpusddeposit",
-      "target": "polymarket_directvaultdeposit_loadvault",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_loadvault"
     },
     {
       "relation": "calls",
@@ -20877,9 +21079,9 @@
       "source_file": "src/polymarket/directVaultDeposit.ts",
       "source_location": "L69",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "polymarket_directvaultdeposit_preparedirectpusddeposit",
-      "target": "polymarket_directvaultdeposit_loadvault",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_loadvault"
     },
     {
       "relation": "imports",
@@ -20888,9 +21090,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "polymarket_directvaultdeposit_preparedirectpusddeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_preparedirectpusddeposit"
     },
     {
       "relation": "imports",
@@ -20899,9 +21101,9 @@
       "source_file": "src/server/http.ts",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_http",
-      "target": "polymarket_directvaultdeposit_confirmdirectpusddeposit",
-      "confidence_score": 1.0
+      "target": "polymarket_directvaultdeposit_confirmdirectpusddeposit"
     },
     {
       "relation": "contains",
@@ -22531,6 +22733,17 @@
       "target": "sportsdata_limitlessteams_listsportsdatateams"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/server/http.ts",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "server_http",
+      "target": "sportsdata_limitlessteams_sportsdatateamexists"
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -23382,6 +23595,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L220",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sportsdata_limitlessteams",
+      "target": "sportsdata_limitlessteams_sportsdatateamexists"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
       "source_location": "L84",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -23645,6 +23868,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "sportsdata_limitlessteams_getlimitlessmarketsforteam",
+      "target": "sportsdata_limitlessteams_assertuuid"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/sportsData/limitlessTeams.ts",
+      "source_location": "L221",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "sportsdata_limitlessteams_sportsdatateamexists",
       "target": "sportsdata_limitlessteams_assertuuid"
     },
     {
@@ -24472,6 +24706,89 @@
       "target": "workers_limitlesswebsocketticker_upsertwstrade"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/polymarket/marketDataPipeline.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "polymarket_marketdatapipeline_test",
+      "target": "workers_polymarketmarketws"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
+      "target": "workers_polymarketmarketws_logger"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
+      "target": "workers_polymarketmarketws_parsemarketquotes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
+      "target": "workers_polymarketmarketws_price"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
+      "target": "workers_polymarketmarketws_quote"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws",
+      "target": "workers_polymarketmarketws_startpolymarketmarketws"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/workers/polymarketMarketWs.ts",
+      "source_location": "L46",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "workers_polymarketmarketws_parsemarketquotes",
+      "target": "workers_polymarketmarketws_price"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "test/polymarket/marketDataPipeline.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "polymarket_marketdatapipeline_test",
+      "target": "workers_polymarketmarketws_parsemarketquotes"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/workers/polymarketPoolWs.ts",
@@ -25076,6 +25393,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L90",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "readme_teamindex_polygon_vault_direct_custody",
+      "target": "readme_pusd_deposit_pilot_api_only"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L57",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -25449,5 +25776,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8f53a4557a7c3fb7bcf0fc4da7378304f77a340f"
+  "built_at_commit": "6e1e7a8f2ffcd12f4abb78e338fda72fa1f8903f"
 }

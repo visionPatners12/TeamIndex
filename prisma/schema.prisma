@@ -167,6 +167,19 @@ model pool_selected_markets {
   @@index([poolId])
 }
 
+// Latest public CLOB top-of-book quote for a Polygon outcome token.
+model polymarket_market_quotes {
+  tokenId    String   @id
+  conditionId String?
+  bestBid    Decimal? @db.Decimal(20, 8)
+  bestAsk    Decimal? @db.Decimal(20, 8)
+  source     String
+  observedAt DateTime
+  updatedAt  DateTime @updatedAt
+
+  @@index([observedAt])
+}
+
 // Accepted allocation proposals saved by admin
 model pool_allocation_proposals {
   id                  String   @id @default(cuid())

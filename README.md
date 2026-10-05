@@ -46,11 +46,30 @@ npx prisma migrate deploy
 
 ## Polygon deployment
 
-Set `POLYGON_RPC_URL`, Hardhat's Polygon deployer key, `POLYMARKET_OPERATOR_ADDRESS` and `POLYMARKET_VALUATOR_ADDRESS`, then run:
+Set `RPC_URL` (or `POLYGON_RPC_URL`), Hardhat's Polygon deployer key
+`EXECUTOR_PRIVATE_KEY` (or `POLYGON_EXECUTOR_PRIVATE_KEY`),
+`POLYMARKET_OPERATOR_ADDRESS`, and `POLYMARKET_VALUATOR_ADDRESS`.
+The deployer pays Polygon gas and initially owns the contracts. Before any
+transaction, check the chain, pUSD bytecode/decimals, current gas price and
+the full deployment budget:
+
+```bash
+TEAM_INDEX_DEPLOY_DRY_RUN=true npm run contracts:deploy:polygon:v2
+```
+
+The deployment refuses to broadcast while gas exceeds
+`TEAM_INDEX_MAX_DEPLOY_GWEI` (default `60`) or the wallet lacks enough POL for
+the complete deployment with a 20% fee buffer. When the preflight passes, run:
 
 ```bash
 npm run contracts:deploy:polygon:v2
 ```
+
+The script prints each confirmed transaction hash and address, then a final
+JSON manifest. The implementation, registry, factory and escrow are
+shared infrastructure; a **pool's vault address is different** and exists
+only after creating that pool with its own Polymarket Deposit Wallet. Do not
+use the implementation or factory address as a deposit receiver.
 
 The V2 deploy script is retained for recovery testing. Do not call the legacy bootstrap or approvals endpoints: they return HTTP `501` until Polymarket supports the TeamIndex vault account type.
 
@@ -63,6 +82,13 @@ Build every service with `npm run build`, then use one start command per service
 - trade executor: `npm run start:executor`
 - accounting/valuation: `npm run start:accounting`
 - authenticated pool WebSockets: `npm run start:pool-ws`
+- public market price stream: `PROCESS_ROLE=market-ws npm start`
+
+The market worker subscribes to selected outcome tokens and open-position
+tokens, stores fresh best bids and asks in `polymarket_market_quotes`, and
+reconnects when subscriptions change. The accounting worker uses a fresh best
+bid to value held positions, writes both valuation and chart snapshots, and
+falls back to the paginated Data API when no recent stream bid exists.
 
 Only the private signer service receives CDP and builder credentials. It must not have a public Railway domain. API, executor and WebSocket services call it through `POLYMARKET_SIGNER_URL` with `POLYMARKET_SIGNER_TOKEN`. The Polygon operator/valuator key remains separate in `POLYGON_EXECUTOR_PRIVATE_KEY`; no key rotation is implemented.
 
@@ -80,8 +106,20 @@ For an API-only Railway service, build with `npm run build` and start with
 `npm run start:api`. Set `DATABASE_URL`, `TRADING_PROVIDER=polymarket`,
 `POLYGON_RPC_URL`, `ADMIN_API_KEY`, and `PROCESS_ROLE=api`. Run
 `npx prisma migrate deploy` against the intended database before enabling
-deposits. Check `/health`: `db` must be `true` and `deposits.chainId` must be
-`137`.
+deposits. `DATABASE_URL` must point to PostgreSQL with `schema=team_index`.
+A Supabase secret API key cannot replace it: this service uses Prisma SQL
+transactions and migrations. Check `/health`: `db` and `sportsData` must both
+be `true`, and `deposits.chainId` must be `137`.
+
+`POST /admin/pools` requires `primarySportsDataTeamId`, the exact UUID of an
+existing `sports_data.teams` row. The API rejects an unknown team and a second
+index for the same team. For example, the current FC Barcelona row in the
+connected sports database has ID `64e9330e-df17-44fc-88b4-37def5929767`;
+look it up again before creating a live pool. A pool created without a vault
+starts `PAUSED`. To activate it, attach a deployed Polygon pUSD V2 vault with
+`PATCH /admin/pools/:poolId` and set `status` to `ACTIVE`. The API checks its
+pUSD asset and Deposit Wallet. The frontend joins this same UUID to the club
+profile for the logo and team-page link.
 
 Leave `TEAM_INDEX_PUSD_DEPOSITS_ENABLED=false` until the pool record points to
 a deployed `TeamIndexPUSDVaultV2` on Polygon with pUSD as its asset, and its

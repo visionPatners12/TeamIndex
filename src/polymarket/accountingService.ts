@@ -28,18 +28,28 @@ function safeNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-async function fetchDataApiPositions(env: Env, address: string): Promise<DataApiPosition[]> {
-  const url = new URL("/positions", env.POLYMARKET_DATA_API_URL);
-  url.searchParams.set("user", address);
-  url.searchParams.set("sizeThreshold", "0");
-  url.searchParams.set("limit", "500");
-  const response = await fetch(url, {
-    headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!response.ok) throw new Error(`Polymarket positions API failed (${response.status})`);
-  const payload = await response.json();
-  return Array.isArray(payload) ? payload : [];
+export async function fetchDataApiPositions(env: Env, address: string): Promise<DataApiPosition[]> {
+  const positions: DataApiPosition[] = [];
+  const pageSize = 500;
+  for (let offset = 0; offset <= 10_000; offset += pageSize) {
+    const url = new URL("/positions", env.POLYMARKET_DATA_API_URL);
+    url.searchParams.set("user", address);
+    url.searchParams.set("sizeThreshold", "0");
+    url.searchParams.set("includeArchived", "true");
+    url.searchParams.set("limit", String(pageSize));
+    url.searchParams.set("offset", String(offset));
+    const response = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) throw new Error(`Polymarket positions API failed (${response.status})`);
+    const payload: unknown = await response.json();
+    if (!Array.isArray(payload)) throw new Error("Polymarket positions API returned an invalid page");
+    positions.push(...payload as DataApiPosition[]);
+    if (payload.length < pageSize) return positions;
+  }
+  // Never close DB positions on the basis of a truncated remote response.
+  throw new Error("Polymarket positions exceed the paginated Data API limit");
 }
 
 function tradeOrderId(trade: any): string | null {
@@ -56,6 +66,13 @@ export async function reconcilePoolPolymarket(env: Env, poolId: string) {
     clob.getTrades({}, true),
   ]);
   const now = new Date();
+  const quotes = await prisma.polymarket_market_quotes.findMany({
+    where: {
+      tokenId: { in: positions.map((position) => String(position.asset ?? "")).filter(Boolean) },
+      observedAt: { gte: new Date(now.getTime() - 30_000) },
+    },
+  });
+  const quoteByToken = new Map(quotes.map((quote) => [quote.tokenId, quote]));
 
   await prisma.$transaction(async (tx) => {
     const activeTokenIds = new Set<string>();
@@ -66,8 +83,13 @@ export async function reconcilePoolPolymarket(env: Env, poolId: string) {
       activeTokenIds.add(tokenId);
       const quantity = safeNumber(position.size);
       const averagePrice = safeNumber(position.avgPrice);
-      const currentPrice = safeNumber(position.curPrice);
-      const currentValue = safeNumber(position.currentValue) || quantity * currentPrice;
+      // A fresh executable bid gives a conservative mark for a held outcome.
+      // Fall back to the Data API only when the market stream has no fresh bid.
+      const liveBid = quoteByToken.get(tokenId)?.bestBid;
+      const currentPrice = liveBid !== null && liveBid !== undefined
+        ? Number(liveBid) : safeNumber(position.curPrice);
+      const currentValue = liveBid !== null && liveBid !== undefined
+        ? quantity * currentPrice : safeNumber(position.currentValue) || quantity * currentPrice;
       const realizedPnl = safeNumber(position.realizedPnl);
       const cashPnl = safeNumber(position.cashPnl);
       await tx.pool_polymarket_positions.upsert({
@@ -248,6 +270,16 @@ export async function refreshPoolAccounting(env: Env, poolId: string) {
         realizedPnl: positions.reduce((sum, position) => sum + safeNumber(position.realizedPnl), 0),
         totalPoolValue,
         totalTokenSupply: totalSupplyHuman,
+        officialTokenPrice,
+      },
+    }),
+    prisma.club_pool_price_snapshots.create({
+      data: {
+        poolId,
+        cash,
+        positionsValue,
+        realizedPnl: positions.reduce((sum, position) => sum + safeNumber(position.realizedPnl), 0),
+        totalPoolValue,
         officialTokenPrice,
       },
     }),

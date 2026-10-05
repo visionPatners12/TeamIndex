@@ -78,7 +78,13 @@ export async function fetchPolymarketMarketData(
     : typeof gamma?.outcomePrices === "string"
       ? JSON.parse(gamma.outcomePrices)
       : [];
-  const midpoint = bestBid > 0 && bestAsk < 1 ? (bestBid + bestAsk) / 2 : n(gammaPrices[0], 0.5);
+  const gammaPrice = n(gammaPrices[market.selectedSide === "NO" ? 1 : 0], NaN);
+  const midpoint = bestBid > 0 && bestAsk < 1
+    ? (bestBid + bestAsk) / 2
+    : gammaPrice;
+  if (!Number.isFinite(midpoint) || midpoint <= 0 || midpoint >= 1) {
+    throw new Error(`No valid price for Polymarket token ${market.tokenId}`);
+  }
   const endDate = gamma?.endDate ? new Date(gamma.endDate).getTime() : Date.now() + 30 * 86_400_000;
   const daysToResolution = Math.max(0, (endDate - Date.now()) / 86_400_000);
 

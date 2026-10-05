@@ -10,8 +10,8 @@
     "semantic_hash": ""
   },
   "hardhat.config.ts": {
-    "mtime": 1779894157.9684358,
-    "ast_hash": "e329b60cd2e169db3642dc9573a898e9",
+    "mtime": 1791133339.9101074,
+    "ast_hash": "f666c1b18362aeb75a07044f04cbdb47",
     "semantic_hash": ""
   },
   "package.json": {
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/config/env.ts": {
-    "mtime": 1791129927.160954,
-    "ast_hash": "eebf9e915ac7ce8c11fe7168e16d3c98",
+    "mtime": 1791186590.361671,
+    "ast_hash": "832fbeae01e1710e9cda3938d795921c",
     "semantic_hash": ""
   },
   "src/config/log.ts": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "src/index.ts": {
-    "mtime": 1784078560.453669,
-    "ast_hash": "23afee44b7f035b8e30f4a763511e3ba",
+    "mtime": 1791186590.362558,
+    "ast_hash": "ee591586eb1bb8b6815a7463d2873ba2",
     "semantic_hash": ""
   },
   "src/limitless/limitlessClient.ts": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/server/http.ts": {
-    "mtime": 1791132031.3356328,
-    "ast_hash": "99eab3e2ab36cae582d2e94344ceb66a",
+    "mtime": 1791186835.6494207,
+    "ast_hash": "c6a8b8fd6377c1e0140ad2e8392648ab",
     "semantic_hash": ""
   },
   "src/server/swagger.ts": {
@@ -285,8 +285,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1784957164.3885162,
-    "ast_hash": "660ae93a7bec41af2c4180c8d64dfcbf",
+    "mtime": 1791186835.650312,
+    "ast_hash": "fdcfbd70f83aa2b55c3c51085d7558c3",
     "semantic_hash": ""
   },
   "prisma/migrations/20260606000000_add_sports_data_team_id/migration.sql": {
@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "src/sportsData/limitlessTeams.ts": {
-    "mtime": 1784078738.2764568,
-    "ast_hash": "051cec5caaf988eb308d35e42b468ab5",
+    "mtime": 1791134481.325685,
+    "ast_hash": "5a6c23270a46691e15a16efd3dc50d56",
     "semantic_hash": ""
   },
   "test/contracts/shareExchange.test.ts": {
@@ -410,8 +410,8 @@
     "semantic_hash": ""
   },
   "scripts/deployPolygonV2.ts": {
-    "mtime": 1784077552.6858962,
-    "ast_hash": "7a463d094869acefc7c46ea1f0dd1b2e",
+    "mtime": 1791186870.2687004,
+    "ast_hash": "3434366759b7286f7ac767df2f246797",
     "semantic_hash": ""
   },
   "src/contracts/teamIndexPusdVaultV2.ts": {
@@ -430,13 +430,13 @@
     "semantic_hash": ""
   },
   "src/polymarket/accountingService.ts": {
-    "mtime": 1784077800.7257822,
-    "ast_hash": "3d3b7b8328d154ba335e2369f2a0b8fb",
+    "mtime": 1791186756.2100325,
+    "ast_hash": "d0413ed53772727edfb04877054f5b99",
     "semantic_hash": ""
   },
   "src/polymarket/cdpSigner.ts": {
-    "mtime": 1784076995.4232602,
-    "ast_hash": "8dcfb2dd47f484c34e4dd859ab4a326f",
+    "mtime": 1791187723.9218166,
+    "ast_hash": "86a75ee0c582a3935bfa98a60a17ad66",
     "semantic_hash": ""
   },
   "src/polymarket/constants.ts": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "src/polymarket/marketData.ts": {
-    "mtime": 1784078112.7242255,
-    "ast_hash": "1a91a9781ad81504d9b205a773770e4d",
+    "mtime": 1791186676.6231313,
+    "ast_hash": "1172cab54a7ec89effaedf9dd0d4197f",
     "semantic_hash": ""
   },
   "src/polymarket/money.ts": {
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "test/polymarket/v2Architecture.test.ts": {
-    "mtime": 1784956639.5816188,
-    "ast_hash": "cbd137a2164a1bcab232e533c43bec2f",
+    "mtime": 1791187165.7387593,
+    "ast_hash": "91e39f027e4b7c69afc45fcabe502663",
     "semantic_hash": ""
   },
   "docs/POLYMARKET_V2_RUNBOOK.md": {
@@ -525,13 +525,28 @@
     "semantic_hash": ""
   },
   "src/polymarket/directVaultDeposit.ts": {
-    "mtime": 1791130928.6853466,
-    "ast_hash": "2bc50ca346895d16e576a24e27258e10",
+    "mtime": 1791186458.147136,
+    "ast_hash": "15376b9a030604b9aec217f943db650f",
     "semantic_hash": ""
   },
   "test/polymarket/directVaultDeposit.test.ts": {
     "mtime": 1791130948.1902137,
     "ast_hash": "1f2767f3d1bec1b891bfc3b93ce82488",
+    "semantic_hash": ""
+  },
+  "prisma/migrations/20261005000000_polymarket_market_quotes/migration.sql": {
+    "mtime": 1791186532.4937046,
+    "ast_hash": "e64ab52aa784a75b306b8b16cafca52b",
+    "semantic_hash": ""
+  },
+  "src/workers/polymarketMarketWs.ts": {
+    "mtime": 1791186992.1999884,
+    "ast_hash": "d61be3db7ef5f069f4451fdf60ae60d9",
+    "semantic_hash": ""
+  },
+  "test/polymarket/marketDataPipeline.test.ts": {
+    "mtime": 1791186756.2106423,
+    "ast_hash": "f7d2db42da9efc6b02d59127938c8f44",
     "semantic_hash": ""
   }
 }

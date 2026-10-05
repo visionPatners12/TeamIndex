@@ -2,11 +2,19 @@ import { z } from "zod";
 
 const EnvSchema = z.object({
   NODE_ENV: z.string().optional().default("development"),
-  DATABASE_URL: z.string().min(1),
+  DATABASE_URL: z.string().refine((value) => {
+    try {
+      const url = new URL(value);
+      return ["postgres:", "postgresql:"].includes(url.protocol)
+        && url.searchParams.get("schema") === "team_index";
+    } catch {
+      return false;
+    }
+  }, "DATABASE_URL must be a PostgreSQL connection URL with ?schema=team_index; a Supabase API key cannot replace it"),
   ADMIN_API_KEY: z.string().optional(),
   TRADING_PROVIDER: z.enum(["polymarket", "legacy-disabled"]).optional().default("polymarket"),
   PROCESS_ROLE: z
-    .enum(["all", "api", "executor", "signer", "accounting", "pool-ws"])
+    .enum(["all", "api", "executor", "signer", "accounting", "pool-ws", "market-ws"])
     .optional()
     .default("all"),
 
@@ -22,6 +30,8 @@ const EnvSchema = z.object({
     .url()
     .optional()
     .default("wss://ws-subscriptions-clob.polymarket.com/ws/user"),
+  POLYMARKET_MARKET_WS_URL: z.string().url().optional()
+    .default("wss://ws-subscriptions-clob.polymarket.com/ws/market"),
   POLYMARKET_BUILDER_CODE: z.string().optional(),
   POLYMARKET_PUSD_ADDRESS: z
     .string()
@@ -160,6 +170,7 @@ export function loadEnv(): Env {
     POLYMARKET_DATA_API_URL: process.env.POLYMARKET_DATA_API_URL,
     POLYMARKET_RELAYER_URL: process.env.POLYMARKET_RELAYER_URL ?? process.env.POLY_RELAYER_URL,
     POLYMARKET_USER_WS_URL: process.env.POLYMARKET_USER_WS_URL ?? process.env.PM_USER_WS_URL,
+    POLYMARKET_MARKET_WS_URL: process.env.POLYMARKET_MARKET_WS_URL,
     POLYMARKET_BUILDER_CODE: process.env.POLYMARKET_BUILDER_CODE,
     POLYMARKET_PUSD_ADDRESS: process.env.POLYMARKET_PUSD_ADDRESS ?? process.env.POLY_PUSD_ADDRESS,
     POLYMARKET_CTF_ADDRESS: process.env.POLYMARKET_CTF_ADDRESS,

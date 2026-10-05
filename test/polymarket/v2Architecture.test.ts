@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { CdpPolymarketSigner } from "../../src/polymarket/cdpSigner";
+import { encodeFunctionData, parseAbi } from "viem";
 import { decryptPoolCredential, encryptPoolCredential } from "../../src/polymarket/credentialCrypto";
 import { baseUnitsToDecimal, decimalToBaseUnits } from "../../src/polymarket/money";
 import { stableJson } from "../../src/polymarket/stableJson";
@@ -97,6 +98,28 @@ describe("Polymarket V2 backend architecture", function () {
         "Batch",
       ),
       /rejected Deposit Wallet batch target/,
+    );
+  });
+
+  it("rejects pUSD transfers to an attacker even with an allowlisted token target", async function () {
+    const signer = new CdpPolymarketSigner(env(), {
+      ownerAddress: owner,
+      depositWalletAddress: depositWallet,
+      vaultAddress: vault,
+    });
+    const data = encodeFunctionData({
+      abi: parseAbi(["function transfer(address to,uint256 amount)"]),
+      functionName: "transfer",
+      args: ["0x4444444444444444444444444444444444444444", 1n],
+    });
+    await assert.rejects(
+      signer.signTypedData(
+        { chainId: 137, verifyingContract: depositWallet },
+        { Batch: [{ name: "wallet", type: "address" }] },
+        { wallet: depositWallet, calls: [{ target: env().POLYMARKET_PUSD_ADDRESS, value: "0", data }] },
+        "Batch",
+      ),
+      /rejected pUSD transfer outside/,
     );
   });
 

@@ -83,6 +83,7 @@ import {
   assertUuid,
   getLimitlessMarketsForTeam,
   listSportsDataTeams,
+  sportsDataTeamExists,
 } from "../sportsData/limitlessTeams";
 import {
   getBaseBlockNumber,
@@ -114,6 +115,7 @@ import { createPoolClobClient } from "../polymarket/poolClobClient";
 import { fetchPolymarketMarketData } from "../polymarket/marketData";
 import { CdpPolymarketSigner } from "../polymarket/cdpSigner";
 import {
+  getPolygonProvider,
   getPusdVaultV2,
   makePoolRedemptionClaimable,
   pausePoolVaultV2,
@@ -498,13 +500,14 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   }
 
   app.get("/health", async (_req, res) => {
-    const dbOk = await prisma
-      .$queryRaw`SELECT 1`
-      .then(() => true)
-      .catch(() => false);
-    res.json({
-      ok: true,
+    const [dbOk, sportsDataOk] = await Promise.all([
+      prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false),
+      prisma.$queryRaw`SELECT 1 FROM sports_data.teams LIMIT 0`.then(() => true).catch(() => false),
+    ]);
+    res.status(dbOk && sportsDataOk ? 200 : 503).json({
+      ok: dbOk && sportsDataOk,
       db: dbOk,
+      sportsData: sportsDataOk,
       trading: POLYMARKET_VAULT_DIRECT_CAPABILITY,
       deposits: { enabled: env.TEAM_INDEX_PUSD_DEPOSITS_ENABLED === "true", asset: "pUSD", chainId: 137 },
     });
@@ -1030,6 +1033,23 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     res.json({ ok: true, balances, summary, positions });
   });
 
+  app.get("/pools/:poolId/market-prices", async (req, res) => {
+    const poolId = req.params.poolId;
+    const pool = await prisma.club_pools.findUnique({ where: { id: poolId }, select: { id: true } });
+    if (!pool) return res.status(404).json({ error: "Pool not found" });
+    const [markets, positions] = await Promise.all([
+      prisma.pool_selected_markets.findMany({ where: { poolId, enabled: true }, select: { tokenId: true } }),
+      prisma.pool_polymarket_positions.findMany({ where: { poolId, status: "OPEN" }, select: { tokenId: true } }),
+    ]);
+    const tokenIds = [...new Set([...markets, ...positions].map((row) => row.tokenId))];
+    const quotes = await prisma.polymarket_market_quotes.findMany({ where: { tokenId: { in: tokenIds } } });
+    const now = Date.now();
+    res.json({ ok: true, provider: "polymarket-v2", quotes: quotes.map((quote) => ({
+      ...quote,
+      stale: now - quote.observedAt.getTime() > 30_000,
+    })) });
+  });
+
   // ─── Redeem a RESOLVED position's payout for the pool server wallet ───────────
   // Admin-only. Claims the on-chain USDC of a resolved Limitless market into the
   // pool, then re-runs settlement so the DB / NAV reflect the payout.
@@ -1338,7 +1358,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
     sportsDataTeamId: z.string().uuid().optional(),
     totalTokenSupply: z.number().optional().default(0),
     depositCap: z.coerce.bigint().optional().default(0n),
-    vaultAddress: z.string().optional(),
+    vaultAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
     deployOnchain: z.boolean().optional().default(false),
     createLimitlessAccount: z.boolean().optional(),
     riskParams: z
@@ -1349,6 +1369,28 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       })
       .optional()
   });
+
+  async function validatePolygonPusdVault(vaultAddress: string): Promise<string | null> {
+    try {
+      if (await getPolygonProvider(env).getCode(vaultAddress) === "0x") {
+        return "Pool vault is not deployed on Polygon";
+      }
+      const vault = getPusdVaultV2(env, vaultAddress);
+      const [asset, depositWallet] = await Promise.all([
+        (vault as any).asset(),
+        (vault as any).depositWallet(),
+      ]);
+      if (String(asset).toLowerCase() !== env.POLYMARKET_PUSD_ADDRESS.toLowerCase()) {
+        return "Pool vault asset is not Polygon pUSD";
+      }
+      if (!ethers.isAddress(depositWallet) || depositWallet === ethers.ZeroAddress) {
+        return "Pool vault has no Deposit Wallet";
+      }
+      return null;
+    } catch (error: any) {
+      return error?.message ?? "Pool vault could not be verified on Polygon";
+    }
+  }
 
   // Deploys via the backend owner wallet. ClubVaultFactory.createClubVault is onlyOwner,
   // so returning an unsigned tx for a random MetaMask account causes OwnableUnauthorizedAccount.
@@ -1473,6 +1515,24 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       if (!primarySportsDataTeamId) {
         return res.status(400).json({ ok: false, error: "primarySportsDataTeamId is required" });
       }
+      if (body.primarySportsDataTeamId && body.sportsDataTeamId
+        && body.primarySportsDataTeamId.toLowerCase() !== body.sportsDataTeamId.toLowerCase()) {
+        return res.status(400).json({ ok: false, error: "Conflicting sports_data team IDs" });
+      }
+      if (!await sportsDataTeamExists(prisma, primarySportsDataTeamId)) {
+        return res.status(422).json({ ok: false, error: "Team not found in sports_data.teams" });
+      }
+      const existingTeamPool = await prisma.club_pools.findFirst({
+        where: { OR: [{ primarySportsDataTeamId }, { sportsDataTeamId: primarySportsDataTeamId }] },
+        select: { id: true },
+      });
+      if (existingTeamPool) {
+        return res.status(409).json({ ok: false, error: "An index already exists for this sports_data team", poolId: existingTeamPool.id });
+      }
+      if (body.vaultAddress) {
+        const vaultError = await validatePolygonPusdVault(body.vaultAddress);
+        if (vaultError) return res.status(422).json({ ok: false, error: vaultError });
+      }
       if (
         env.TRADING_PROVIDER === "polymarket"
         && body.deployOnchain
@@ -1504,7 +1564,7 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
               totalTokenSupply: "0",
               officialTokenPrice: "1",
               riskParams,
-              status: "ACTIVE",
+              status: body.vaultAddress ? "ACTIVE" : "PAUSED",
             },
           });
           await tx.pool_teams.create({
@@ -1624,9 +1684,10 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
   });
 
   app.patch("/admin/pools/:poolId", requireAdmin, async (req, res) => {
-    const { poolId } = req.params;
-    const updateSchema = z.object({
-      vaultAddress: z.string().optional(),
+    try {
+      const { poolId } = req.params;
+      const updateSchema = z.object({
+      vaultAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
       primarySportsDataTeamId: z.string().uuid().nullable().optional(),
       sportsDataTeamId: z.string().uuid().nullable().optional(),
       status: z.enum(["ACTIVE", "PAUSED"]).optional(),
@@ -1635,19 +1696,63 @@ export function startHttpServer({ env, logger }: { env: Env; logger: ReturnType<
       totalTokenSupply: z.string().optional(),
       depositCap: z.string().optional(),
     });
-    const body = updateSchema.parse(req.body);
-    const data: Record<string, unknown> = { ...body };
-    if (body.primarySportsDataTeamId && body.sportsDataTeamId === undefined) {
-      data.sportsDataTeamId = body.primarySportsDataTeamId;
+      const body = updateSchema.parse(req.body);
+      const changingTeam = body.primarySportsDataTeamId !== undefined || body.sportsDataTeamId !== undefined;
+      const teamId = body.primarySportsDataTeamId ?? body.sportsDataTeamId;
+      if (changingTeam && !teamId) return res.status(400).json({ ok: false, error: "A pool must remain linked to a sports_data team" });
+      if (body.primarySportsDataTeamId && body.sportsDataTeamId
+        && body.primarySportsDataTeamId.toLowerCase() !== body.sportsDataTeamId.toLowerCase()) {
+        return res.status(400).json({ ok: false, error: "Conflicting sports_data team IDs" });
+      }
+      if (teamId) {
+        if (!await sportsDataTeamExists(prisma, teamId)) {
+          return res.status(422).json({ ok: false, error: "Team not found in sports_data.teams" });
+        }
+        const otherPool = await prisma.club_pools.findFirst({
+          where: { id: { not: poolId }, OR: [{ primarySportsDataTeamId: teamId }, { sportsDataTeamId: teamId }] },
+          select: { id: true },
+        });
+        if (otherPool) return res.status(409).json({ ok: false, error: "An index already exists for this sports_data team", poolId: otherPool.id });
+      }
+      if (body.vaultAddress || body.status === "ACTIVE") {
+        const currentPool = await prisma.club_pools.findUnique({
+          where: { id: poolId },
+          select: { vaultAddress: true, primarySportsDataTeamId: true, sportsDataTeamId: true },
+        });
+        if (!currentPool) return res.status(404).json({ ok: false, error: "Pool not found" });
+        if (body.status === "ACTIVE") {
+          const linkedTeamId = teamId ?? currentPool.primarySportsDataTeamId ?? currentPool.sportsDataTeamId;
+          if (!linkedTeamId || !await sportsDataTeamExists(prisma, linkedTeamId)) {
+            return res.status(422).json({ ok: false, error: "Pool must link to an existing sports_data team before activation" });
+          }
+        }
+        const candidateVault = body.vaultAddress ?? currentPool.vaultAddress;
+        if (!candidateVault) return res.status(422).json({ ok: false, error: "Pool vault is required before activation" });
+        const vaultError = await validatePolygonPusdVault(candidateVault);
+        if (vaultError) return res.status(422).json({ ok: false, error: vaultError });
+      }
+      const data: Record<string, unknown> = { ...body };
+      if (teamId) {
+        data.primarySportsDataTeamId = teamId;
+        data.sportsDataTeamId = teamId;
+      }
+      const pool = await prisma.$transaction(async (tx) => {
+        const updated = await tx.club_pools.update({ where: { id: poolId }, data });
+        if (teamId) {
+          await tx.pool_teams.deleteMany({ where: { poolId, role: "PRIMARY" } });
+          await tx.pool_teams.upsert({
+            where: { poolId_sportsDataTeamId: { poolId, sportsDataTeamId: teamId } },
+            create: { poolId, sportsDataTeamId: teamId, role: "PRIMARY", weight: "1" },
+            update: { role: "PRIMARY", weight: "1" },
+          });
+        }
+        return updated;
+      });
+      res.json({ ok: true, pool });
+    } catch (error: any) {
+      res.status(error instanceof z.ZodError ? 400 : 500)
+        .json({ ok: false, error: error?.message ?? "Pool update failed" });
     }
-    if (body.sportsDataTeamId && body.primarySportsDataTeamId === undefined) {
-      data.primarySportsDataTeamId = body.sportsDataTeamId;
-    }
-    const pool = await prisma.club_pools.update({
-      where: { id: poolId },
-      data
-    });
-    res.json({ ok: true, pool });
   });
 
   app.delete("/admin/pools/:poolId", requireAdmin, async (req, res) => {

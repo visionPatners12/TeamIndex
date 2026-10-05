@@ -7,6 +7,7 @@ import {
   startPolymarketExecutorTicker,
 } from "./workers/polymarketV2Ticker";
 import { startPolymarketPoolWs } from "./workers/polymarketPoolWs";
+import { startPolymarketMarketWs } from "./workers/polymarketMarketWs";
 
 async function main() {
   const env = loadEnv();
@@ -41,6 +42,9 @@ async function main() {
 
   if (["all", "pool-ws"].includes(env.PROCESS_ROLE)) {
     startPolymarketPoolWs(env, logger);
+  }
+  if (["all", "market-ws"].includes(env.PROCESS_ROLE)) {
+    startPolymarketMarketWs(env, logger);
   }
 
   logger.info("Limitless workers are legacy-disabled; no Limitless runtime was started");

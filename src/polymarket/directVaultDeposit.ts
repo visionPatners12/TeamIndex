@@ -135,7 +135,7 @@ export async function confirmDirectPusdDeposit(env: Env, poolId: string, txHash:
       data: {
         cash: formatUnits(cash, PUSD_DECIMALS),
         totalPoolValue: formatUnits(totalAssets, PUSD_DECIMALS),
-        totalTokenSupply: totalSupply.toString(),
+        totalTokenSupply: formatUnits(totalSupply, PUSD_DECIMALS),
         officialTokenPrice: price,
       },
     });

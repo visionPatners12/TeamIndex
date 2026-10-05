@@ -216,6 +216,15 @@ export async function listSportsDataTeams(prisma: PrismaClient): Promise<SportsD
   return teams;
 }
 
+/** Reject an index link unless the canonical sports_data team row exists. */
+export async function sportsDataTeamExists(prisma: PrismaClient, teamId: string): Promise<boolean> {
+  assertUuid(teamId, "teamId");
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    select id::text as id from sports_data.teams where id = ${teamId}::uuid limit 1
+  `;
+  return rows.length === 1;
+}
+
 export async function listLimitlessTeams(
   prisma: PrismaClient,
   options?: { onlyWithLimitlessMarkets?: boolean }

@@ -24,8 +24,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     polygon: {
-      url: process.env.RPC_URL || "",
-      accounts: process.env.EXECUTOR_PRIVATE_KEY ? [process.env.EXECUTOR_PRIVATE_KEY] : []
+      url: process.env.RPC_URL || process.env.POLYGON_RPC_URL || "",
+      accounts: process.env.EXECUTOR_PRIVATE_KEY || process.env.POLYGON_EXECUTOR_PRIVATE_KEY
+        ? [process.env.EXECUTOR_PRIVATE_KEY || process.env.POLYGON_EXECUTOR_PRIVATE_KEY!]
+        : []
     },
     base: {
       url: process.env.BASE_RPC_URL || "",
